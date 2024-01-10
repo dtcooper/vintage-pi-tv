@@ -1,4 +1,4 @@
-name: Build Raspberry Pi OS Image
+name: Build Retro Pi TV
 
 on:
   push:
@@ -17,7 +17,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    name: Build Retro Pi TV image
+    name: Build image
     steps:
       -
         name: Checkout
@@ -25,17 +25,18 @@ jobs:
         with:
           fetch-depth: 0
       -
+        id: vars
         name: Set vars
         shell: bash
         run: |
-          echo "IMAGE_PATH=$(date +%Y-%m-%d)-raspios-bookworm-${{ matrix.arch }}-retro-pi-tv.img" >> "${GITHUB_ENV}"
+          echo "image-path=$(date +%Y-%m-%d)-raspios-bookworm-arm64-retro-pi-tv.img" >> "${GITHUB_OUTPUT}"
       -
         name: Create Raspberry Pi OS image
         uses: dtcooper/rpi-image-modifier@main
         id: create-image
         with:
           base-image-url: ${{ env.BASE_IMAGE_URL }}
-          image-path: ${{ env.IMAGE_PATH }}
+          image-path: ${{ steps.vars.outcome.image-path }}
           compress-with-xz: true
           cache: true
           run: |
