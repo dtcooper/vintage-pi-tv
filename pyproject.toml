@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "retro-pi-tv"
+version = "0.0.1-dev"
+description = "Retro TV for Raspberry Pi"
+authors = ["David Cooper <david@dtcooper.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+mpv = "^1.0.5"
+pygame-ce = "^2.4.0"
+tomlkit = "^0.12.3"
+
+
+[tool.poetry.group.dev.dependencies]
+ipdb = "^0.13.13"
+ipython = "^8.20.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
