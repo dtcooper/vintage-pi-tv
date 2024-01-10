@@ -12,20 +12,12 @@ concurrency:
 
 env:
   POETRY_VERSION: 1.7.1
+  BASE_IMAGE_URL: https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2023-12-11/2023-12-11-raspios-bookworm-arm64-lite.img.xz
 
 jobs:
   build:
     runs-on: ubuntu-22.04
     name: Build Retro Pi TV image
-    strategy:
-      matrix:
-        include:
-          -
-            arch: arm64
-            base-image-url: https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2023-12-11/2023-12-11-raspios-bookworm-arm64-lite.img.xz
-          -
-            arch: armhf
-            base-image-url: https://downloads.raspberrypi.com/raspios_lite_armhf/images/raspios_lite_armhf-2023-12-11/2023-12-11-raspios-bookworm-armhf-lite.img.xz
     steps:
       -
         name: Checkout
@@ -42,7 +34,7 @@ jobs:
         uses: dtcooper/rpi-image-modifier@main
         id: create-image
         with:
-          base-image-url: ${{ matrix.base-image-url }}
+          base-image-url: ${{ env.BASE_IMAGE_URL }}
           image-path: ${{ env.IMAGE_PATH }}
           compress-with-xz: true
           cache: true
