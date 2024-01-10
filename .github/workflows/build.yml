@@ -1,0 +1,62 @@
+name: Build Raspberry Pi OS Image
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: build
+  cancel-in-progress: true
+
+env:
+  POETRY_VERSION: 1.7.1
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    name: Build Retro Pi TV image
+    strategy:
+      matrix:
+        include:
+          -
+            base-image-url: https://downloads.raspberrypi.com/raspios_lite_armhf/images/raspios_lite_armhf-2023-12-11/2023-12-11-raspios-bookworm-armhf-lite.img.xz
+            image-path: 2023-12-11-raspios-bookworm-armhf-retro-pi-tv.img
+          -
+            base-image-url: https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2023-12-11/2023-12-11-raspios-bookworm-arm64-lite.img.xz
+            image-path: 2023-12-11-raspios-bookworm-arm64-retro-pi-tv.img
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      -
+        name: Create Raspberry Pi OS image
+        uses: dtcooper/rpi-image-modifier@main
+        id: create-image
+        with:
+          base-image-url: ${{ matrix.base-image-url }}
+          image-path: ${{ matrix.image-path }}
+          compress-with-xz: true
+          cache: true
+          run: |
+            apt-get update
+            DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
+            DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+              git \
+              mpv
+            su - pi -c 'curl -L https://install.python-poetry.org | POETRY_VERSION=${{ env.POETRY_VERSION }} python3'
+            su - pi -c "git clone --branch '${{ github.ref_name }}' file:///mounted-github-repo/ pitv"
+            su - pi -c "cd pitv ; git remote set-url origin 'https://github.com/${{ github.repository }}.git'"
+            su - pi -c "cd pitv ; poetry install --without=dev"
+      -
+        name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-image
+          path: ${{ steps.create-image.outputs.image-path }}
+          if-no-files-found: error
+          retention-days: 2
+          compression-level: 0  # Already compressed with xz above
