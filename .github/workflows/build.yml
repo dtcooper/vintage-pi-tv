@@ -44,6 +44,7 @@ jobs:
             DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
             DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
               git \
+              libmpv2 \
               mpv
             curl -L https://install.python-poetry.org | POETRY_VERSION=${{ env.POETRY_VERSION }} POETRY_HOME=/opt/poetry python3
             echo -e 'if [ -d /opt/poetry/bin ]; then\n    export PATH="/opt/poetry/bin:${PATH}"\nfi' > /etc/profile.d/poetry.sh
