@@ -49,7 +49,7 @@ jobs:
             echo -e 'if [ -d /opt/poetry/bin ]; then\n    export PATH="/opt/poetry/bin:${PATH}"\nfi' > /etc/profile.d/poetry.sh
             su - pi -c "git clone --branch '${{ github.ref_name }}' file:///mounted-github-repo/ retro-pi-tv"
             su - pi -c "cd retro-pi-tv ; git remote set-url origin 'https://github.com/${{ github.repository }}.git'"
-            su - pi -c "cd retro-pi-tv ; poetry config --local virtualenvs.in-project true"
+            su - pi -c "cd retro-pi-tv ; poetry config virtualenvs.in-project true"
             su - pi -c "cd retro-pi-tv ; poetry install --without=dev"
       -
         name: Upload build artifact
