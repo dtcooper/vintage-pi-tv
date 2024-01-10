@@ -10,14 +10,15 @@ readme = "README.md"
 python = "^3.11"
 mpv = "^1.0.5"
 pygame-ce = "^2.4.0"
+pyudev = "^0.24.1"
 tomlkit = "^0.12.3"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.12.1"
+flake8 = "^7.0.0"
 ipdb = "^0.13.13"
 ipython = "^8.20.0"
 isort = "^5.13.2"
-flake8 = "^7.0.0"
 
 [build-system]
 requires = ["poetry-core"]
