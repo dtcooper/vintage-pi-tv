@@ -36,7 +36,7 @@ jobs:
         id: create-image
         with:
           base-image-url: ${{ env.BASE_IMAGE_URL }}
-          image-path: ${{ steps.vars.outcome.image-path }}
+          image-path: ${{ steps.vars.outputs.image-path }}
           compress-with-xz: true
           cache: true
           run: |
