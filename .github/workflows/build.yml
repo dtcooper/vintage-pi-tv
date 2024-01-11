@@ -34,13 +34,15 @@ jobs:
         name: Create Raspberry Pi OS image
         uses: dtcooper/rpi-image-modifier@v1
         id: create-image
+        env:
+          RUN_RETRO_PI_TV_BUILD_SCRIPT: "1"
         with:
           base-image-url: ${{ env.BASE_IMAGE_URL }}
           image-path: ${{ steps.vars.outputs.image-path }}
           compress-with-xz: true
           cache: true
-          env-vars: POETRY_VERSION,GITHUB_REF_NAME,GITHUB_REPOSITORY
-          script: image/build.sh
+          env-vars: RUN_RETRO_PI_TV_BUILD_SCRIPT,POETRY_VERSION,GITHUB_REF_NAME,GITHUB_REPOSITORY
+          script-path : image/build.sh
       -
         name: Upload build artifact
         uses: actions/upload-artifact@v4

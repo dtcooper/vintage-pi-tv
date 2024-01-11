@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if echo "$@" | grep -viq -- '--i-know-what-i-am-doing'; then
+if [ -z "$RUN_RETRO_PI_TV_BUILD_SCRIPT" ]; then
     cat <<EOF
 
 WARNING: This script should ONLY run inside a clean systemd-nspawn Raspberry Pi
@@ -10,7 +10,7 @@ If you don't know what this means, you probably don't want to run this script.
 
 If you're *SURE* you know what you're doing, run this script via the following,
 
-    \$ ${0} --i-know-what-i-am-doing
+    \$ RUN_RETRO_PI_TV_BUILD_SCRIPT=1 ${0}
 
 EOF
     exit 1
