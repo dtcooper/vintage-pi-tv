@@ -62,6 +62,7 @@ jobs:
             WantedBy=multi-user.target
             EOF
             systemctl enable udiskie.service
+            sed -i 's/\/boot\/firmware.*defaults/\0,uid=1000,gid=1000/' /etc/fstab
 
             curl -L https://install.python-poetry.org | POETRY_VERSION=${{ env.POETRY_VERSION }} POETRY_HOME=/opt/poetry python3
             echo -e 'if [ -d /opt/poetry/bin ]; then\n    export PATH="/opt/poetry/bin:${PATH}"\nfi' > /etc/profile.d/poetry.sh
