@@ -32,44 +32,15 @@ jobs:
           echo "image-path=$(date +%Y-%m-%d)-raspios-bookworm-arm64-retro-pi-tv.img" >> "${GITHUB_OUTPUT}"
       -
         name: Create Raspberry Pi OS image
-        uses: dtcooper/rpi-image-modifier@main
+        uses: dtcooper/rpi-image-modifier@v1
         id: create-image
         with:
           base-image-url: ${{ env.BASE_IMAGE_URL }}
           image-path: ${{ steps.vars.outputs.image-path }}
           compress-with-xz: true
           cache: true
-          run: |
-            apt-get update
-            DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
-            DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-              git \
-              libmpv2 \
-              mpv \
-              udiskie
-
-            echo 'ENV{ID_FS_USAGE}=="filesystem|other|crypto", ENV{UDISKS_FILESYSTEM_SHARED}="1"' > /etc/udev/rules.d/99-udisks2.rules
-            cat <<'EOF' > /etc/systemd/system/udiskie.service
-            [Unit]
-            Description=udiskie Automounter
-            After=udisks2.service
-
-            [Service]
-            ExecStart=/usr/bin/udiskie --no-password-prompt --no-config --verbose --automount --no-notify --no-tray --no-file-manager --no-terminal --no-appindicator --no-notify-command
-            Restart=on-failure
-
-            [Install]
-            WantedBy=multi-user.target
-            EOF
-            systemctl enable udiskie.service
-            sed -i 's/\/boot\/firmware.*defaults/\0,uid=1000,gid=1000/' /etc/fstab
-
-            curl -L https://install.python-poetry.org | POETRY_VERSION=${{ env.POETRY_VERSION }} POETRY_HOME=/opt/poetry python3
-            echo -e 'if [ -d /opt/poetry/bin ]; then\n    export PATH="/opt/poetry/bin:${PATH}"\nfi' > /etc/profile.d/poetry.sh
-            su - pi -c "git clone --branch '${{ github.ref_name }}' file:///mounted-github-repo/ retro-pi-tv"
-            su - pi -c "cd retro-pi-tv ; git remote set-url origin 'https://github.com/${{ github.repository }}.git'"
-            su - pi -c "cd retro-pi-tv ; poetry config virtualenvs.in-project true"
-            su - pi -c "cd retro-pi-tv ; poetry install --without=dev"
+          env-vars: POETRY_VERSION,GITHUB_REF_NAME,GITHUB_REPOSITORY
+          script: image/build.sh
       -
         name: Upload build artifact
         uses: actions/upload-artifact@v4
