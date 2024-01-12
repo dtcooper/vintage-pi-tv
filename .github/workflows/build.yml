@@ -38,17 +38,25 @@ jobs:
           RUN_RETRO_PI_TV_BUILD_SCRIPT: "1"
         with:
           base-image-url: ${{ env.BASE_IMAGE_URL }}
-          image-path: ${{ steps.vars.outputs.image-path }}
-          compress-with-xz: true
-          cache: true
-          env-vars: RUN_RETRO_PI_TV_BUILD_SCRIPT,POETRY_VERSION,GITHUB_REF_NAME,GITHUB_REPOSITORY
           script-path : image/build.sh
+          env-vars: RUN_RETRO_PI_TV_BUILD_SCRIPT,POETRY_VERSION,GITHUB_REF_NAME,GITHUB_REPOSITORY
+          image-path: ${{ steps.vars.outputs.image-path }}
+          shrink: false
+          cache: true
+      # -
+      #   name: Upload build artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: built-image
+      #     path: ${{ steps.create-image.outputs.image-path }}
+      #     if-no-files-found: error
+      #     retention-days: 2
+      #     compression-level: 0  # Already compressed with xz above
       -
-        name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        name: Debug
+        uses: lhotari/action-upterm@v1
+        env:
+          IMAGE_PATH: ${{ steps.create-image.outputs.image-path }}
         with:
-          name: built-image
-          path: ${{ steps.create-image.outputs.image-path }}
-          if-no-files-found: error
-          retention-days: 2
-          compression-level: 0  # Already compressed with xz above
+          limit-access-to-actor: true
+          wait-timeout-minutes: 5
