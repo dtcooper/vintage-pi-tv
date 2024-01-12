@@ -43,20 +43,44 @@ jobs:
           image-path: ${{ steps.vars.outputs.image-path }}
           shrink: false
           cache: true
-      # -
-      #   name: Upload build artifact
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: built-image
-      #     path: ${{ steps.create-image.outputs.image-path }}
-      #     if-no-files-found: error
-      #     retention-days: 2
-      #     compression-level: 0  # Already compressed with xz above
+          image-maxsize: '6.5G'
+      -
+        name: Create an empty third partition
+        shell: bash
+        env:
+          IMAGE_PATH: ${{ steps.create-image.outputs.image-path }}
+        run: |
+          echo 'Resizing image to 7G'
+          fallocate -l 7G "${IMAGE_PATH}"
+          SECOND_PARTITION_END="$(fdisk -l "${IMAGE_PATH}" | grep img2 | awk '{ print $3 }')"
+          THIRD_PARTITION_START="$((SECOND_PARTITION_END + 1))"
+          echo "Creating third partition"
+          fdisk "${IMAGE_PATH}" <<EOF
+          n
+          p
+          3
+          ${THIRD_PARTITION_START}
+          -1
+          t
+          3
+          7
+          w
+          q
+          EOF
+          echo 'Compressing image (this may take a while)'
+          xz -T0 "${IMAGE_PATH}"
+      -
+        name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-image
+          path: ${{ steps.create-image.outputs.image-path }}.xz
+          if-no-files-found: error
+          retention-days: 2
+          compression-level: 0  # Already compressed with xz above
       -
         name: Debug
         uses: lhotari/action-upterm@v1
-        env:
-          IMAGE_PATH: ${{ steps.create-image.outputs.image-path }}
         with:
           limit-access-to-actor: true
           wait-timeout-minutes: 5
