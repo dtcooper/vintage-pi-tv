@@ -41,6 +41,7 @@ jobs:
           script-path : image/build.sh
           env-vars: RUN_RETRO_PI_TV_BUILD_SCRIPT,POETRY_VERSION,GITHUB_REF_NAME,GITHUB_REPOSITORY
           image-path: ${{ steps.vars.outputs.image-path }}
+          compress-with-xz: true
           cache: true
       -
         name: Upload build artifact
