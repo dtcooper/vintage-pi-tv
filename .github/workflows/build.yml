@@ -32,7 +32,7 @@ jobs:
           echo "image-path=$(date +%Y-%m-%d)-raspios-bookworm-arm64-retro-pi-tv.img" >> "${GITHUB_OUTPUT}"
       -
         name: Create Raspberry Pi OS image
-        uses: dtcooper/rpi-image-modifier@v1
+        uses: dtcooper/rpi-image-modifier@main
         id: create-image
         env:
           RUN_RETRO_PI_TV_BUILD_SCRIPT: "1"
@@ -42,6 +42,7 @@ jobs:
           env-vars: RUN_RETRO_PI_TV_BUILD_SCRIPT,POETRY_VERSION,GITHUB_REF_NAME,GITHUB_REPOSITORY
           image-path: ${{ steps.vars.outputs.image-path }}
           compress-with-xz: true
+          extra-xz-args: -9e -v
           cache: true
       -
         name: Upload build artifact
