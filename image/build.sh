@@ -30,8 +30,11 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
 cp -v "${FILES_DIR}/99-udisks2.rules" /etc/udev/rules.d/
 cp -v "${FILES_DIR}/udiskie.service" /etc/systemd/system/
 
+mkdir -p /usr/local/lib/retro-pi-tv-sys-mods
+cp -v "${FILES_DIR}/resize_partitions.sh" /usr/local/lib/retro-pi-tv-sys-mods/
+sed -i 's|init=/usr/lib/raspberrypi-sys-mods/firstboot|init=/usr/local/lib/retro-pi-tv-sys-mods/resize_partitions.sh|' /boot/firmware/cmdline.txt
 systemctl enable udiskie.service
-sed -i 's/\/boot\/firmware.*defaults/\0,uid=1000,gid=1000/' /etc/fstab
+sed -i 's|/boot/firmware.*defaults|\0,uid=1000,gid=1000|' /etc/fstab
 
 curl -L https://install.python-poetry.org | POETRY_HOME=/opt/poetry python3
 cp -v "${FILES_DIR}/poetry.sh" /etc/profile.d/
