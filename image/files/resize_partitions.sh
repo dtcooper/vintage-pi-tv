@@ -2,7 +2,7 @@
 
 SCRIPT_NAME='/usr/local/lib/retro-pi-tv-sys-mods/resize_partitions.sh'
 FIRST_BOOT_SCRIPT_NAME='/usr/lib/raspberrypi-sys-mods/firstboot'
-ROOT_DEV_MAX_PARTSIZE="$((1024 * 1024 * 1024 * 7))"  # 7GiB
+ROOT_DEV_MAX_PARTSIZE="$((1024 * 1024 * 512 * 15))"  # 7.5GiB
 EXFAT_PARTITION_LABEL='Videos'
 
 reboot_pi() {
