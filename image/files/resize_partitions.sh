@@ -73,18 +73,20 @@ Yes
 ${ROOT_DEV_END}B
 quit
 EOF
-        partprobe "${ROOT_DEV}"
+        partprobe
         resize2fs -f -p "${ROOT_PART_DEV}"
     fi
 
     EXFAT_DEV_START="$((ROOT_DEV_END + 1))"
+    EXFAT_DEV_END=$((DEV_SIZE - 1))
     if [ "${EXFAT_DEV_START}" -ge "${DEV_SIZE}" ]; then
         echo "WARNING: ${ROOT_DEV} doesn't have enough space on it for an exFAT partition."
     else
-        parted -s "${ROOT_DEV}" "unit B mkpart primary ntfs ${EXFAT_DEV_START}B 100%"
-        partprobe "${ROOT_DEV}"
+        # TODO resize to the byte, not 100%
+        parted -s "${ROOT_DEV}" "unit B mkpart primary ntfs ${EXFAT_DEV_START}B ${EXFAT_DEV_END}B"
+        partprobe
         mkfs.exfat -L "${EXFAT_PARTITION_LABEL}" "${EXFAT_PART_DEV}"
-        partprobe "${ROOT_DEV}"
+        partprobe
     fi
     sync
 }
