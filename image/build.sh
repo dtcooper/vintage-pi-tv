@@ -38,7 +38,7 @@ sed -i 's|init=/usr/lib/raspberrypi-sys-mods/firstboot|init=/usr/local/lib/vinta
 systemctl enable udiskie.service
 sed -i 's|/boot/firmware.*defaults|\0,uid=1000,gid=1000|' /etc/fstab
 
-cp "${REPO_DIR}/default-config.yml" /boot/firmware/vintage-pi-tv-config.yml
+cp "${REPO_DIR}/default-config.toml" /boot/firmware/vintage-pi-tv-config.toml
 
 curl -L https://install.python-poetry.org | POETRY_HOME=/opt/poetry python3
 cp -v "${FILES_DIR}/poetry.sh" /etc/profile.d/
