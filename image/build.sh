@@ -16,6 +16,7 @@ EOF
     exit 1
 fi
 
+set -e
 
 REPO_DIR=/mounted-github-repo/
 FILES_DIR="${REPO_DIR}/image/files"
