@@ -26,12 +26,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       -
         id: vars
         name: Set vars
         shell: bash
         run: |
-
           if [ "${GITHUB_REF_TYPE}" = 'tag' ]; then
             SUFFIX="${GITHUB_REF_NAME}"
             echo "short-version=${GITHUB_REF_NAME:1}" >> "${GITHUB_OUTPUT}"
@@ -41,6 +41,7 @@ jobs:
             echo "short-sha=${SHORT_SHA}" >> "${GITHUB_OUTPUT}"
           fi
           echo "image-path=$(date +%Y-%m-%d)-raspios-bookworm-arm64-retro-pi-tv_${SUFFIX}.img" >> "${GITHUB_OUTPUT}"
+
       -
         name: Create Raspberry Pi OS image
         uses: dtcooper/rpi-image-modifier@v1
@@ -55,6 +56,7 @@ jobs:
           compress-with-xz: true
           extra-xz-args: ${{ github.ref_type == 'tag' && '-9e' || '' }}  # Compress more for release
           cache: true
+
       -
         name: Remove old preview release
         uses: dev-drprasad/delete-tag-and-release@v0.2.1
@@ -64,6 +66,7 @@ jobs:
           tag_name: preview-build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       -
         name: Prepare for release
         shell: bash
@@ -73,19 +76,20 @@ jobs:
             echo 'Waiting 15s for old release to delete'
             sleep 15s
           fi
+
       -
         name: Tag and upload release
         uses: ncipollo/release-action@v1
         with:
           artifacts: ${{ steps.image.outputs.image-path }},${{ steps.image.outputs.image-path }}.sha256sum
           name: ${{ github.ref_type == 'tag' && format('Version {0}', steps.vars.outputs.short-version) || format('Preview Build {0}', steps.vars.outputs.short-sha) }}
-          body: |-
-            Retro Pi TV ${{ github.ref_type == 'tag' && format('Release {0}', steps.vars.outputs.short-version) || format('Preview Build {0}', steps.vars.outputs.short-sha) }}
-
-            Image filename: ${{ steps.image.outputs.image-path }}
-            SHA256SUM: ${{ steps.image.outputs.image-sha256sum }}
-
-            ${{ github.ref_type != 'tag' &&  'This development preview build may not be safe; use it at your own risk.' || ''}}
           tag: ${{ github.ref_type == 'tag' && github.ref_name || 'preview-build' }}
           prerelease: ${{ github.ref_type != 'tag' }}
           token: ${{ secrets.GITHUB_TOKEN }}
+          body: |-
+            Retro Pi TV ${{ github.ref_type == 'tag' && format('Release {0}', steps.vars.outputs.short-version) || format('Preview Build {0}', steps.vars.outputs.short-sha) }}
+
+            Image filename: `${{ steps.image.outputs.image-path }}`
+            SHA256SUM: `${{ steps.image.outputs.image-sha256sum }}`
+
+            ${{ github.ref_type != 'tag' &&  '_**This development preview build may not be safe; use it at your own risk.**_' || ''}}
