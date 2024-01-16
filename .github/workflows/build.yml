@@ -51,7 +51,7 @@ jobs:
         with:
           base-image-url: ${{ env.BASE_IMAGE_URL }}
           script-path : image/build.sh
-          env-vars: RUN_VINTAGE_PI_TV_BUILD_SCRIPT,POETRY_VERSION,GITHUB_REF_NAME,GITHUB_REPOSITORY
+          env-vars: RUN_VINTAGE_PI_TV_BUILD_SCRIPT,POETRY_VERSION,GITHUB_REF_NAME,GITHUB_REF_TYPE,GITHUB_REPOSITORY
           image-path: ${{ steps.vars.outputs.image-path }}
           compress-with-xz: true
           extra-xz-args: ${{ github.ref_type == 'tag' && '-9e' || '' }}  # Compress more for release

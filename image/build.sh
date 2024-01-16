@@ -39,6 +39,10 @@ sed -i 's|/boot/firmware.*defaults|\0,uid=1000,gid=1000|' /etc/fstab
 curl -L https://install.python-poetry.org | POETRY_HOME=/opt/poetry python3
 cp -v "${FILES_DIR}/poetry.sh" /etc/profile.d/
 su - pi -c "git clone --branch '${GITHUB_REF_NAME}' file:///mounted-github-repo/ vintage-pi-tv"
-su - pi -c "cd vintage-pi-tv ; git remote set-url origin 'https://github.com/${GIHUBT_REPOSITORY}.git'"
+if [ "${GITHUB_REF_TYPE}" = 'tag' ]; then
+    su - pi -c "cd vintage-pi-tv ; rm -rf .git ; echo '${GITHUB_REF_NAME}' > version.txt"
+else
+    su - pi -c "cd vintage-pi-tv ; git remote set-url origin 'https://github.com/${GITHUB_REPOSITORY}.git'"
+fi
 su - pi -c "cd vintage-pi-tv ; poetry config virtualenvs.in-project true"
 su - pi -c "cd vintage-pi-tv ; poetry install --without=dev"
