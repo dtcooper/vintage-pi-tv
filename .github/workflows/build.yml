@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 concurrency:
-  group: build
+  group: build-${{ github.ref_type }}-${{ github.ref_name }}
   cancel-in-progress: true
 
 env:
@@ -42,7 +44,7 @@ jobs:
           env-vars: RUN_RETRO_PI_TV_BUILD_SCRIPT,POETRY_VERSION,GITHUB_REF_NAME,GITHUB_REPOSITORY
           image-path: ${{ steps.vars.outputs.image-path }}
           compress-with-xz: true
-          extra-xz-args: -9e -v  # TODO: For release only
+          extra-xz-args: ${{ github.ref_type == 'tag' && '-9e' || '' }}  # Compress more for release
           cache: true
       -
         name: Create sha256sum file
@@ -50,13 +52,27 @@ jobs:
         run: |
           echo "${{ steps.vars.outputs.image-sha256sum }}  ${{ steps.vars.outputs.image-path }}" > ${{ steps.vars.outputs.image-path }}.sha256sum
       -
-        name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        name: Remove old preview release
+        uses: dev-drprasad/delete-tag-and-release@v0.2.1
+        if: github.ref_type != 'tag'
         with:
-          name: built-image
-          path: |
-            ${{ steps.create-image.outputs.image-path }}
-            ${{ steps.create-image.outputs.image-path }}.sha256sum
-          if-no-files-found: error
-          retention-days: 2
-          compression-level: 0  # Already compressed with xz above
+          delete_release: true
+          tag_name: preview-build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      -
+        name: Wait for old preview release deletion
+        shell: bash
+        if: github.ref_type != 'tag'
+        run: |
+          sleep 15s
+      -
+        name: Tag and upload release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: ${{ steps.vars.outputs.image-path }},${{ steps.vars.outputs.image-path }}.sha256sum
+          name: Retro Pi TV ${{ github.ref_type == 'tag' && format('Release {0}', github.ref_name) || 'Preview Build' }}
+          body: ${{ github.ref_type == 'tag' && '' || 'This development preview build may not be safe; use it at your own risk.' }}
+          tag: ${{ github.ref_type == 'tag' && github.ref_name || 'preview-build' }}
+          prerelease: ${{ github.ref_type != 'tag' }}
+          token: ${{ secrets.GITHUB_TOKEN }}
