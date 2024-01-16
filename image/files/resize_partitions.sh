@@ -74,7 +74,7 @@ ${ROOT_DEV_END}B
 quit
 EOF
         partprobe "${ROOT_DEV}"
-        resize2fs -f "${ROOT_PART_DEV}"
+        resize2fs -f -p "${ROOT_PART_DEV}"
     fi
 
     EXFAT_DEV_START="$((ROOT_DEV_END + 1))"
