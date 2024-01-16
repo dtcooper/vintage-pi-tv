@@ -5,7 +5,7 @@ FIRST_BOOT_SCRIPT_NAME='/usr/lib/raspberrypi-sys-mods/firstboot'
 CONFIG_SRC=vintage-pi-tv-config.toml
 CONFIG_DEST=config.toml
 ROOT_DEV_MAX_PARTSIZE="$((1024 * 1024 * 512 * 15))"  # 7.5GiB
-EXFAT_PARTITION_LABEL='Vintage Pi TV'
+EXFAT_PARTITION_LABEL='VintagePiTV'  # 11 characters max?
 
 reboot_pi() {
     umount "$FWLOC"
