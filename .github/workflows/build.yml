@@ -45,11 +45,18 @@ jobs:
           extra-xz-args: -9e -v  # TODO: For release only
           cache: true
       -
+        name: Create sha256sum file
+        shell: bash
+        run: |
+          echo "${{ steps.vars.outputs.image-sha256sum }}  ${{ steps.vars.outputs.image-path }}" > ${{ steps.vars.outputs.image-path }}.sha256sum
+      -
         name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: built-image
-          path: ${{ steps.create-image.outputs.image-path }}
+          path: |
+            ${{ steps.create-image.outputs.image-path }}
+            ${{ steps.create-image.outputs.image-path }}.sha256sum
           if-no-files-found: error
           retention-days: 2
           compression-level: 0  # Already compressed with xz above
