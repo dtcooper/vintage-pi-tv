@@ -148,7 +148,7 @@ sync
 
 main
 
-whiptail --infobox "Rebooting in 5 seconds..." 20 60
+echo 'Rebooting in 5 seconds...'
 sleep 5
 
 reboot_pi
