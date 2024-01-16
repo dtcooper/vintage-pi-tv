@@ -31,7 +31,12 @@ jobs:
         name: Set vars
         shell: bash
         run: |
-          echo "image-path=$(date +%Y-%m-%d)-raspios-bookworm-arm64-retro-pi-tv.img" >> "${GITHUB_OUTPUT}"
+          if [ "${GITHUB_REF_TYPE}" = 'tag' ]; then
+            SUFFIX="${GITHUB_REF_NAME}"
+          else
+            SUFFIX="preview-${GITHUB_SHA:0:8}"
+          fi
+          echo "image-path=$(date +%Y-%m-%d)-raspios-bookworm-arm64-retro-pi-tv_${SUFFIX}.img" >> "${GITHUB_OUTPUT}"
       -
         name: Create Raspberry Pi OS image
         uses: dtcooper/rpi-image-modifier@v1
@@ -47,11 +52,6 @@ jobs:
           extra-xz-args: ${{ github.ref_type == 'tag' && '-9e' || '' }}  # Compress more for release
           cache: true
       -
-        name: Create sha256sum file
-        shell: bash
-        run: |
-          echo "${{ steps.vars.outputs.image-sha256sum }}  ${{ steps.vars.outputs.image-path }}" > ${{ steps.vars.outputs.image-path }}.sha256sum
-      -
         name: Remove old preview release
         uses: dev-drprasad/delete-tag-and-release@v0.2.1
         if: github.ref_type != 'tag'
@@ -61,16 +61,22 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       -
-        name: Wait for old preview release deletion
+        name: Prepare for release
         shell: bash
-        if: github.ref_type != 'tag'
+        env:
+          IMAGE_PATH: ${{ steps.create-image.outputs.image-path }}
+          IMAGE_SHA256SUM: ${{ steps.create-image.outputs.image-sha256sum }}
         run: |
-          sleep 15s
+          echo "${IMAGE_SHA256SUM}  ${IMAGE_PATH}" > "${IMAGE_PATH}.sha256sum"
+          if [ "${GITHUB_REF_TYPE}" != 'tag' ]; then
+            echo 'Waiting 15s for old release to delete'
+            sleep 15s
+          fi
       -
         name: Tag and upload release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: ${{ steps.vars.outputs.image-path }},${{ steps.vars.outputs.image-path }}.sha256sum
+          artifacts: ${{ steps.create-image.outputs.image-path }},${{ steps.create-image.outputs.image-path }}.sha256sum
           name: Retro Pi TV ${{ github.ref_type == 'tag' && format('Release {0}', github.ref_name) || 'Preview Build' }}
           body: ${{ github.ref_type == 'tag' && '' || 'This development preview build may not be safe; use it at your own risk.' }}
           tag: ${{ github.ref_type == 'tag' && github.ref_name || 'preview-build' }}
