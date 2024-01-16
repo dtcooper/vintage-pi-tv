@@ -1,6 +1,6 @@
-# Retro TV for Raspberry Pi
+# Vintage TV for Raspberry Pi
 
-Retro television for the Raspberry Pi that creates fake _channels_ and has
+Vintage television for the Raspberry Pi that creates fake _channels_ and has
 vintage effects.
 
 ## Requirements

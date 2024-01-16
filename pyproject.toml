@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "retro-pi-tv"
+name = "vintage-pi-tv"
 version = "0.0.1-dev"
-description = "Retro TV for Raspberry Pi"
+description = "vintage TV for Raspberry Pi"
 authors = ["David Cooper <david@dtcooper.com>"]
 license = "MIT"
 readme = "README.md"

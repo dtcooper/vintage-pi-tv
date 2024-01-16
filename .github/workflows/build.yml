@@ -1,4 +1,4 @@
-name: Build Retro Pi TV
+name: Build OS Image
 
 on:
   push:
@@ -40,18 +40,18 @@ jobs:
             SUFFIX="preview-${SHORT_SHA}"
             echo "short-sha=${SHORT_SHA}" >> "${GITHUB_OUTPUT}"
           fi
-          echo "image-path=$(date +%Y-%m-%d)-raspios-bookworm-arm64-retro-pi-tv_${SUFFIX}.img" >> "${GITHUB_OUTPUT}"
+          echo "image-path=$(date +%Y-%m-%d)-raspios-bookworm-arm64-vintage-pi-tv_${SUFFIX}.img" >> "${GITHUB_OUTPUT}"
 
       -
         name: Create Raspberry Pi OS image
         uses: dtcooper/rpi-image-modifier@v1
         id: image
         env:
-          RUN_RETRO_PI_TV_BUILD_SCRIPT: "1"
+          RUN_VINTAGE_PI_TV_BUILD_SCRIPT: "1"
         with:
           base-image-url: ${{ env.BASE_IMAGE_URL }}
           script-path : image/build.sh
-          env-vars: RUN_RETRO_PI_TV_BUILD_SCRIPT,POETRY_VERSION,GITHUB_REF_NAME,GITHUB_REPOSITORY
+          env-vars: RUN_VINTAGE_PI_TV_BUILD_SCRIPT,POETRY_VERSION,GITHUB_REF_NAME,GITHUB_REPOSITORY
           image-path: ${{ steps.vars.outputs.image-path }}
           compress-with-xz: true
           extra-xz-args: ${{ github.ref_type == 'tag' && '-9e' || '' }}  # Compress more for release
@@ -87,7 +87,7 @@ jobs:
           prerelease: ${{ github.ref_type != 'tag' }}
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |-
-            Retro Pi TV ${{ github.ref_type == 'tag' && format('Release {0}', steps.vars.outputs.short-version) || format('Preview Build {0}', steps.vars.outputs.short-sha) }}
+            Vintage Pi TV ${{ github.ref_type == 'tag' && format('Release {0}', steps.vars.outputs.short-version) || format('Preview Build {0}', steps.vars.outputs.short-sha) }}
 
             Image filename: `${{ steps.image.outputs.image-path }}`
             SHA256SUM: `${{ steps.image.outputs.image-sha256sum }}`
