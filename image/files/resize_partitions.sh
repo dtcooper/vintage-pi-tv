@@ -2,8 +2,10 @@
 
 SCRIPT_NAME='/usr/local/lib/vintage-pi-tv-sys-mods/resize_partitions.sh'
 FIRST_BOOT_SCRIPT_NAME='/usr/lib/raspberrypi-sys-mods/firstboot'
+CONFIG_SRC=vintage-pi-tv-config.yml
+CONFIG_DEST=config.yml
 ROOT_DEV_MAX_PARTSIZE="$((1024 * 1024 * 512 * 15))"  # 7.5GiB
-EXFAT_PARTITION_LABEL='Videos'
+EXFAT_PARTITION_LABEL='Vintage Pi TV'
 
 reboot_pi() {
     umount "$FWLOC"
@@ -87,8 +89,22 @@ EOF
         partprobe
         mkfs.exfat -L "${EXFAT_PARTITION_LABEL}" "${EXFAT_PART_DEV}"
         partprobe
+        sync
+        mount "${EXFAT_PART_DEV}" /mnt
+        sync
+        mkdir -v /mnt/videos
+        ffmpeg -y \
+            -f lavfi -i smptebars=duration=30:size=1280x720:rate=30 \
+            -f lavfi -i "sine=frequency=1000:sample_rate=48000:duration=30" \
+            /mnt/videos/colorbars.mkv
+        mount "$FWLOC" -o remount,rw
+        sync
+        mv -v "${FWLOC}/${CONFIG_SRC}" "/mnt/${CONFIG_DEST}"
+        mount "$FWLOC" -o remount,ro
+        sync
+        umount /mnt
+        sync
     fi
-    sync
 }
 
 if ! FWLOC=$(/usr/lib/raspberrypi-sys-mods/get_fw_loc); then
