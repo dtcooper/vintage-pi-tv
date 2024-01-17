@@ -83,8 +83,14 @@ EOF
     EXFAT_DEV_END=$((DEV_SIZE - 1))
     if [ "${EXFAT_DEV_START}" -ge "${DEV_SIZE}" ]; then
         echo "WARNING: ${ROOT_DEV} doesn't have enough space on it for an exFAT partition."
+        mount "$FWLOC" -o remount,rw
+        sync
+        # Config needs to be readonly in that case
+        sed -i 's/^\s*readonly_config.*=.*$/readonly_config = true  # Forced false since no extra space on exFAT partition/' "${FWLOC}/${CONFIG_SRC}"
+        sync
+        mount "$FWLOC" -o remount,ro
+        sync
     else
-        # TODO resize to the byte, not 100%
         parted -s "${ROOT_DEV}" "unit B mkpart primary ntfs ${EXFAT_DEV_START}B ${EXFAT_DEV_END}B"
         partprobe
         mkfs.exfat -L "${EXFAT_PARTITION_LABEL}" "${EXFAT_PART_DEV}"
@@ -92,6 +98,7 @@ EOF
         sync
         mount "${EXFAT_PART_DEV}" /mnt
         sync
+        # Add a sample video
         mkdir -v /mnt/videos
         ffmpeg -y \
             -f lavfi -i smptebars=duration=30:size=1280x720:rate=30 \

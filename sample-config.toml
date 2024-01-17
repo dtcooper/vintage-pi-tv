@@ -1,0 +1,5 @@
+### Vintage Pi TV configuration ###
+
+# Whether this configuration is readonly, or can videos be added to it as they
+# are discovered on disk
+readonly_config = false

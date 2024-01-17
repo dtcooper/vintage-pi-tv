@@ -5,6 +5,8 @@ After=udisks2.service
 [Service]
 ExecStart=/usr/bin/udiskie --no-password-prompt --no-config --verbose --automount --no-notify --no-tray --no-file-manager --no-terminal --no-appindicator --no-notify-command
 Restart=on-failure
+User=1000
+Group=1000
 
 [Install]
 WantedBy=multi-user.target
