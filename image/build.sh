@@ -42,7 +42,8 @@ cp -v "${FILES_DIR}/resize_partitions.sh" /usr/local/lib/vintage-pi-tv-sys-mods/
 sed -i 's|init=/usr/lib/raspberrypi-sys-mods/firstboot|init=/usr/local/lib/vintage-pi-tv-sys-mods/resize_partitions.sh|' /boot/firmware/cmdline.txt
 systemctl enable udiskie.service
 
-cp "${REPO_DIR}/sample-config.toml" /boot/firmware/vintage-pi-tv-config.toml
+cp -v "${REPO_DIR}/sample-config.toml" /boot/firmware/vintage-pi-tv-config.toml
+cp -v "${REPO_DIR}/sample-videos-db.toml" /boot/firmware/vintage-pi-tv-videos-db.toml
 
 curl -L https://install.python-poetry.org | POETRY_HOME=/opt/poetry python3
 cp -v "${FILES_DIR}/poetry.sh" /etc/profile.d/

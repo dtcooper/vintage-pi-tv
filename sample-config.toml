@@ -1,5 +1,46 @@
 ### Vintage Pi TV configuration ###
 
-# Whether this configuration is readonly, or can videos be added to it as they
-# are discovered on disk
-readonly_config = false
+# Log level, one of silent, error, warning, info, or debug
+log_level = 'info'
+
+timezone = 'US/Eastern'  # From the
+
+# Set to false to disable storing a toml DB file (relative paths relative to this config file)
+videos_db_file = "videos-db.toml"
+#videos_db_file = false
+
+# Sould we provide visualizations for audio files, or ignore them
+enable_audio_with_visualization = true
+
+# Ratings must be in order least restricted to most restricted, eg. G first, X last
+ratings = [
+    { rating = "G", description = "General" },  # First item will be the default
+    { rating = "PG", description = "Parental Guidance"},
+    { rating = "R", description = "Restricted" },
+    { rating = "X", description = "Adult"}
+]
+
+# Or disable ratings altogether
+# atings = false
+
+# Directories to search for videos in, wildcards accepted
+search_dirs = [
+    { path = "/media/VintagePiTV/videos", recurse = true},
+    { path = "/media/VintagePiTV", ignore = true },
+    "/media/*",
+    "/media/DTC/videos",
+    # { path = "/media/*", recurse = true },
+]
+
+# Set valid file extensions to "defaults"
+valid_file_extensions = "defaults"
+# Or or provide a list of extensions (without the period)
+# valid_file_extensions = [ "mp4", "mkv", "mov", "avi" ]
+
+# MPV driver for audio (default is alsa
+#audio_driver = 'alsa'
+
+# For advanced users only! Arguments to the mpv.MPV() constructor in python-mpv
+# See https://github.com/jaseg/python-mpv for more details
+# NOTE: mpv arguments should be translated to use underscores instead of hyfens
+#extra_mpv_options = { alsa_device = "hw:0,0" }

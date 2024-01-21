@@ -1,21 +1,30 @@
-import datetime
+import logging
+import os
 
-from termcolor import colored
+from uvicorn.logging import ColourizedFormatter
 
 
-LOG_LEVELS = {"silent": 0, "error": 1, "warning": 2, "info": 3, "debug": 4}
-_log_level = 3
+def init_logger():
+    uvicorn_logger = logging.getLogger("uvicorn")
+    vintage_pi_tv_logger = logging.getLogger(__name__).parent
+    formats = {
+        vintage_pi_tv_logger: "{asctime} {levelprefix:<8} {message} ({name})",
+        uvicorn_logger: "{asctime} {levelprefix:<8} {message} (uvicorn)",
+    }
+
+    for logger_to_modify in (uvicorn_logger, vintage_pi_tv_logger):
+        for handler in logger_to_modify.handlers:
+            logger_to_modify.removeHandler(handler)
+        handler = logging.StreamHandler()
+        formatter = ColourizedFormatter(formats[logger_to_modify], style="{")
+        handler.setFormatter(formatter)
+        logger_to_modify.addHandler(handler)
 
 
 def set_log_level(level):
-    global _log_level
-    _log_level = level
+    vintage_pi_tv_logger = logging.getLogger(__name__).parent
+    vintage_pi_tv_logger.setLevel(level)
 
 
-def log(level, s):
-    if level <= _log_level:
-        print(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}] {s}")
-
-
-def error(s):
-    log(1, colored(s, "red", attrs=["bold"]))
+def listdir_recursive(dirname):
+    return (os.path.join(dp, f) for dp, _, fn in os.walk(dirname) for f in fn)

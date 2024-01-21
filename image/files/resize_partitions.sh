@@ -4,6 +4,8 @@ SCRIPT_NAME='/usr/local/lib/vintage-pi-tv-sys-mods/resize_partitions.sh'
 FIRST_BOOT_SCRIPT_NAME='/usr/lib/raspberrypi-sys-mods/firstboot'
 CONFIG_SRC=vintage-pi-tv-config.toml
 CONFIG_DEST=config.toml
+VIDEOS_DB_SRC=vintage-pi-tv-videos-db.toml
+VIDEOS_DB_DEST=videos-db.toml
 ROOT_DEV_MAX_PARTSIZE="$((1024 * 1024 * 512 * 15))"  # 7.5GiB
 EXFAT_PARTITION_LABEL='VintagePiTV'  # 11 characters max?
 
@@ -86,7 +88,7 @@ EOF
         mount "$FWLOC" -o remount,rw
         sync
         # Config needs to be readonly in that case
-        sed -i 's/^\s*readonly_config.*=.*$/readonly_config = true  # Forced false since no extra space on exFAT partition/' "${FWLOC}/${CONFIG_SRC}"
+        sed -i 's/^\s*videos_db_file.*=.*$/videos_db_file = false # Forced false since no extra space on exFAT partition/' "${FWLOC}/${CONFIG_SRC}"
         sync
         mount "$FWLOC" -o remount,ro
         sync
@@ -107,6 +109,7 @@ EOF
         mount "$FWLOC" -o remount,rw
         sync
         mv -v "${FWLOC}/${CONFIG_SRC}" "/mnt/${CONFIG_DEST}"
+        mv -v "${FWLOC}/${VIDEOS_DB_SRC}" "/mnt/${VIDEOS_DB_DEST}"
         mount "$FWLOC" -o remount,ro
         sync
         umount /mnt

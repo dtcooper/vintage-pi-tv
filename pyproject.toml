@@ -8,10 +8,13 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
+janus = "^1.0.0"
 mpv = "^1.0.5"
 pygame-ce = "^2.4.0"
-termcolor = "^2.4.0"
+schema = "^0.7.5"
+starlette = "^0.35.1"
 tomlkit = "^0.12.3"
+uvicorn = "^0.26.0"
 watchfiles = "^0.21.0"
 
 [tool.poetry.group.dev.dependencies]
@@ -22,7 +25,7 @@ ipython = "^8.20.0"
 isort = "^5.13.2"
 
 [tool.poetry.scripts]
-tv = 'vintage_pi_tv.main:run'
+tv = 'vintage_pi_tv.__main__:run'
 
 [build-system]
 requires = ["poetry-core"]

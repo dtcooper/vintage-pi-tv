@@ -1,0 +1,15 @@
+#### Videos database (backed by a TOML file) ####
+
+last_automatic_save = false  # Updated every time this file is saved automatically
+
+# This file can be editted when the tv is *not* running
+# WARNING: Any changes can (and likely will) be overwritten while Vintage Pi TV is running!
+
+# Channel numbers will be assigned in the order they are below
+
+# Table name should be the video file's path
+["/media/VintagePiTV/videos/colorbars.mkv"]
+enabled = true  # Whether this channel is enabled and will be assigned a number
+name = "Color Bars"  # Display name of channel, it will be defined automatically based on path if empty
+rating = false  # If false or invalid, will be assigned the default rating
+subtitles = false  # true to enable subtitles embedded into the video, or a path to subtitle file (usually <filename>.srt)
