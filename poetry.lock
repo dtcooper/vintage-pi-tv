@@ -246,20 +246,6 @@ files = [
 colors = ["colorama (>=0.4.6)"]
 
 [[package]]
-name = "janus"
-version = "1.0.0"
-description = "Mixed sync-async queue to interoperate between asyncio tasks and classic threads"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "janus-1.0.0-py3-none-any.whl", hash = "sha256:2596ea5482711c1ee3ef2df6c290aaf370a13c55a007826e8f7c32d696d1d00a"},
-    {file = "janus-1.0.0.tar.gz", hash = "sha256:df976f2cdcfb034b147a2d51edfc34ff6bfb12d4e2643d3ad0e10de058cb1612"},
-]
-
-[package.dependencies]
-typing-extensions = ">=3.7.4.3"
-
-[[package]]
 name = "jedi"
 version = "0.19.1"
 description = "An autocompletion tool for Python that can be used for text editors."
@@ -630,17 +616,6 @@ docs = ["myst-parser", "pydata-sphinx-theme", "sphinx"]
 test = ["argcomplete (>=3.0.3)", "mypy (>=1.7.0)", "pre-commit", "pytest (>=7.0,<7.5)", "pytest-mock", "pytest-mypy-testing"]
 
 [[package]]
-name = "typing-extensions"
-version = "4.9.0"
-description = "Backported and Experimental Type Hints for Python 3.8+"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "typing_extensions-4.9.0-py3-none-any.whl", hash = "sha256:af72aea155e91adfc61c3ae9e0e342dbc0cba726d6cba4b6c72c1f34e47291cd"},
-    {file = "typing_extensions-4.9.0.tar.gz", hash = "sha256:23478f88c37f27d76ac8aee6c905017a143b0b1b886c3c9f66bc2fd94f9f5783"},
-]
-
-[[package]]
 name = "uvicorn"
 version = "0.26.0"
 description = "The lightning-fast ASGI server."
@@ -759,4 +734,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "d306fbf1f37b56e7408fccd0d7252cb0f081a3dafd10809ba957ffc3e1ee284d"
+content-hash = "551f11496a630e8023ad9a3031ab0e73994393d02fa47b3502b3739248108a1f"

@@ -8,7 +8,6 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-janus = "^1.0.0"
 mpv = "^1.0.5"
 pygame-ce = "^2.4.0"
 schema = "^0.7.5"
