@@ -1,5 +1,4 @@
 import logging
-import os
 from pathlib import Path
 import sys
 from typing import Literal
@@ -26,8 +25,8 @@ class Config:
     video_driver: str
     videos_db_file: bool | Path
 
-    def __init__(self, path: "os.PathLike"):
-        self.config_path = Path(path)
+    def __init__(self, path: Path):
+        self.config_path = path
         with open(self.config_path) as file:
             toml = tomlkit.load(file)
 
@@ -40,7 +39,7 @@ class Config:
 
     def validate(self) -> None:
         if self.videos_db_file:
-            self.videos_db_file = Path(self.videos_db_file)
+            self.videos_db_file = Path(self.videos_db_file).expanduser()
             if not self.videos_db_file.is_absolute():
                 # Set path relative to config file
                 self.videos_db_file = self.config_path.parent / self.videos_db_file

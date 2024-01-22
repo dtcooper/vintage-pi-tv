@@ -15,17 +15,17 @@ logger = logging.getLogger(__name__)
 
 
 class VintagePiTV:
-    def __init__(self, config_file=None, wait_for_config_seconds=0):
+    def __init__(self, config_file: str | Path = None, wait_for_config_seconds: int = 0):
         init_logger()
 
         config_file_tries = DEFAULT_CONFIG_PATHS if config_file is None else (config_file,)
+        config_file_tries = [Path(p).absolute() for p in config_file_tries]
         self.config = None
 
         for config_file_try in config_file_tries:
-            path = Path(config_file_try)
             for i in range(wait_for_config_seconds + 1):
-                if path.exists():
-                    self.config = Config(path)
+                if config_file_try.exists():
+                    self.config = Config(config_file_try)
                     break
                 else:
                     if i < wait_for_config_seconds:
@@ -34,7 +34,7 @@ class VintagePiTV:
             if self.config is not None:
                 break
         else:
-            logger.critical(f"Exiting as config file not found at path(s): {', '.join(config_file_tries)}")
+            logger.critical(f"Exiting as config file not found at path(s): {', '.join(map(str, config_file_tries))}")
             sys.exit(1)
 
         set_log_level(self.config.log_level)

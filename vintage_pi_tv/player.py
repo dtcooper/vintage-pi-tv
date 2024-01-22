@@ -1,5 +1,9 @@
+from functools import partial
 import logging
+import os
 from pathlib import Path
+import random
+import signal
 import sys
 import time
 
@@ -19,18 +23,46 @@ class Player:
         self.should_exit = False
 
         # Prep arguents for MPV
-        kwargs = {"force_window": "immediate", "ao": self.config.audio_driver}
+        kwargs = {
+            "force_window": "immediate",
+            "ao": self.config.audio_driver,
+            "vo": self.config.video_driver,
+            "profile": "sw-fast",
+        }
         if self.config.enable_audio_visualization:
             kwargs.update({
                 "scripts": str(Path(__file__).parent / "visualizer.lua"),
                 "script_opts": "visualizer-name=avectorscope,visualizer-height=12",
             })
 
-        logger.debug(f"Executing MPV with arguments: {kwargs}")
+        if self.config.video_driver == "drm":
+            kwargs.update({
+                "profile": "sw-fast",
+            })
+
+        kwargs.update(**self.config.extra_mpv_options)
+        for key, value in self.config.extra_mpv_options.items():
+            if not value:
+                del kwargs[key]
+
+        logger.debug(f"Initializing MPV with arguments: {kwargs}")
         try:
-            self.mpv = mpv.MPV(**kwargs)
-        except Exception:
-            logger.exception("Error initializing mpv. Are you sure 'extra_mpv_options' are configured properly?")
+            self.mpv = mpv.MPV(log_handler=partial(print, end=""), **kwargs)
+        except Exception as e:
+            # Excepts from mpv library formed weirdlty
+            if (
+                len(e.args) == 3
+                and isinstance(e.args[2], tuple)
+                and len(e.args[2]) == 3
+                and isinstance(e.args[2][1], bytes)
+                and isinstance(e.args[2][2], bytes)
+            ):
+                logger.critical(
+                    f"Can't initialize mpv: Invalid option: {e.args[2][1].decode()} = {e.args[2][2].decode()!r}!"
+                    " Exiting"
+                )
+            else:
+                logger.exception("Error initializing mpv. Are you sure 'extra_mpv_options' are configured properly?")
             sys.exit(1)
 
         self.width: int
@@ -41,14 +73,21 @@ class Player:
         self.duration = 0
 
         @self.mpv.event_callback("end-file")
-        def callback(*args, **kwargs):
+        def _(*args, **kwargs):
             self.playing = False
 
         def observe(name, value):
-            pass
+            logger.debug(f"VALUE CHANGE: {name} = {value!r}")
 
-        for prop in ("time-pos/full", "duration/full", "idle-active", "osd-dimensions"):
+        for prop in ("time-pos/full", "duration/full", "idle-active", "osd-dimensions", "core-idle"):
             self.mpv.observe_property(prop, observe)
+
+        @self.mpv.event_callback("shutdown")
+        def _(*args, **kwargs):
+            # Seems to happen when you click "X" on the X11 video driver
+            pid = int(os.environ.get("VINTAGE_PI_TV_UVICORN_RELOAD_PARENT_PID") or os.getpid())
+            logger.critical(f"mpv appears to have been shut down! Forcing exit of program (pid: {pid})")
+            os.kill(pid, signal.SIGINT)
 
     def stop(self):
         self.should_exit = True
@@ -69,9 +108,7 @@ class Player:
             time.sleep(0.05)
 
         if self.playing:
-            self.mpv.seek(1000)
-
-        import ipdb; ipdb.set_trace()
+            self.mpv.seek(random.uniform(0.0, self.mpv.duration))
 
         while not self.should_exit:
             # print(f'loop tid: {threading.current_thread().ident}')

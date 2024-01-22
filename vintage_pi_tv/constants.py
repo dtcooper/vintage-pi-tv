@@ -3,6 +3,7 @@ DATETIME_FORMAT = "%Y/%m/%d %H:%M:%S"
 DEFAULT_CONFIG_PATHS = (
     "/media/VintagePiTV/config.toml",
     "/boot/firmware/vintage-pi-tv-config.toml",
+    "./config.toml",
 )
 
 DEFAULT_RATINGS = [

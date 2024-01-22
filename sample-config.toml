@@ -1,4 +1,4 @@
-### Vintage Pi TV configuration ###
+#### Vintage Pi TV configuration ####
 
 # Log level, one of silent, error, warning, info, or debug
 log_level = 'debug'
@@ -27,12 +27,11 @@ overscan_margin = false
 # Or disable ratings altogether
 # atings = false
 
-# Directories to search for videos in, wildcards accepted
+# Directories to search for videos in, wildcards accepted. This key is required.
 search_dirs = [
     { path = "/media/VintagePiTV/videos", recurse = true},
     { path = "/media/VintagePiTV", ignore = true },
     "/media/*",
-    "/media/DTC/videos",
     # { path = "/media/*", recurse = true },
 ]
 
@@ -41,10 +40,10 @@ valid_file_extensions = "defaults"
 # Or or provide a list of extensions (without the period)
 # valid_file_extensions = [ "mp4", "mkv", "mov", "avi" ]
 
-# MPV driver for audio (default is alsa)
+# MPV driver for audio (default is alsa) -- see https://mpv.io/manual/master/#audio-output-drivers
 #audio_driver = 'alsa'
 
-# MPV driver for video (default is drm)
+# MPV driver for video (default is drm) -- see https://mpv.io/manual/master/#video-output-drivers
 #video_driver = 'drm'
 
 # For advanced users only! Arguments to the mpv.MPV() constructor in python-mpv

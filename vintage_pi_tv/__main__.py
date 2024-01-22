@@ -8,12 +8,14 @@ from vintage_pi_tv.constants import DEFAULT_CONFIG_PATHS
 
 
 def run(args=None):
+    absolute_default_config_paths = map(lambda p: str(Path(p).absolute()), DEFAULT_CONFIG_PATHS)
+
     parser = argparse.ArgumentParser(description="Run Vintage Pi TV")
     parser.add_argument(
         "-c",
         "--config",
         dest="config_file",
-        help=f"path to config file, if empty will try these in order: {', '.join(DEFAULT_CONFIG_PATHS)}",
+        help=f"path to config file, if empty will try these in order: {', '.join(absolute_default_config_paths)}",
         metavar="config.toml",
     )
     parser.add_argument(
@@ -46,6 +48,7 @@ def run(args=None):
 
     kwargs = {"host": args.host, "port": args.port}
     if args.reload:
+        os.environ["VINTAGE_PI_TV_UVICORN_RELOAD_PARENT_PID"] = str(os.getpid())
         kwargs.update({"reload": True, "reload_dirs": [str(Path(__file__).parent)]})
 
     uvicorn.run("vintage_pi_tv.app:app", **kwargs)
