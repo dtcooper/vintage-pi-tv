@@ -177,4 +177,4 @@ class VideosDB:
             self.save_videos_db()
 
     def get_next_video(self):
-        return random.choice(list(self.videos.items()))
+        return random.choice(list(self.videos.values()))

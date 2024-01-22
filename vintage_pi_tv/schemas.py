@@ -18,7 +18,7 @@ config_schema = Schema(
             error="Invalid 'log_level'. Must be one of 'critical', 'error', 'warning', 'info', or 'debug'.",
         ),
         Optional("videos_db_file", default=False): Or(False, Use(str)),
-        Optional("enable_audio_with_visualization", default=True): Use(bool),
+        Optional("enable_audio_visualization", default=True): Use(bool),
         Optional("ratings", default=DEFAULT_RATINGS): Or(
             False,
             And(
@@ -30,6 +30,10 @@ config_schema = Schema(
                 ],
                 len,
             ),
+        ),
+        Optional("overscan_margins", default=False): Or(
+            False,
+            Schema({direction: And(Use(int), lambda i: i >= 0) for direction in ("left", "top", "right", "bottom")}),
         ),
         "search_dirs": Schema(
             # No need to coerce path key into as Path object, since it's used a string with the
@@ -61,6 +65,7 @@ config_schema = Schema(
         ),
         Optional("valid_file_extensions", default="defaults"): Or([NON_EMPTY_STRING], "defaults"),
         Optional("audio_driver", default="alsa"): NON_EMPTY_STRING,
+        Optional("video_driver", default="drm"): NON_EMPTY_STRING,
         Optional("extra_mpv_options", default={}): Schema({NON_EMPTY_STRING: NON_EMPTY_STRING}),
     },
     ignore_extra_keys=True,
