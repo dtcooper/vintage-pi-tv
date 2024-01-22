@@ -18,7 +18,7 @@ fi
 
 set -e
 
-REPO_DIR=/mounted-github-repo/
+REPO_DIR=/mounted-github-repo
 FILES_DIR="${REPO_DIR}/image/files"
 
 apt-get update
