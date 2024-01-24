@@ -1,10 +1,13 @@
 import os
+import logging
 
 from starlette.applications import Starlette
 from starlette.responses import PlainTextResponse
 from starlette.routing import Route
 
 from .tv import VintagePiTV
+
+logger = logging.getLogger(__name__)
 
 
 async def index(request):

@@ -40,13 +40,21 @@ valid_file_extensions = "defaults"
 # Or or provide a list of extensions (without the period)
 # valid_file_extensions = [ "mp4", "mkv", "mov", "avi" ]
 
-# MPV driver for audio (default is alsa) -- see https://mpv.io/manual/master/#audio-output-drivers
-#audio_driver = 'alsa'
+# MPV optionals
 
-# MPV driver for video (default is drm) -- see https://mpv.io/manual/master/#video-output-drivers
-#video_driver = 'drm'
+# MPV driver for audio (default is alsa) -- see https://mpv.io/manual/stable/#audio-output-drivers
+#mpv_audio_driver = 'alsa'
 
-# For advanced users only! Arguments to the mpv.MPV() constructor in python-mpv
-# See https://github.com/jaseg/python-mpv for more details
-# NOTE: mpv arguments should be translated to use underscores instead of hyfens
-#extra_mpv_options = { alsa_device = "hw:0,0" }
+# MPV driver for video (default is drm) -- see https://mpv.io/manual/stable/#video-output-drivers
+#mpv_video_driver = 'gpu'
+
+# DRM mode, ie resolution, with drm video driver (see logs for possible values) -- https://mpv.io/manual/stable/#video-output-drivers-drm-mode
+#mpv_drm_mode = 'preferred'  # Preferred for your monitor
+
+# For advanced users only! Arguments converted the mpv.MPV(...) constructor in python-mpv
+# See https://github.com/jaseg/python-mpv and https://mpv.io/manual/stable/ for more details
+# NOTES:
+#    * Use strings 'yes' or 'no' arguments with no values, for example { fullscreen = "yes" } translates
+#      to --fullscreen and { fullscreen = "no" } to --no-fullscreen
+#    ( Setting a value to false disables it entirely (even if backend were to generate it). Be careful!
+#mpv_extra_options = { alsa_device = "hw:0,0" }

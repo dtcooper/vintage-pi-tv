@@ -15,14 +15,14 @@ logger = logging.getLogger(__name__)
 
 
 class Config:
-    audio_driver: str
+    mpv_audio_driver: str
     enable_audio_visualization: bool | str
-    extra_mpv_options: dict[str, str]
+    mpv_extra_options: dict[str, str]
     log_level: Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]
     ratings: list[dict[str, str]]
     search_dirs: list[dict[str, Path | bool]]
     valid_file_extensions: set[str]
-    video_driver: str
+    mpv_video_driver: str
     videos_db_file: bool | Path
 
     def __init__(self, path: Path):

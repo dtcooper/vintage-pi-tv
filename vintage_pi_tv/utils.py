@@ -5,20 +5,20 @@ from uvicorn.logging import ColourizedFormatter
 
 
 def init_logger():
-    uvicorn_logger = logging.getLogger("uvicorn")
-    vintage_pi_tv_logger = logging.getLogger(__name__).parent
-    formats = {
-        vintage_pi_tv_logger: "{asctime} {levelprefix:<8} {message} ({name})",
-        uvicorn_logger: "{asctime} {levelprefix:<8} {message} (uvicorn)",
+    log_fmt = "{asctime} {levelprefix:<8} {message}"
+
+    loggers = {
+        logging.getLogger("uvicorn"): f"{log_fmt} (uvicorn)",
+        logging.getLogger(__name__).parent: f"{log_fmt} ({{name}})",
     }
 
-    for logger_to_modify in (uvicorn_logger, vintage_pi_tv_logger):
-        for handler in logger_to_modify.handlers:
-            logger_to_modify.removeHandler(handler)
+    for logger, format in loggers.items():
+        for handler in logger.handlers:
+            logger.removeHandler(handler)
         handler = logging.StreamHandler()
-        formatter = ColourizedFormatter(formats[logger_to_modify], style="{")
+        formatter = ColourizedFormatter(format, style="{")
         handler.setFormatter(formatter)
-        logger_to_modify.addHandler(handler)
+        logger.addHandler(handler)
 
 
 def set_log_level(level):

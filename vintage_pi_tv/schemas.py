@@ -63,9 +63,9 @@ config_schema = Schema(
             ),
         ),
         Optional("valid_file_extensions", default="defaults"): Or([NON_EMPTY_STRING], "defaults"),
-        Optional("audio_driver", default="alsa"): NON_EMPTY_STRING,
-        Optional("video_driver", default="drm"): NON_EMPTY_STRING,
-        Optional("extra_mpv_options", default={}): Schema({NON_EMPTY_STRING: Or(False, NON_EMPTY_STRING)}),
+        Optional("mpv_audio_driver", default="alsa"): NON_EMPTY_STRING,
+        Optional("mpv_video_driver", default="gpu"): NON_EMPTY_STRING,
+        Optional("mpv_extra_options", default={}): Schema({NON_EMPTY_STRING: Or(False, NON_EMPTY_STRING)}),
     },
     ignore_extra_keys=True,
 )
