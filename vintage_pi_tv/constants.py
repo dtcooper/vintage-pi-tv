@@ -13,6 +13,15 @@ DEFAULT_RATINGS = [
     {"rating": "X", "description": "Adult"},
 ]
 
+DEFAULT_MPV_OPTIONS = {
+    "ao": "pipewire",
+    "fullscreen": True,
+    "gpu-context": "drm",
+    "hwdec": "auto-safe",
+    "profile": "sw-fast",
+    "vo": "gpu",
+}
+
 DEFAULT_AUDIO_FILE_EXTENSIONS = [
     "mp3",
     "wav",

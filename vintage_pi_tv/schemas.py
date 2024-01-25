@@ -3,11 +3,21 @@ from pathlib import Path
 
 from schema import And, Optional, Or, Schema, Use
 
-from .constants import DEFAULT_RATINGS
+from .constants import DEFAULT_MPV_OPTIONS, DEFAULT_RATINGS
 
 
 NON_EMPTY_STRING = And(Use(str), len)
 NON_EMPTY_PATH = And(Use(str), len, Use(Path))
+
+
+mpv_options_schema = Schema({
+    **{
+        Optional(key, default=default): Or(And(bool, Use(lambda val: "yes" if val else "no")), NON_EMPTY_STRING)
+        for key, default in DEFAULT_MPV_OPTIONS.items()
+    },
+    # Catch-all for any other strings
+    Optional(NON_EMPTY_STRING): NON_EMPTY_STRING,
+})
 
 
 config_schema = Schema(
@@ -37,37 +47,37 @@ config_schema = Schema(
             Schema({direction: And(Use(int), lambda i: i >= 0) for direction in ("left", "top", "right", "bottom")}),
         ),
         "search_dirs": Schema(
-            [
-                Or(
-                    {
-                        "path": NON_EMPTY_PATH,
-                        Optional("recurse", default=False): False,
-                        Optional("ignore", default=False): False,
-                    },
-                    {
-                        "path": NON_EMPTY_PATH,
-                        "recurse": True,
-                        Optional("ignore", default=False): False,
-                    },
-                    {
-                        "path": NON_EMPTY_PATH,
-                        Optional("recurse", default=False): False,
-                        "ignore": True,
-                    },
-                    And(str, len, Use(lambda path: {"path": Path(path), "recurse": False, "ignore": False})),
-                )
-            ],
+            And(
+                len,
+                [
+                    Or(
+                        {
+                            "path": NON_EMPTY_PATH,
+                            Optional("recurse", default=False): False,
+                            Optional("ignore", default=False): False,
+                        },
+                        {
+                            "path": NON_EMPTY_PATH,
+                            "recurse": True,
+                            Optional("ignore", default=False): False,
+                        },
+                        {
+                            "path": NON_EMPTY_PATH,
+                            Optional("recurse", default=False): False,
+                            "ignore": True,
+                        },
+                        And(str, len, Use(lambda path: {"path": Path(path), "recurse": False, "ignore": False})),
+                    )
+                ],
+            ),
             error=(
                 "'search_dirs' must be a list of paths or {{ path = <path>, recurse = <bool>, ignore = <bool> }} style"
                 " dictionaries. NOTE: 'recurse' and 'ignore' cannot be both true."
             ),
         ),
         Optional("valid_file_extensions", default="defaults"): Or([NON_EMPTY_STRING], "defaults"),
-        Optional("mpv_audio_driver", default="alsa"): NON_EMPTY_STRING,
-        Optional("mpv_video_driver", default="gpu"): NON_EMPTY_STRING,
-        Optional("mpv_extra_options", default={}): Schema({NON_EMPTY_STRING: Or(False, NON_EMPTY_STRING)}),
+        Optional("mpv_options", default=mpv_options_schema.validate({})): mpv_options_schema,
     },
-    ignore_extra_keys=True,
 )
 
 videos_schema = Schema({

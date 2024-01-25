@@ -71,7 +71,7 @@ class VideosDB:
                 logger.error(f"Error parsing video 'videos_db_file', disabling the use of config file: {e}")
                 self.config.videos_db_file = False
             except Exception:
-                logger.exception(f"Error opening 'videos_db_file' {self.config.videos_db_file}")
+                logger.critical(f"Error opening 'videos_db_file' {self.config.videos_db_file}", exc_info=True)
             else:
                 self.videos.update({path: Video(path, self.config, **metadata) for path, metadata in videos.items()})
                 logger.info(f"Loaded {len(self.videos)} video(s) from {last_saved} from {self.config.videos_db_file}")
@@ -92,7 +92,9 @@ class VideosDB:
                     f" {save_time.strftime(DATETIME_FORMAT)}"
                 )
             except Exception:
-                logger.exception(f"Error saving 'videos_db_file' {self.config.videos_db_file}. Disabling saving.")
+                logger.critical(
+                    f"Error saving 'videos_db_file' {self.config.videos_db_file}. Disabling saving.", exc_info=True
+                )
                 self.config.videos_db_file = False
         else:
             logger.debug("Skipping videos db save since 'videos_db_file' is false")
@@ -135,7 +137,7 @@ class VideosDB:
 
         # Existing videos (lower channels, dictionaries in Python >= 3.6 retain their ordering)
         for video in self.videos.values():
-            logger.debug(f"Found existing video: {path}")
+            logger.debug(f"Found existing video: {video.path}")
             if not video.path.is_file():
                 video.enabled = False
             self.write_video_to_db(video, skip_write=True)

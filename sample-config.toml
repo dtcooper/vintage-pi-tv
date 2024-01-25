@@ -3,8 +3,6 @@
 # Log level, one of silent, error, warning, info, or debug
 log_level = 'debug'
 
-timezone = 'US/Eastern'  # From the
-
 # Set to false to disable storing a toml DB file (relative paths relative to this config file)
 videos_db_file = "videos-db.toml"
 #videos_db_file = false
@@ -21,7 +19,7 @@ ratings = [
 ]
 
 # Margin of monitor in pixels, for overscan purposes
-overscan_margin = false
+#overscan_margin = false
 # overscan_margin = { "left": 10, "top": 10, "right": 10, "bottom": 10 }
 
 # Or disable ratings altogether
@@ -40,21 +38,24 @@ valid_file_extensions = "defaults"
 # Or or provide a list of extensions (without the period)
 # valid_file_extensions = [ "mp4", "mkv", "mov", "avi" ]
 
-# MPV optionals
+### MPV options ###
+[mpv_options]
 
-# MPV driver for audio (default is alsa) -- see https://mpv.io/manual/stable/#audio-output-drivers
-#mpv_audio_driver = 'alsa'
-
-# MPV driver for video (default is drm) -- see https://mpv.io/manual/stable/#video-output-drivers
-#mpv_video_driver = 'gpu'
-
-# DRM mode, ie resolution, with drm video driver (see logs for possible values) -- https://mpv.io/manual/stable/#video-output-drivers-drm-mode
-#mpv_drm_mode = 'preferred'  # Preferred for your monitor
-
-# For advanced users only! Arguments converted the mpv.MPV(...) constructor in python-mpv
+# WARNING: For advanced users only! Arguments converted the mpv.MPV(...) constructor in python-mpv
 # See https://github.com/jaseg/python-mpv and https://mpv.io/manual/stable/ for more details
-# NOTES:
-#    * Use strings 'yes' or 'no' arguments with no values, for example { fullscreen = "yes" } translates
-#      to --fullscreen and { fullscreen = "no" } to --no-fullscreen
-#    ( Setting a value to false disables it entirely (even if backend were to generate it). Be careful!
-#mpv_extra_options = { alsa_device = "hw:0,0" }
+
+### Defaults (uncomment to change)
+#ao = "pipewire"      # audio output driver [https://mpv.io/manual/stable/#audio-output-drivers]
+#vo = "gpu"           # video output driver [https://mpv.io/manual/stable/#video-output-drivers]
+#hwdec = "auto-safe"
+#profile = "sw-fast"
+#gpu-context = "drm"
+#fullscreen = true
+
+### More relevant settings
+#drm-connector = "TODO"  # Which monitor to use [https://mpv.io/manual/stable/#video-output-drivers-drm-connector]
+                         # For options, run: $ mpv --drm-connector=help
+
+#drm-mode = "1920x1080"  # DRM mode, set custom resolution here [https://mpv.io/manual/stable/#video-output-drivers-drm-mode]
+                         # Use "preferred", "highest", or for more options, run: $ mpv --drm-mode=help
+#alsa-device = "hw:0,0"

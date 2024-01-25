@@ -28,6 +28,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     git \
     libmpv2 \
     mpv \
+    pipewire \
     udiskie
 
 cp -v "${FILES_DIR}/99-udisks2.rules" /etc/udev/rules.d/

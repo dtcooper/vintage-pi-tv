@@ -1,11 +1,12 @@
-import os
 import logging
+import os
 
 from starlette.applications import Starlette
 from starlette.responses import PlainTextResponse
 from starlette.routing import Route
 
 from .tv import VintagePiTV
+
 
 logger = logging.getLogger(__name__)
 

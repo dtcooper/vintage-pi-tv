@@ -1,12 +1,10 @@
-from functools import partial
 import logging
 import os
 from pathlib import Path
 import random
 import signal
-import sys
-import time
 import string
+import sys
 import time
 
 import mpv
@@ -40,34 +38,18 @@ class Player:
         self.should_exit = False
 
         # Prep arguents for MPV
-        kwargs = {
-            "force_window": "immediate",
-            "ao": self.config.mpv_audio_driver,
-            "vo": self.config.mpv_video_driver,
-            "hwdec": "auto-safe",
-            "profile": "sw-fast",
-            "fullscreen": "yes",
-        }
+        kwargs = {k.replace("-", "_"): v for k, v in self.config.mpv_options.items() if not isinstance(v, bool) or v}
         if self.config.enable_audio_visualization:
             kwargs.update({
                 "scripts": str(Path(__file__).parent / "visualizer.lua"),
                 "script_opts": "visualizer-name=avectorscope,visualizer-height=12",
             })
 
-        if self.config.mpv_video_driver == "drm":
-            kwargs.update({
-                "profile": "sw-fast",
-            })
-
-        kwargs.update(
-            **{k.replace("-", "_"): v for k, v in self.config.mpv_extra_options.items() if not isinstance(v, bool) or v}
-        )
-
         logger.debug(f"Initializing MPV with arguments: {kwargs}")
         try:
-            self.mpv = mpv.MPV(log_handler=mpv_log, loglevel="status", **kwargs)
+            self.mpv = mpv.MPV(log_handler=mpv_log, loglevel="status", force_window="immediate", **kwargs)
         except Exception as e:
-            # Excepts from mpv library formed weirdly
+            # Exceptions from mpv are formed very weirdly
             if (
                 len(e.args) == 3
                 and isinstance(e.args[2], tuple)
@@ -75,12 +57,11 @@ class Player:
                 and isinstance(e.args[2][1], bytes)
                 and isinstance(e.args[2][2], bytes)
             ):
-                logger.critical(
-                    f"Can't initialize mpv: Invalid option: {e.args[2][1].decode()} = {e.args[2][2].decode()!r}!"
-                    " Exiting"
-                )
+                logger.critical(f"Invalid mpv option: {e.args[2][1].decode()} = {e.args[2][2].decode()!r}! Exiting.")
             else:
-                logger.exception("Error initializing mpv. Are you sure 'mpv_extra_options' are configured properly?")
+                logger.critical(
+                    "Error initializing mpv. Are you sure 'mpv_options' are set properly? Exiting.", exc_info=True
+                )
             sys.exit(1)
 
         # Since we're primarily operating in fullscreen mode, window size should not be changed
@@ -163,7 +144,6 @@ class Player:
 
             source = f"&{static_frame.ctypes.data}"
             self.mpv.overlay_add(1, 0, 0, source, 0, "bgra", width, height, width * 4)
-            # self.mpv.command('overlay_add', 1, 0, 0, source, 0, 'bgra', width, height, width * 4), self.mpv.osd_width, self.mpv.osd_height)
             clock.tick(60)
             print(clock.get_fps())
         self.mpv.overlay_remove(1)
