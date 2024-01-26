@@ -50,11 +50,16 @@ cp -v "${REPO_DIR}/sample-videos-db.toml" /boot/firmware/vintage-pi-tv-videos-db
 
 curl -L https://install.python-poetry.org | POETRY_HOME=/opt/poetry python3
 cp -v "${FILES_DIR}/poetry.sh" /etc/profile.d/
-su - pi -c "git clone --branch '${GITHUB_REF_NAME}' file:///mounted-github-repo/ vintage-pi-tv"
+
+mkdir -v /opt/vintage-pi-tv
+chown -v pi:pi /opt/vintage-pi-tv
+su - pi -c "ln -vs /opt/vintage-pi-tv vintage-pi-tv"
+su - pi -c "cd vintage-pi-tv ; git clone --branch '${GITHUB_REF_NAME}' file:///mounted-github-repo/ ."
+
 if [ "${GITHUB_REF_TYPE}" = 'tag' ]; then
     su - pi -c "cd vintage-pi-tv ; rm -rf .git ; echo '${GITHUB_REF_NAME}' > version.txt"
 else
     su - pi -c "cd vintage-pi-tv ; git remote set-url origin 'https://github.com/${GITHUB_REPOSITORY}.git'"
 fi
-su - pi -c "cd vintage-pi-tv ; poetry config virtualenvs.in-project true"
+su - pi -c "poetry config virtualenvs.in-project true"
 su - pi -c "cd vintage-pi-tv ; poetry install --without=dev"
