@@ -9,9 +9,9 @@ import time
 
 import mpv
 import numpy
-import pygame
 
 from .config import Config
+from .utils import FPSClock
 from .videos import Video, VideosDB
 
 
@@ -32,9 +32,10 @@ def mpv_log(level, prefix, text):
 
 
 class Player:
-    def __init__(self, config: Config, videos_db: VideosDB):
+    def __init__(self, config: Config, videos_db: VideosDB, dev_mode: bool = False, reload_pid: int | None = None):
         self.config = config
         self.videos_db = videos_db
+        self.reload_pid = reload_pid
         self.should_exit = False
 
         # Prep arguents for MPV
@@ -114,7 +115,7 @@ class Player:
 
     def kill_entire_app(self):
         if not self.killed:
-            pid = int(os.environ.get("VINTAGE_PI_TV_UVICORN_RELOAD_PARENT_PID") or os.getpid())
+            pid = self.reload_pid or os.getpid()
             logger.critical(f"mpv appears to have been shut down! Forcing exit of program (pid: {pid})")
             self.killed = True
             os.kill(pid, signal.SIGINT)
@@ -131,7 +132,7 @@ class Player:
 
     def show_static(self):
         start = time.monotonic()
-        clock = pygame.time.Clock()
+        clock = FPSClock()
 
         frames = [self.get_static_frame() for _ in range(16)]
         i = 0
@@ -145,7 +146,6 @@ class Player:
             source = f"&{static_frame.ctypes.data}"
             self.mpv.overlay_add(1, 0, 0, source, 0, "bgra", width, height, width * 4)
             clock.tick(60)
-            print(clock.get_fps())
         self.mpv.overlay_remove(1)
 
     def run(self):

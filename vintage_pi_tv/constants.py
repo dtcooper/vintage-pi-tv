@@ -1,5 +1,7 @@
 DATETIME_FORMAT = "%Y/%m/%d %H:%M:%S"
 
+ENV_ARGS_VAR_NAME = "__VINTAGE_PI_TV_ARGS"
+
 DEFAULT_CONFIG_PATHS = (
     "/media/VintagePiTV/config.toml",
     "/boot/firmware/vintage-pi-tv-config.toml",
@@ -13,13 +15,23 @@ DEFAULT_RATINGS = [
     {"rating": "X", "description": "Adult"},
 ]
 
+
 DEFAULT_MPV_OPTIONS = {
-    "ao": "pipewire",
+    "ao": "alsa,pipewire,pulse",
     "fullscreen": True,
     "gpu-context": "drm",
     "hwdec": "auto-safe",
     "profile": "sw-fast",
     "vo": "gpu",
+}
+
+DEFAULT_DEV_MPV_OPTIONS = {
+    **DEFAULT_MPV_OPTIONS,
+    "geometry": "1280x720",  # 720p
+    "ao": "pipewire,pulse,alsa",
+    "fullscreen": False,
+    "gpu-context": "x11egl",
+    "title": "Vintage Pi TV (dev mode)",
 }
 
 DEFAULT_AUDIO_FILE_EXTENSIONS = [
