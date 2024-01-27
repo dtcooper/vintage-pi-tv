@@ -6,6 +6,7 @@ import signal
 import string
 import sys
 import time
+from typing import Literal
 
 import mpv
 import numpy
@@ -32,7 +33,9 @@ def mpv_log(level, prefix, text):
 
 
 class Player:
-    def __init__(self, config: Config, videos_db: VideosDB, dev_mode: bool = False, reload_pid: int | None = None):
+    def __init__(
+        self, config: Config, videos_db: VideosDB, dev_mode: Literal["docker"] | bool, reload_pid: int | None = None
+    ):
         self.config = config
         self.videos_db = videos_db
         self.reload_pid = reload_pid
@@ -66,6 +69,7 @@ class Player:
             sys.exit(1)
 
         # Since we're primarily operating in fullscreen mode, window size should not be changed
+        # And if it does change, user is shit out of luck
         self.width, self.height = self.mpv.osd_width, self.mpv.osd_height
         logger.info(f"Dimensions {self.width}x{self.height}")
 
@@ -151,8 +155,8 @@ class Player:
     def run(self):
         self.show_static()
 
-        # self.play(self.videos_db.get_next_video())
-        self.play(self.videos_db.videos[Path("/home/dave/media/DTC/videos/until-the-end-of-the-world.mkv")])
+        self.play(self.videos_db.get_next_video())
+        # self.play(self.videos_db.videos[Path("/home/dave/media/DTC/videos/until-the-end-of-the-world.mkv")])
 
         # Wait for file to play
         while not self.should_exit and self.mpv.core_idle and self.playing:

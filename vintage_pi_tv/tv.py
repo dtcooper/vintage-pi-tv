@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 import sys
 import time
+from typing import Literal
 
 from .config import Config
 from .constants import DEFAULT_CONFIG_PATHS
@@ -20,7 +21,7 @@ class VintagePiTV:
         config_file: str | Path | None = None,
         config_wait: int = 0,
         extra_search_dirs: list | tuple = (),
-        dev_mode: bool = False,
+        dev_mode: Literal["docker"] | bool = False,
     ):
         config_file_tries = DEFAULT_CONFIG_PATHS if config_file is None else (config_file,)
         config_file_tries = [Path(p).absolute() for p in config_file_tries]
@@ -41,21 +42,24 @@ class VintagePiTV:
             logger.critical(f"Exiting as config file not found at path(s): {', '.join(map(str, config_file_tries))}")
             sys.exit(1)
 
-    def init_config_with_no_file(self, extra_search_dirs: list | tuple = (), dev_mode: bool = False):
+    def init_config_with_no_file(
+        self, extra_search_dirs: list | tuple = (), dev_mode: Literal["docker"] | bool = False
+    ):
         self.config = Config(path=None, extra_search_dirs=extra_search_dirs, dev_mode=dev_mode)
 
     def __init__(
         self,
         config_file: str | Path | None = None,
         config_wait: int = 0,
-        dev_mode: bool = False,
+        dev_mode: Literal["docker"] | bool = False,
         extra_search_dirs: list | tuple = (),
         no_config: bool = False,
         uvicorn_reload_parent_pid: int | None = None,
     ):
         init_logger()
 
-        if no_config:
+        # No config is explicit OR we're running in docker
+        if no_config or (config_file is None and isinstance(dev_mode, str) and dev_mode == "docker"):
             self.init_config_with_no_file(extra_search_dirs, dev_mode=dev_mode)
         else:
             self.init_config_from_file(

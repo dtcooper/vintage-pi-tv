@@ -34,6 +34,12 @@ DEFAULT_DEV_MPV_OPTIONS = {
     "title": "Vintage Pi TV (dev mode)",
 }
 
+DEFAULT_DOCKER_MPV_OPTIONS = {
+    **DEFAULT_MPV_OPTIONS,
+    "ao": "null",
+    "gpu-context": "x11egl",
+}
+
 DEFAULT_AUDIO_FILE_EXTENSIONS = [
     "mp3",
     "wav",

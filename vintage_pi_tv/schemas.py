@@ -1,17 +1,24 @@
 import datetime
 from pathlib import Path
+from typing import Literal
 
 from schema import And, Optional, Or, Schema, Use
 
-from .constants import DEFAULT_DEV_MPV_OPTIONS, DEFAULT_MPV_OPTIONS, DEFAULT_RATINGS
+from .constants import DEFAULT_DEV_MPV_OPTIONS, DEFAULT_DOCKER_MPV_OPTIONS, DEFAULT_MPV_OPTIONS, DEFAULT_RATINGS
 
 
 NON_EMPTY_STRING = And(Use(str), len)
 NON_EMPTY_PATH = And(Use(str), len, Use(Path))
 
 
-def generate_config_schema(dev_mode: bool = False):
-    mpv_options = DEFAULT_DEV_MPV_OPTIONS if dev_mode else DEFAULT_MPV_OPTIONS
+def generate_config_schema(dev_mode: Literal["docker"] | bool = False):
+    if isinstance(dev_mode, str) and dev_mode == "docker":
+        mpv_options = DEFAULT_DOCKER_MPV_OPTIONS
+    elif dev_mode:
+        mpv_options = DEFAULT_DEV_MPV_OPTIONS
+    else:
+        mpv_options = DEFAULT_MPV_OPTIONS
+
     mpv_options_schema = Schema({
         **{
             Optional(key, default=default): Or(And(bool, Use(lambda val: "yes" if val else "no")), NON_EMPTY_STRING)

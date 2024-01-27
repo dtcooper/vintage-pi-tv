@@ -23,9 +23,13 @@ class Config:
     valid_file_extensions: set[str]
     videos_db_file: bool | Path
 
-    def __init__(self, path: None | Path, extra_search_dirs: tuple | list = (), dev_mode: int = False):
+    def __init__(
+        self, path: None | Path, extra_search_dirs: tuple | list = (), dev_mode: Literal["docker"] | bool = False
+    ):
         if path is None:
             toml = tomlkit.document()
+            if dev_mode:
+                toml["log_level"] = "DEBUG"
         else:
             self.config_path = path
             with open(self.config_path) as file:

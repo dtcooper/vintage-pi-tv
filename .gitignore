@@ -3,3 +3,4 @@ __pycache__
 version.txt
 config.toml
 videos-db.toml
+/videos/
