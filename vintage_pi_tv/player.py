@@ -34,7 +34,7 @@ def mpv_log(level, prefix, text):
 
 class Player:
     def __init__(
-        self, config: Config, videos_db: VideosDB, dev_mode: Literal["docker"] | bool, reload_pid: int | None = None
+        self, config: Config, videos_db: VideosDB, reload_pid: int | None = None
     ):
         self.config = config
         self.videos_db = videos_db
