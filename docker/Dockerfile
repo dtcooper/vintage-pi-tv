@@ -18,6 +18,12 @@ RUN apt-get update \
         supervisor \
         x11vnc \
         xvfb \
+        # Tools I like to use for development
+        command-not-found \
+        less \
+        nano \
+        procps \
+    && apt-file update \
     && rm -rf /var/lib/apt/lists/*
 
 # Install noVNC to nginx root
