@@ -106,7 +106,7 @@ class VideosDB:
 
         # Build directories to search in and directories to ignore
         for info in self.config.search_dirs:
-            for path in map(Path, glob.glob(str(info["path"].expanduser()), root_dir="/")):
+            for path in map(Path, glob.glob(str(info["path"].expanduser().absolute()))):
                 if path.is_dir():
                     if info["ignore"]:
                         exclude_dirs.add(path)

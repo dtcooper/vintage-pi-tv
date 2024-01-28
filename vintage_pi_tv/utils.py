@@ -1,5 +1,7 @@
+from functools import cache
 import logging
 import os
+from pathlib import Path
 import time
 
 from uvicorn.logging import ColourizedFormatter
@@ -58,3 +60,21 @@ class FPSClock:
             time.sleep(sleep_secs)
 
         self.last_tick = time.monotonic()
+
+
+@cache
+def is_docker():
+    return Path("/.dockerenv").exists()
+
+
+@cache
+def is_raspberry_pi():
+    if not is_docker():
+        file_to_check = "/sys/firmware/devicetree/base/model"
+        if os.path.exists(file_to_check):
+            try:
+                with open(file_to_check, "rb") as file:
+                    return b"raspberry pi" in file.read().lower()
+            except OSError:
+                pass
+    return False

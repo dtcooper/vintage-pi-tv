@@ -8,7 +8,7 @@ import tomlkit
 
 from .constants import DEFAULT_AUDIO_FILE_EXTENSIONS, DEFAULT_VIDEO_FILE_EXTENSIONS
 from .exceptions import InvalidConfigError
-from .schemas import generate_config_schema
+from .schemas import config_schema
 
 
 logger = logging.getLogger(__name__)
@@ -23,13 +23,10 @@ class Config:
     valid_file_extensions: set[str]
     videos_db_file: bool | Path
 
-    def __init__(
-        self, path: None | Path, extra_search_dirs: tuple | list = (), dev_mode: Literal["docker"] | bool = False
-    ):
+    def __init__(self, path: None | Path, extra_search_dirs: tuple | list = ()):
         if path is None:
             toml = tomlkit.document()
-            if dev_mode:
-                toml["log_level"] = "DEBUG"
+            toml["log_level"] = "DEBUG"
         else:
             self.config_path = path
             with open(self.config_path) as file:
@@ -37,8 +34,6 @@ class Config:
 
         # Add in extras
         toml.setdefault("search_dirs", []).extend(extra_search_dirs)
-
-        config_schema = generate_config_schema(dev_mode=dev_mode)
 
         try:
             self._config = config_schema.validate(toml.unwrap())

@@ -6,25 +6,18 @@ from pathlib import Path
 import uvicorn
 
 from vintage_pi_tv.constants import DEFAULT_CONFIG_PATHS, ENV_ARGS_VAR_NAME
+from vintage_pi_tv.utils import is_docker
 
 
 def run(args=None):
-    absolute_default_config_paths = map(lambda p: str(Path(p).absolute()), DEFAULT_CONFIG_PATHS)
-
-    is_docker = Path("/.dockerenv").exists()
-
     parser = argparse.ArgumentParser(description="Run Vintage Pi TV")
     config_group = parser.add_mutually_exclusive_group()
-    config_group.add_argument(
-        "-c",
-        "--config",
-        dest="config_file",
-        help=(
-            f"path to config file, if empty will try these in order:' {', '.join(absolute_default_config_paths)}"
-            f"{' (in Docker container you must specify an explicit config)' if is_docker else ''}"
-        ),
-        metavar="config.toml",
-    )
+    if is_docker():
+        absolute_default_config_paths = map(lambda p: str(Path(p).absolute()), DEFAULT_CONFIG_PATHS)
+        config_help_str = f"if empty will try these in order:' {', '.join(absolute_default_config_paths)}"
+    else:
+        config_help_str = "using Docker you must specify a configuration file explicitly"
+    config_group.add_argument("-c", "--config", dest="config_file", help=config_help_str, metavar="config.toml")
     parser.add_argument(
         "-w",
         "--wait-for-config-seconds",
@@ -37,13 +30,6 @@ def run(args=None):
         metavar="<int>",
         type=int,
     )
-    if not is_docker:
-        config_group.add_argument(
-            "-n",
-            "--no-config",
-            action="store_true",
-            help="allow command to disable use of config, only uses sane defaults (requires at least one <search-dir>)",
-        )
     parser.add_argument(
         "--host", default="0.0.0.0", help="Bind webserver to host [default: 0.0.0.0]", metavar="<ip-address>"
     )
@@ -51,14 +37,6 @@ def run(args=None):
         "--port", default=6672, help="Bind webserver to port [default: 6672]", metavar="<port>", type=int
     )
     parser.add_argument("-r", "--reload", action="store_true", help="Enable auto-reload when Python files change")
-    if not is_docker:
-        parser.add_argument(
-            "-d",
-            "--dev",
-            dest="dev_mode",
-            action="store_true",
-            help="Run in development mode ie, using a non-fullscreen window in X11",
-        )
     parser.add_argument(
         "extra_search_dirs",
         nargs="*",
@@ -73,18 +51,12 @@ def run(args=None):
     if args.config_wait < 0:
         parser.error("--wait-for-config-seconds should greater than or equal to 0")
 
-    if getattr(args, "dev_mode", False) and not args.extra_search_dirs:
-        parser.error("You must specify at least one <search-dir> argument when --dev-mode is enabled.")
+    if is_docker() and not args.extra_search_dirs:
+        args.extra_search_dirs.append("/videos")
 
     # Since uvicorn needs to completely load program for --reload to work, most of these as environment variables
     env = {key: getattr(args, key) for key in vars(args).keys() if key not in ("reload", "host", "port")}
     env["uvicorn_reload_parent_pid"] = None
-
-    if is_docker:
-        env["dev_mode"] = "docker"
-        env["no_config"] = not args.config_file
-        if not args.extra_search_dirs:
-            args.extra_search_dirs.append("/videos")
 
     kwargs = {"host": args.host, "port": args.port}
     if args.reload:

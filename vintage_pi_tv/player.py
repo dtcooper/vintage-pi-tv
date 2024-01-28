@@ -6,7 +6,6 @@ import signal
 import string
 import sys
 import time
-from typing import Literal
 
 import mpv
 import numpy
@@ -33,9 +32,7 @@ def mpv_log(level, prefix, text):
 
 
 class Player:
-    def __init__(
-        self, config: Config, videos_db: VideosDB, reload_pid: int | None = None
-    ):
+    def __init__(self, config: Config, videos_db: VideosDB, reload_pid: int | None = None):
         self.config = config
         self.videos_db = videos_db
         self.reload_pid = reload_pid
