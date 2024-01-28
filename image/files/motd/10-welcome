@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# Adapted from https://github.com/ar51an/raspberrypi-motd
+
+function color (){
+  echo "\e[$1m$2\e[0m"
+}
+
+function findDeviceModel (){
+  deviceName=""
+  local deviceModel=$(tr -d '\0' < /sys/firmware/devicetree/base/model)
+  local codename="Debian $(grep 'VERSION_CODENAME' /etc/os-release | cut -d '=' -f 2)"
+
+  deviceName="$deviceModel - $codename"
+}
+
+deviceColor="38;5;16;48;5;249"
+greetingsColor="38;5;103"
+userColor="38;5;16;48;5;67"
+hostNameColor="38;5;108"
+me=$(logname)
+findDeviceModel
+
+# Device Info
+deviceLabel=" $(color $deviceColor " $deviceName ")"
+
+# Greetings
+me="$(color $userColor " $me ")"
+hostName=$(hostname)
+if [ $hostName ]; then
+  greetings="$(color $greetingsColor " * Welcome") $me $(color $greetingsColor to) $(color $hostNameColor $hostName)\n"
+else
+  greetings="$(color $greetingsColor " * Welcome") $me\n"
+fi
+greetings="$greetings$(color $greetingsColor " * $(date +"%a %b %d %Y, %I:%M:%S %p")")\n"
+
+# OS
+greetings="$greetings$(color $greetingsColor " * $(uname -srm)")"
+
+# Print
+echo -e "\n$deviceLabel\n"
+figlet -f slant 'Vintage Pi TV'
+echo -e "\n$greetings"

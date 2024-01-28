@@ -25,6 +25,7 @@ apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     ffmpeg \
+    figlet \
     git \
     libmpv2 \
     mpv \
@@ -44,6 +45,10 @@ mkdir -p /usr/local/lib/vintage-pi-tv-sys-mods
 cp -v "${FILES_DIR}/resize_partitions.sh" /usr/local/lib/vintage-pi-tv-sys-mods/
 sed -i 's|init=/usr/lib/raspberrypi-sys-mods/firstboot|init=/usr/local/lib/vintage-pi-tv-sys-mods/resize_partitions.sh|' /boot/firmware/cmdline.txt
 systemctl enable udiskie.service
+
+sed -i 's/^#\?\(PrintLastLog\).*$/\1 no/' /etc/ssh/sshd_config
+rm -fv /etc/motd /etc/update-motd.d/*
+cp -v "${FILES_DIR}/motd/10-welcome" "${FILES_DIR}/motd/20-system" /etc/update-motd.d/
 
 cp -v "${REPO_DIR}/sample-config.toml" /boot/firmware/vintage-pi-tv-config.toml
 cp -v "${REPO_DIR}/sample-videos-db.toml" /boot/firmware/vintage-pi-tv-videos-db.toml
