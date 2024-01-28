@@ -6,7 +6,7 @@ import time
 from .config import Config
 from .constants import DEFAULT_CONFIG_PATHS
 from .player import Player
-from .utils import init_logger, is_docker, set_log_level
+from .utils import init_logger, is_docker, is_raspberry_pi, set_log_level
 from .videos import VideosDB
 
 
@@ -60,6 +60,7 @@ class VintagePiTV:
         set_log_level(self.config.log_level)
         logger.info(f"Loaded config: {config_file}")
         logger.debug(f"Initialized log level {self.config.log_level}")
+        logger.debug(f"Running in mode: {is_docker()=}, {is_raspberry_pi()=}")
 
         self.videos = VideosDB(config=self.config)
         self.player = Player(config=self.config, videos_db=self.videos, reload_pid=uvicorn_reload_parent_pid)
