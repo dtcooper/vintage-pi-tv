@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Helper script to develop Vintage Pi TV in a controlled environment using
+# Docker and your web browser.
+
 cd "$(dirname "$0")" || exit
 
 DOCKER_CMD="${DOCKER_CMD:-docker}"
@@ -70,7 +73,7 @@ while [ "${1:0:1}" = '-' ]; do
             break
         ;;
         *)
-            echo "Error: unknown argument to ${_CMD}: $1"
+            echo "Error: Unknown argument to ${_CMD}: $1 (options need to be separated)"
             echo
             do_help_and_exit  1
         ;;
@@ -84,7 +87,15 @@ if [ -z "${DO_FORCE}" ] && [ -e "${_PI_LOOKUP_FILE}" ] && grep -qi 'raspberry pi
     exit 1
 fi
 
-DOCKER_EXEC=("${DOCKER_CMD}" run --rm -it -v "${PWD}:/app" -v "${PWD}/videos:/videos" -p "${PORT}:8000")
+DOCKER_EXEC=(
+    "${DOCKER_CMD}" run --rm -it
+        -v "${PWD}:/app"
+        -v "${PWD}/videos:/videos"
+        -v "${PWD}/docker/daemons.conf:/etc/supervisor/conf.d/daemons.conf"
+        -v "${PWD}/docker/nginx.conf:/etc/nginx/sites-enabled/default"
+        -v "${PWD}/docker/entrypoint.sh:/entrypoint.sh"
+        -p "${PORT}:8000"
+)
 
 if [ "${DO_REBUILD}" ] || [ -z "$("${DOCKER_CMD}" images -q "${CONTAINER_NAME}" 2> /dev/null)" ]; then
     echo "Building container ${CONTAINER_NAME} now."
@@ -112,7 +123,10 @@ if [ "${DO_AUDIO}" ]; then
             verify_cmd_exists pactl 'Pulseaudio'
             PULSE_SOCKET="$(pactl info 2> /dev/null | grep 'Server String:' | rev| cut -d ' ' -f 1 | rev)"
             if [ "${PULSE_SOCKET}" ] && [ -S "${PULSE_SOCKET}" ]; then
-                DOCKER_EXEC+=('-v' "${PULSE_SOCKET}:/tmp/pulseaudio.socket.host" '-e' 'PULSE_SERVER=unix:/tmp/pulseaudio.socket.host')
+                DOCKER_EXEC+=(
+                    '-v' "${PULSE_SOCKET}:/tmp/pulseaudio.socket.host"
+                    '-e' 'PULSE_SERVER=unix:/tmp/pulseaudio.socket.host'
+                )
                 DO_AUDIO_SUCCESS=1
             fi
         ;;
@@ -124,7 +138,10 @@ if [ "${DO_AUDIO}" ]; then
 fi
 
 if [ "${DO_OPEN_BROWSER}" ]; then
-    ( ( sleep 3.5 ; python -m webbrowser -t "http://localhost:${PORT}/?autoconnect=1&resize=remote&reconnect=1&reconnect_delay=1500" ) > /dev/null 2>&1 &);
+    verify_cmd_exists python3 'Python 3'
+    ( ( sleep 3.5 ; python3 -m webbrowser \
+        -t "http://localhost:${PORT}/?autoconnect=1&resize=remote&reconnect=1&reconnect_delay=1500" \
+      ) > /dev/null 2>&1 &);
 fi
 
 DOCKER_EXEC+=("${CONTAINER_NAME}" "$@")
