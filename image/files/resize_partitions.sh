@@ -18,6 +18,14 @@ reboot_pi() {
     exit 0
 }
 
+wait_for_partition() {
+    # A little more failure tolerant, per
+    # https://github.com/RPi-Distro/raspberrypi-sys-mods/issues/87#issuecomment-1914806399
+    partprobe
+    partx -u "$1"
+    sleep 1
+}
+
 error() {
     echo "ERROR: $1"
     whiptail --infobox "ERROR: $1" 20 60
@@ -77,7 +85,7 @@ Yes
 ${ROOT_DEV_END}B
 quit
 EOF
-        partprobe
+        wait_for_partition "${ROOT_PART_DEV}"
         resize2fs -f -p "${ROOT_PART_DEV}"
     fi
 
@@ -94,9 +102,9 @@ EOF
         sync
     else
         parted -s "${ROOT_DEV}" "unit B mkpart primary ntfs ${EXFAT_DEV_START}B ${EXFAT_DEV_END}B"
-        partprobe
+        wait_for_partition "${EXFAT_PART_DEV}"
         mkfs.exfat -L "${EXFAT_PARTITION_LABEL}" "${EXFAT_PART_DEV}"
-        partprobe
+        wait_for_partition "${EXFAT_PART_DEV}"
         sync
         mount "${EXFAT_PART_DEV}" /mnt
         sync
