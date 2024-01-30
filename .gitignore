@@ -1,6 +1,8 @@
 __pycache__
 .venv
-version.txt
-config.toml
-videos-db.toml
+/image/04-install-vintage-pi-tv/files/github_env
+/image/04-install-vintage-pi-tv/files/vintage-pi-tv
 /videos/
+config.toml
+version.txt
+videos-db.toml

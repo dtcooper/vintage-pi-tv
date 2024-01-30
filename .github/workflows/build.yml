@@ -12,10 +12,6 @@ concurrency:
   group: build-${{ github.ref_type }}-${{ github.ref_name }}
   cancel-in-progress: true
 
-env:
-  POETRY_VERSION: 1.7.1
-  BASE_IMAGE_URL: https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2023-12-11/2023-12-11-raspios-bookworm-arm64-lite.img.xz
-
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -26,10 +22,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       -
-        id: vars
-        name: Set vars
+        name: Prepare for build
+        id: prepare
         shell: bash
         run: |
           if [ "${GITHUB_REF_TYPE}" = 'tag' ]; then
@@ -40,23 +35,47 @@ jobs:
             SUFFIX="preview-${SHORT_SHA}"
             echo "short-sha=${SHORT_SHA}" >> "${GITHUB_OUTPUT}"
           fi
-          echo "image-path=$(date +%Y-%m-%d)-raspios-bookworm-arm64-vintage-pi-tv_${SUFFIX}.img" >> "${GITHUB_OUTPUT}"
+          echo "image-name=$(date +%Y-%m-%d)-raspios-bookworm-arm64-vintage-pi-tv_${SUFFIX}" >> "${GITHUB_OUTPUT}"
 
+          cd image/04-install-vintage-pi-tv/files
+          mkdir vintage-pi-tv
+          sudo mount -vo bind ../../.. vintage-pi-tv
+
+          echo "GITHUB_REF_TYPE=${GITHUB_REF_TYPE}" >> github_env
+          echo "GITHUB_REF_NAME=${GITHUB_REF_NAME}" >> github_env
+          echo "GITHUB_REPOSITORY=${GITHUB_REPOSITORY}" >> github_env
       -
-        name: Create Raspberry Pi OS image
-        uses: dtcooper/rpi-image-modifier@v1
-        id: image
-        env:
-          RUN_VINTAGE_PI_TV_BUILD_SCRIPT: "1"
+        name: Build image
+        uses: usimd/pi-gen-action@v1
+        id: build
         with:
-          base-image-url: ${{ env.BASE_IMAGE_URL }}
-          script-path : image/build.sh
-          env-vars: RUN_VINTAGE_PI_TV_BUILD_SCRIPT,POETRY_VERSION,GITHUB_REF_NAME,GITHUB_REF_TYPE,GITHUB_REPOSITORY
-          image-path: ${{ steps.vars.outputs.image-path }}
-          compress-with-xz: true
-          extra-xz-args: '-9e'
-          cache: true
-
+          compression: none
+          disable-first-boot-user-rename: 1
+          hostname: vintage-pi-tv
+          image-name: ${{ steps.prepare.outputs.image-name }}
+          keyboard-keymap: "us"
+          keyboard-layout: "English (US)"
+          locale: "en_US.UTF-8"
+          pi-gen-release: "Raspberry Pi with Vintage Pi TV"
+          pi-gen-version: arm64
+          release: bookworm
+          stage-list: "stage0 stage1 stage2 ./image"
+          timezone: "US/Eastern"
+          username: vintage
+          password: pi-tv
+          wpa-country: US
+          verbose-output: true
+      -
+        name: Compress build
+        id: compress
+        shell: bash
+        run: |
+          mv -v "${{ steps.build.outputs.image-path }}" "${{ steps.prepare.outputs.image-name }}.img"
+          echo 'Compressing image. This may take a while.'
+          xz -T0 -9e "${{ steps.prepare.outputs.image-name }}.img"
+          SHA256SUM="$(sha256sum "${{ steps.prepare.outputs.image-name }}.img.xz" | awk '{ print $1 }')"
+          echo "${SHA256SUM}  ${{ steps.prepare.outputs.image-name }}.img.xz" > "${{ steps.prepare.outputs.image-name }}.img.xz.sha256sum"
+          echo "image-sha256sum=${SHA256SUM}" >> "${GITHUB_OUTPUT}"
       -
         name: Remove old preview release
         uses: dev-drprasad/delete-tag-and-release@v0.2.1
@@ -66,30 +85,24 @@ jobs:
           tag_name: preview-build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       -
-        name: Prepare for release
+        name: Wait for preview release to delete
         shell: bash
-        run: |
-          echo "${{ steps.image.outputs.image-sha256sum }}  ${{ steps.image.outputs.image-path }}" > "${{ steps.image.outputs.image-path }}.sha256sum"
-          if [ "${GITHUB_REF_TYPE}" != 'tag' ]; then
-            echo 'Waiting 15s for old release to delete'
-            sleep 15s
-          fi
-
+        if: github.ref_type != 'tag'
+        run: sleep 15s
       -
         name: Tag and upload release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: ${{ steps.image.outputs.image-path }},${{ steps.image.outputs.image-path }}.sha256sum
-          name: ${{ github.ref_type == 'tag' && format('Version {0}', steps.vars.outputs.short-version) || format('Preview Build {0}', steps.vars.outputs.short-sha) }}
+          artifacts: ${{ steps.prepare.outputs.image-name }}.img.xz,${{ steps.prepare.outputs.image-name }}.img.xz.sha256sum
+          name: ${{ github.ref_type == 'tag' && format('Version {0}', steps.prepare.outputs.short-version) || format('Preview Build {0}', steps.prepare.outputs.short-sha) }}
           tag: ${{ github.ref_type == 'tag' && github.ref_name || 'preview-build' }}
           prerelease: ${{ github.ref_type != 'tag' }}
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |-
-            Vintage Pi TV ${{ github.ref_type == 'tag' && format('Release {0}', steps.vars.outputs.short-version) || format('Preview Build {0}', steps.vars.outputs.short-sha) }}
+            Vintage Pi TV ${{ github.ref_type == 'tag' && format('Release {0}', steps.prepare.outputs.short-version) || format('Preview Build {0}', steps.prepare.outputs.short-sha) }}
 
-            Image filename: `${{ steps.image.outputs.image-path }}`
-            SHA256SUM: `${{ steps.image.outputs.image-sha256sum }}`
+            Image filename: `${{ steps.prepare.outputs.image-name }}.img.xz`
+            SHA256SUM: `${{ steps.compress.outputs.image-sha256sum }}`
 
             ${{ github.ref_type != 'tag' &&  '_**This development preview build may not be safe; use it at your own risk.**_' || ''}}
