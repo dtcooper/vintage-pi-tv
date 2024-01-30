@@ -30,6 +30,7 @@ class VintagePiTV:
         for config_file_try in config_file_tries:
             for i in range(config_wait + 1):
                 if config_file_try.exists():
+                    logger.info(f"Using config file: {config_file_try}")
                     self.config = Config(path=config_file_try, extra_search_dirs=extra_search_dirs)
                     break
                 else:
@@ -55,10 +56,10 @@ class VintagePiTV:
     ):
         init_logger()
 
-        self.init_config(config_file, config_wait, extra_search_dirs)
+        used_config_file = self.init_config(config_file, config_wait, extra_search_dirs)
 
         set_log_level(self.config.log_level)
-        logger.info(f"Loaded config: {config_file}")
+        logger.info("Loaded config")
         logger.debug(f"Initialized log level {self.config.log_level}")
         logger.debug(f"Running in mode: {is_docker()=}, {is_raspberry_pi()=}")
 
