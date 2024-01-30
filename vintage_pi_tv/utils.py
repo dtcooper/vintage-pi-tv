@@ -2,17 +2,23 @@ from functools import cache
 import logging
 import os
 from pathlib import Path
+import subprocess
 import time
 
 from uvicorn.logging import ColourizedFormatter
 
 
+logger = logging.getLogger(__name__)
+
+
 def init_logger():
     log_fmt = "{asctime} {levelprefix:<8} {message}"
+    vintage_pi_tv_logger = logging.getLogger(__name__).parent
+    vintage_pi_tv_logger.setLevel(logging.INFO)
 
     loggers = {
         logging.getLogger("uvicorn"): f"{log_fmt} (uvicorn)",
-        logging.getLogger(__name__).parent: f"{log_fmt} ({{name}})",
+        vintage_pi_tv_logger: f"{log_fmt} ({{name}})",
     }
 
     for logger, format in loggers.items():
@@ -78,3 +84,21 @@ def is_raspberry_pi():
             except OSError:
                 pass
     return False
+
+
+@cache
+def get_vintage_pi_tv_version():
+    code_dir = Path(__name__).resolve().absolute().parent
+    version_file = code_dir / "version.txt"
+    git_dir = code_dir / ".git"
+    try:
+        if version_file.exists():
+            with open(version_file, "r") as f:
+                return f.read().strip()
+        elif git_dir.is_dir():
+            return subprocess.check_output(("git", f"--git-dir={git_dir}", "rev-parse", "HEAD"), text=True).strip()[:8]
+        else:
+            logger.warning("Couldn't resolve version. No git repository or version.txt file.")
+    except Exception:
+        logger.exception("Error resolving version")
+    return "unknown"

@@ -6,7 +6,7 @@ import time
 from .config import Config
 from .constants import DEFAULT_CONFIG_PATHS
 from .player import Player
-from .utils import init_logger, is_docker, is_raspberry_pi, set_log_level
+from .utils import get_vintage_pi_tv_version, init_logger, is_docker, is_raspberry_pi, set_log_level
 from .videos import VideosDB
 
 
@@ -44,7 +44,6 @@ class VintagePiTV:
                 logger.warning(f"Using a default config, none found at: {', '.join(map(str, config_file_tries))}")
             else:
                 logger.warning("Using a default config as was none specified")
-            print(f"!!! {extra_search_dirs=}")
             self.config = Config(path=None, extra_search_dirs=extra_search_dirs)
 
     def __init__(
@@ -55,12 +54,14 @@ class VintagePiTV:
         uvicorn_reload_parent_pid: int | None = None,
     ):
         init_logger()
+        logger.info(f"Starting Vintage Pi TV version: {get_vintage_pi_tv_version()}")
 
-        used_config_file = self.init_config(config_file, config_wait, extra_search_dirs)
+        self.init_config(config_file, config_wait, extra_search_dirs)
 
         set_log_level(self.config.log_level)
+        logger.debug(f"Changed log level to {self.config.log_level}")
+
         logger.info("Loaded config")
-        logger.debug(f"Initialized log level {self.config.log_level}")
         logger.debug(f"Running in mode: {is_docker()=}, {is_raspberry_pi()=}")
 
         self.videos = VideosDB(config=self.config)
