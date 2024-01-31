@@ -28,8 +28,7 @@ jobs:
         shell: bash
         run: |
           pushd image/stage/04-install-vintage-pi-tv/files
-          mkdir vintage-pi-tv
-          sudo mount -vo bind ../../../.. vintage-pi-tv
+          sudo mount --mkdir -vo bind ../../../.. vintage-pi-tv
 
           echo "GITHUB_REF_TYPE=${GITHUB_REF_TYPE}" >> github_env
           echo "GITHUB_REF_NAME=${GITHUB_REF_NAME}" >> github_env
@@ -125,7 +124,7 @@ jobs:
           prerelease: ${{ github.ref_type != 'tag' }}
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |-
-            Vintage Pi TV ${{ github.ref_type == 'tag' && format('Release {0}', steps.setup.outputs.short-version) || format('Preview Build {0}', steps.setup.outputs.short-sha) }}
+            Vintage Pi TV ${{ github.ref_type == 'tag' && format('Release v{0}', steps.setup.outputs.short-version) || format('Preview Build {0}', steps.setup.outputs.short-sha) }}
 
             Image filename: `${{ steps.compress.outputs.image-compressed }}`
             SHA256SUM: `${{ steps.compress.outputs.image-sha256sum }}`
