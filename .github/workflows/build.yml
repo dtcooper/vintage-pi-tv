@@ -89,7 +89,7 @@ jobs:
           SHA256SUM="$(sha256sum "${IMG_PATH}.xz" | awk '{ print $1 }')"
           echo "${SHA256SUM}  ${IMG_PATH}.xz" > "${IMG_PATH}.xz.sha256sum"
           echo "image-sha256sum=${SHA256SUM}" >> "${GITHUB_OUTPUT}"
-          echo "image-compressed=${IMG_PATH}" >> "${GITHUB_OUTPUT}"
+          echo "image-compressed=${IMG_PATH}.xz" >> "${GITHUB_OUTPUT}"
       -
         name: Remove old preview release
         uses: dev-drprasad/delete-tag-and-release@v0.2.1
