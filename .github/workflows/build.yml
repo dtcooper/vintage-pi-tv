@@ -24,9 +24,18 @@ jobs:
           fetch-depth: 0
       -
         name: Prepare for build
-        id: prepare
+        id: setup
         shell: bash
         run: |
+          pushd image/04-install-vintage-pi-tv/files
+          mkdir vintage-pi-tv
+          sudo mount -vo bind ../../.. vintage-pi-tv
+
+          echo "GITHUB_REF_TYPE=${GITHUB_REF_TYPE}" >> github_env
+          echo "GITHUB_REF_NAME=${GITHUB_REF_NAME}" >> github_env
+          echo "GITHUB_REPOSITORY=${GITHUB_REPOSITORY}" >> github_env
+          popd
+
           if [ "${GITHUB_REF_TYPE}" = 'tag' ]; then
             SUFFIX="${GITHUB_REF_NAME}"
             echo "short-version=${GITHUB_REF_NAME:1}" >> "${GITHUB_OUTPUT}"
@@ -37,44 +46,48 @@ jobs:
           fi
           echo "image-name=$(date +%Y-%m-%d)-raspios-bookworm-arm64-vintage-pi-tv_${SUFFIX}" >> "${GITHUB_OUTPUT}"
 
-          cd image/04-install-vintage-pi-tv/files
-          mkdir vintage-pi-tv
-          sudo mount -vo bind ../../.. vintage-pi-tv
-
-          echo "GITHUB_REF_TYPE=${GITHUB_REF_TYPE}" >> github_env
-          echo "GITHUB_REF_NAME=${GITHUB_REF_NAME}" >> github_env
-          echo "GITHUB_REPOSITORY=${GITHUB_REPOSITORY}" >> github_env
+          source image/config
+          echo "disable-first-boot-user-rename=${DISABLE_FIRST_BOOT_USER_RENAME}" >> "${GITHUB_OUTPUT}"
+          echo "hostname=${TARGET_HOSTNAME}" >> "${GITHUB_OUTPUT}"
+          echo "keyboard-keymap=${KEYBOARD_KEYMAP}" >> "${GITHUB_OUTPUT}"
+          echo "keyboard-layout=${KEYBOARD_LAYOUT}" >> "${GITHUB_OUTPUT}"
+          echo "locale=${LOCALE_DEFAULT}" >> "${GITHUB_OUTPUT}"
+          echo "password=${FIRST_USER_PASS}" >> "${GITHUB_OUTPUT}"
+          echo "pi-gen-release=${PI_GEN_RELEASE}" >> "${GITHUB_OUTPUT}"
+          echo "timezone=${TIMEZONE_DEFAULT}" >> "${GITHUB_OUTPUT}"
+          echo "username=${FIRST_USER_NAME}" >> "${GITHUB_OUTPUT}"
+          echo "wpa-country=${WPA_COUNTRY}" >> "${GITHUB_OUTPUT}"
       -
         name: Build image
         uses: usimd/pi-gen-action@v1
         id: build
         with:
           compression: none
-          disable-first-boot-user-rename: 1
-          hostname: vintage-pi-tv
-          image-name: ${{ steps.prepare.outputs.image-name }}
-          keyboard-keymap: "us"
-          keyboard-layout: "English (US)"
-          locale: "en_US.UTF-8"
-          pi-gen-release: "Raspberry Pi with Vintage Pi TV"
+          image-name: ${{ steps.setup.outputs.image-name }}
           pi-gen-version: arm64
           release: bookworm
-          stage-list: "stage0 stage1 stage2 ./image"
-          timezone: "US/Eastern"
-          username: vintage
-          password: pi-tv
-          wpa-country: US
+          stage-list: "stage0 stage1 stage2 ./image/stage"
           verbose-output: true
+          disable-first-boot-user-rename: ${{ steps.setup.outputs.disable-first-boot-user-rename }}
+          hostname: ${{ steps.setup.outputs.hostname }}
+          keyboard-keymap: ${{ steps.setup.outputs.keyboard-keymap }}
+          keyboard-layout: ${{ steps.setup.outputs.keyboard-layout }}
+          locale: ${{ steps.setup.outputs.locale }}
+          password: ${{ steps.setup.outputs.password }}
+          pi-gen-release: ${{ steps.setup.outputs.pi-gen-release }}
+          timezone: ${{ steps.setup.outputs.timezone }}
+          username: ${{ steps.setup.outputs.username }}
+          wpa-country: ${{ steps.setup.outputs.wpa-country }}
       -
         name: Compress build
         id: compress
         shell: bash
         run: |
-          mv -v "${{ steps.build.outputs.image-path }}" "${{ steps.prepare.outputs.image-name }}.img"
+          mv -v "${{ steps.build.outputs.image-path }}" "${{ steps.setup.outputs.image-name }}.img"
           echo 'Compressing image. This may take a while.'
-          xz -T0 -9e "${{ steps.prepare.outputs.image-name }}.img"
-          SHA256SUM="$(sha256sum "${{ steps.prepare.outputs.image-name }}.img.xz" | awk '{ print $1 }')"
-          echo "${SHA256SUM}  ${{ steps.prepare.outputs.image-name }}.img.xz" > "${{ steps.prepare.outputs.image-name }}.img.xz.sha256sum"
+          xz -T0 -9e "${{ steps.setup.outputs.image-name }}.img"
+          SHA256SUM="$(sha256sum "${{ steps.setup.outputs.image-name }}.img.xz" | awk '{ print $1 }')"
+          echo "${SHA256SUM}  ${{ steps.setup.outputs.image-name }}.img.xz" > "${{ steps.setup.outputs.image-name }}.img.xz.sha256sum"
           echo "image-sha256sum=${SHA256SUM}" >> "${GITHUB_OUTPUT}"
       -
         name: Remove old preview release
@@ -94,15 +107,15 @@ jobs:
         name: Tag and upload release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: ${{ steps.prepare.outputs.image-name }}.img.xz,${{ steps.prepare.outputs.image-name }}.img.xz.sha256sum
-          name: ${{ github.ref_type == 'tag' && format('Version {0}', steps.prepare.outputs.short-version) || format('Preview Build {0}', steps.prepare.outputs.short-sha) }}
+          artifacts: ${{ steps.setup.outputs.image-name }}.img.xz,${{ steps.setup.outputs.image-name }}.img.xz.sha256sum
+          name: ${{ github.ref_type == 'tag' && format('Version {0}', steps.setup.outputs.short-version) || format('Preview Build {0}', steps.setup.outputs.short-sha) }}
           tag: ${{ github.ref_type == 'tag' && github.ref_name || 'preview-build' }}
           prerelease: ${{ github.ref_type != 'tag' }}
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |-
-            Vintage Pi TV ${{ github.ref_type == 'tag' && format('Release {0}', steps.prepare.outputs.short-version) || format('Preview Build {0}', steps.prepare.outputs.short-sha) }}
+            Vintage Pi TV ${{ github.ref_type == 'tag' && format('Release {0}', steps.setup.outputs.short-version) || format('Preview Build {0}', steps.setup.outputs.short-sha) }}
 
-            Image filename: `${{ steps.prepare.outputs.image-name }}.img.xz`
+            Image filename: `${{ steps.setup.outputs.image-name }}.img.xz`
             SHA256SUM: `${{ steps.compress.outputs.image-sha256sum }}`
 
             ${{ github.ref_type != 'tag' &&  '_**This development preview build may not be safe; use it at your own risk.**_' || ''}}

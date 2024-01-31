@@ -1,7 +1,8 @@
 __pycache__
 .venv
-/image/04-install-vintage-pi-tv/files/github_env
-/image/04-install-vintage-pi-tv/files/vintage-pi-tv
+/image/stage/04-install-vintage-pi-tv/files/github_env
+/image/stage/04-install-vintage-pi-tv/files/vintage-pi-tv
+/image/pi-gen
 /videos/
 config.toml
 version.txt
