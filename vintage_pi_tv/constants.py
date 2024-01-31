@@ -15,9 +15,9 @@ DEFAULT_RATINGS = [
     {"rating": "X", "description": "Adult"},
 ]
 
-
+# For Raspberry Pi
 DEFAULT_MPV_OPTIONS = {
-    "ao": "alsa,pipewire,pulse",
+    "ao": "alsa",
     "fullscreen": True,
     "gpu-context": "drm",
     "hwdec": "auto-safe",
@@ -25,6 +25,7 @@ DEFAULT_MPV_OPTIONS = {
     "vo": "gpu",
 }
 
+# For X11/Xwayland development
 DEFAULT_DEV_MPV_OPTIONS = {
     **DEFAULT_MPV_OPTIONS,
     "geometry": "1280x720",  # 720p
@@ -34,9 +35,10 @@ DEFAULT_DEV_MPV_OPTIONS = {
     "title": "Vintage Pi TV (dev mode)",
 }
 
+# For Docker development
 DEFAULT_DOCKER_MPV_OPTIONS = {
     **DEFAULT_MPV_OPTIONS,
-    "ao": "null",
+    "ao": "pulse,null",
     "gpu-context": "x11egl",
 }
 

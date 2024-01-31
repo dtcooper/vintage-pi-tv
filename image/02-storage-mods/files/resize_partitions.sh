@@ -11,7 +11,7 @@ EXFAT_PARTITION_LABEL='VintagePiTV'  # 11 characters max?
 
 reboot_pi() {
     umount "$FWLOC"
-    mount / -o remount,ro
+    mount -o remount,ro /
     sync
     reboot -f "$BOOT_PART_NUM"
     sleep 5
@@ -65,8 +65,8 @@ main() {
     [ "$(parted_data 2 2 true)" = "${DEV_SIZE}" ] || error 'Unexpected device size'
     [ "$(parted_data 2 6)" = 'msdos' ] || error 'Unexpected partition table type'
     [ "$(parted_data 3 5)" = 'free' ] || error 'Expected empty space before first partition'
-    [ "$(parted_data 4 1)" = '1' -a "$(parted_data 4 5)" = 'fat32' ] || error 'Expected fat32 first partition'
-    [ "$(parted_data 5 1)" = '2' -a "$(parted_data 5 5)" = 'ext4' ] || error 'Expected ext4 second partition'
+    [ "$(parted_data 4 1)" = '1' ] && [ "$(parted_data 4 5)" = 'fat32' ] || error 'Expected fat32 first partition'
+    [ "$(parted_data 5 1)" = '2' ] && [ "$(parted_data 5 5)" = 'ext4' ] || error 'Expected ext4 second partition'
     [ "$(parted_data 6 5)" = 'free' ] || error 'Expected empty space after second partition'
     [ -z "$(parted_data 7)" ] || error 'More partition data than expected!'
 
@@ -93,12 +93,12 @@ EOF
     EXFAT_DEV_END=$((DEV_SIZE - 1))
     if [ "${EXFAT_DEV_START}" -ge "${DEV_SIZE}" ]; then
         echo "WARNING: ${ROOT_DEV} doesn't have enough space on it for an exFAT partition."
-        mount "$FWLOC" -o remount,rw
+        mount -o remount,rw "$FWLOC"
         sync
         # Config needs to be readonly in that case
         sed -i 's/^\s*videos_db_file.*=.*$/videos_db_file = false # Forced false since no extra space on exFAT partition/' "${FWLOC}/${CONFIG_SRC}"
         sync
-        mount "$FWLOC" -o remount,ro
+        mount -o remount,ro "$FWLOC"
         sync
     else
         parted -s "${ROOT_DEV}" "unit B mkpart primary ntfs ${EXFAT_DEV_START}B ${EXFAT_DEV_END}B"
@@ -106,7 +106,7 @@ EOF
         mkfs.exfat -L "${EXFAT_PARTITION_LABEL}" "${EXFAT_PART_DEV}"
         wait_for_partition "${EXFAT_PART_DEV}"
         sync
-        mount "${EXFAT_PART_DEV}" /mnt
+        mount -o rw "${EXFAT_PART_DEV}" /mnt
         sync
         # Add a sample video
         mkdir -v /mnt/videos
@@ -114,11 +114,11 @@ EOF
             -f lavfi -i smptebars=duration=30:size=1280x720:rate=30 \
             -f lavfi -i "sine=frequency=1000:sample_rate=48000:duration=30" \
             /mnt/videos/colorbars.mkv
-        mount "$FWLOC" -o remount,rw
+        mount -o remount,rw "$FWLOC"
         sync
         mv -v "${FWLOC}/${CONFIG_SRC}" "/mnt/${CONFIG_DEST}"
         mv -v "${FWLOC}/${VIDEOS_DB_SRC}" "/mnt/${VIDEOS_DB_DEST}"
-        mount "$FWLOC" -o remount,ro
+        mount -o remount,ro "$FWLOC"
         sync
         umount /mnt
         sync
@@ -136,8 +136,8 @@ mountpoint -q /sys || mount -t sysfs sys /sys
 mountpoint -q /run || mount -t tmpfs tmp /run
 mkdir -p /run/systemd
 
-mount / -o remount,ro
-mount "$FWLOC" -o rw
+mount -o remount,ro /
+mount -o rw "$FWLOC"
 sync
 
 # Compute variables
@@ -161,7 +161,7 @@ EXFAT_PART_DEV="${ROOT_DEV}$(echo "${ROOT_DEV_NAME}" | grep -q '[0-9]$' && echo 
 # Remove single use script from init
 sed -i "s| init=${SCRIPT_NAME}| init=${FIRST_BOOT_SCRIPT_NAME}|" "$FWLOC/cmdline.txt"
 
-mount "$FWLOC" -o remount,ro
+mount -o remount,ro "$FWLOC"
 sync
 
 main
