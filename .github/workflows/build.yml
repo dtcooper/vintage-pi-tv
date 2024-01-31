@@ -27,9 +27,9 @@ jobs:
         id: setup
         shell: bash
         run: |
-          pushd image/04-install-vintage-pi-tv/files
+          pushd image/stage/04-install-vintage-pi-tv/files
           mkdir vintage-pi-tv
-          sudo mount -vo bind ../../.. vintage-pi-tv
+          sudo mount -vo bind ../../../.. vintage-pi-tv
 
           echo "GITHUB_REF_TYPE=${GITHUB_REF_TYPE}" >> github_env
           echo "GITHUB_REF_NAME=${GITHUB_REF_NAME}" >> github_env
