@@ -91,6 +91,17 @@ jobs:
           echo "image-sha256sum=${SHA256SUM}" >> "${GITHUB_OUTPUT}"
           echo "image-compressed=${IMG_PATH}.xz" >> "${GITHUB_OUTPUT}"
       -
+        name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vintage-pi-tv-build
+          path: |
+            ${{ steps.compress.outputs.image-compressed }}
+            ${{ steps.compress.outputs.image-compressed }}.sha256sum
+          if-no-files-found: error
+          retention-days: 2
+          compression-level: 0  # Already compressed with xz above
+      -
         name: Remove old preview release
         uses: dev-drprasad/delete-tag-and-release@v0.2.1
         if: github.ref_type != 'tag'
