@@ -19,13 +19,21 @@ REPO_PATH="file:///$(pwd)/files/vintage-pi-tv"
 install -vdm 755 "${ROOTFS_DIR}/opt/vintage-pi-tv"
 
 pushd "${ROOTFS_DIR}/opt/vintage-pi-tv"
-git clone --branch "${GITHUB_REF_NAME}" "${REPO_PATH}" .
+
+if [ "${GITHUB_REF_NAME}" != 'copy' ]; then
+    git clone --branch "${GITHUB_REF_NAME}" "${REPO_PATH}" .
+fi
+
 if [ "${GITHUB_REF_TYPE}" = 'tag' ]; then
     rm -rf .git
     echo "${GITHUB_REF_NAME}" > version.txt
+elif [ "${GITHUB_REF_TYPE}" = 'copy' ]; then
+    echo "WARNING: github ref name is set to 'copy', so copying repository niavely"
+    cp -r "${REPO_PATH}/." .
 else
     git remote set-url origin "https://github.com/${GITHUB_REPOSITORY}.git"
 fi
+
 install -vm 644 sample-config.toml "${ROOTFS_DIR}/boot/firmware/vintage-pi-tv-config.toml"
 install -vm 644 sample-videos-db.toml "${ROOTFS_DIR}/boot/firmware/vintage-pi-tv-videos-db.toml"
 popd
