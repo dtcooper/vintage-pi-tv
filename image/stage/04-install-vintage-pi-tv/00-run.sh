@@ -15,12 +15,13 @@ if [ ! -d files/vintage-pi-tv ]; then
     git clone "https://github.com/${GITHUB_REPOSITORY}.git" files/vintage-pi-tv
 fi
 REPO_PATH="file:///$(pwd)/files/vintage-pi-tv"
+REPO_DIR="$(pwd)/files/vintage-pi-tv"
 
 install -vdm 755 "${ROOTFS_DIR}/opt/vintage-pi-tv"
 
 pushd "${ROOTFS_DIR}/opt/vintage-pi-tv"
 
-if [ "${GITHUB_REF_NAME}" != 'copy' ]; then
+if [ "${GITHUB_REF_TYPE}" != 'copy' ]; then
     git clone --branch "${GITHUB_REF_NAME}" "${REPO_PATH}" .
 fi
 
@@ -29,7 +30,7 @@ if [ "${GITHUB_REF_TYPE}" = 'tag' ]; then
     echo "${GITHUB_REF_NAME}" > version.txt
 elif [ "${GITHUB_REF_TYPE}" = 'copy' ]; then
     echo "WARNING: github ref name is set to 'copy', so copying repository niavely"
-    cp -r "${REPO_PATH}/." .
+    cp -r "${REPO_DIR}/." .
 else
     git remote set-url origin "https://github.com/${GITHUB_REPOSITORY}.git"
 fi
