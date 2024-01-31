@@ -37,18 +37,17 @@ jobs:
           popd
 
           if [ "${GITHUB_REF_TYPE}" = 'tag' ]; then
-            SUFFIX="${GITHUB_REF_NAME}"
+            IMG_NAME_SUFFIX="${GITHUB_REF_NAME}"
             echo "short-version=${GITHUB_REF_NAME:1}" >> "${GITHUB_OUTPUT}"
           else
             SHORT_SHA=${GITHUB_SHA:0:8}
-            SUFFIX="preview-${SHORT_SHA}"
+            IMG_NAME_SUFFIX="preview-${SHORT_SHA}"
             echo "short-sha=${SHORT_SHA}" >> "${GITHUB_OUTPUT}"
           fi
-          echo "image-name=$(date +%Y-%m-%d)-raspios-bookworm-arm64-vintage-pi-tv_${SUFFIX}" >> "${GITHUB_OUTPUT}"
-
           source image/config
           echo "disable-first-boot-user-rename=${DISABLE_FIRST_BOOT_USER_RENAME}" >> "${GITHUB_OUTPUT}"
           echo "hostname=${TARGET_HOSTNAME}" >> "${GITHUB_OUTPUT}"
+          echo "image-name=${IMG_NAME}_${IMG_NAME_SUFFIX}" >> "${GITHUB_OUTPUT}"
           echo "keyboard-keymap=${KEYBOARD_KEYMAP}" >> "${GITHUB_OUTPUT}"
           echo "keyboard-layout=${KEYBOARD_LAYOUT}" >> "${GITHUB_OUTPUT}"
           echo "locale=${LOCALE_DEFAULT}" >> "${GITHUB_OUTPUT}"
@@ -63,32 +62,34 @@ jobs:
         id: build
         with:
           compression: none
-          image-name: ${{ steps.setup.outputs.image-name }}
-          pi-gen-version: arm64
-          release: bookworm
-          stage-list: "stage0 stage1 stage2 ./image/stage"
-          verbose-output: true
           disable-first-boot-user-rename: ${{ steps.setup.outputs.disable-first-boot-user-rename }}
           hostname: ${{ steps.setup.outputs.hostname }}
+          image-name: ${{ steps.setup.outputs.image-name }}
           keyboard-keymap: ${{ steps.setup.outputs.keyboard-keymap }}
           keyboard-layout: ${{ steps.setup.outputs.keyboard-layout }}
           locale: ${{ steps.setup.outputs.locale }}
           password: ${{ steps.setup.outputs.password }}
           pi-gen-release: ${{ steps.setup.outputs.pi-gen-release }}
+          pi-gen-version: arm64
+          release: bookworm
+          stage-list: "stage0 stage1 stage2 ./image/stage"
           timezone: ${{ steps.setup.outputs.timezone }}
           username: ${{ steps.setup.outputs.username }}
+          verbose-output: true
           wpa-country: ${{ steps.setup.outputs.wpa-country }}
       -
         name: Compress build
         id: compress
         shell: bash
         run: |
-          mv -v "${{ steps.build.outputs.image-path }}" "${{ steps.setup.outputs.image-name }}.img"
+          IMG_PATH="$(basename "${{ steps.build.outputs.image-path }}")"
+          mv -v "${{ steps.build.outputs.image-path }}" "${IMG_PATH}"
           echo 'Compressing image. This may take a while.'
-          xz -T0 -9e "${{ steps.setup.outputs.image-name }}.img"
-          SHA256SUM="$(sha256sum "${{ steps.setup.outputs.image-name }}.img.xz" | awk '{ print $1 }')"
-          echo "${SHA256SUM}  ${{ steps.setup.outputs.image-name }}.img.xz" > "${{ steps.setup.outputs.image-name }}.img.xz.sha256sum"
+          xz -T0 -9e "${IMG_PATH}"
+          SHA256SUM="$(sha256sum "${IMG_PATH}.xz" | awk '{ print $1 }')"
+          echo "${SHA256SUM}  ${IMG_PATH}.xz" > "${IMG_PATH}.xz.sha256sum"
           echo "image-sha256sum=${SHA256SUM}" >> "${GITHUB_OUTPUT}"
+          echo "image-compressed=${IMG_PATH}" >> "${GITHUB_OUTPUT}"
       -
         name: Remove old preview release
         uses: dev-drprasad/delete-tag-and-release@v0.2.1
@@ -107,7 +108,7 @@ jobs:
         name: Tag and upload release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: ${{ steps.setup.outputs.image-name }}.img.xz,${{ steps.setup.outputs.image-name }}.img.xz.sha256sum
+          artifacts: ${{ steps.compress.outputs.image-compressed }},${{ steps.compress.outputs.image-compressed }}.sha256sum
           name: ${{ github.ref_type == 'tag' && format('Version {0}', steps.setup.outputs.short-version) || format('Preview Build {0}', steps.setup.outputs.short-sha) }}
           tag: ${{ github.ref_type == 'tag' && github.ref_name || 'preview-build' }}
           prerelease: ${{ github.ref_type != 'tag' }}
@@ -115,7 +116,7 @@ jobs:
           body: |-
             Vintage Pi TV ${{ github.ref_type == 'tag' && format('Release {0}', steps.setup.outputs.short-version) || format('Preview Build {0}', steps.setup.outputs.short-sha) }}
 
-            Image filename: `${{ steps.setup.outputs.image-name }}.img.xz`
+            Image filename: `${{ steps.compress.outputs.image-compressed }}`
             SHA256SUM: `${{ steps.compress.outputs.image-sha256sum }}`
 
             ${{ github.ref_type != 'tag' &&  '_**This development preview build may not be safe; use it at your own risk.**_' || ''}}

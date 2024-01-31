@@ -1,4 +1,4 @@
-IMG_NAME=test
+IMG_NAME=raspios-bookworm-arm64-vintage-pi-tv
 PI_GEN_RELEASE='Raspberry Pi with Vintage Pi TV'
 RELEASE=bookworm
 DEPLOY_COMPRESSION=xz
