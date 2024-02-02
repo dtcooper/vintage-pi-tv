@@ -29,6 +29,8 @@ def init_logger():
         handler.setFormatter(formatter)
         logger.addHandler(handler)
 
+    logging.getLogger("watchfiles.main").setLevel(logging.ERROR)  # Silence watchfiles logs
+
 
 def set_log_level(level):
     vintage_pi_tv_logger = logging.getLogger(__name__).parent

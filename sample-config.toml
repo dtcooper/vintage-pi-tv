@@ -1,11 +1,26 @@
 #### Vintage Pi TV configuration ####
 
-# Log level, one of silent, error, warning, info, or debug
+# Log level, one of: silent, error, warning, info, or debug
 log_level = 'debug'
 
-# Set to false to disable storing a toml DB file (relative paths relative to this config file)
-videos_db_file = "videos-db.toml"
-#videos_db_file = false
+# Directories to search for videos in.
+search_dirs = [
+    "/media/VintagePiTV/videos",  # Will not recurse if just a string
+    { path = "/media/VintagePiTV", ignore = true },  # Ignore folder
+    { path = "/media", recurse = true},
+]
+
+# Channel mode, one of
+#   - random -- Channel ordering determined by random shuffling
+#   - alphabetical -- Ordering alphabetical according to name
+#   - config-only -- Only select channels from matches as they appear in [[video]] list, otherwise completely ignore videos
+#   - config-first-random -- Lowest channels in order they appear in [[video]] list below, otherwise random (as above)
+#   - config-first-alphabetical -- Lowest channels in order they appear in [[video]] below, otherwise alphabetical (as above)
+#
+# NOTE: A newly discovered file will always added as the last channels as it is discovered
+#
+#channel_mode = "alphabetical"
+channel_mode = "config-first-alphabetical"
 
 # Sould we provide visualizations for audio files?
 enable_audio_visualization = true
@@ -17,26 +32,17 @@ ratings = [
     { rating = "R", description = "Restricted" },
     { rating = "X", description = "Adult"}
 ]
-
-# Margin of monitor in pixels, for overscan purposes
-#overscan_margin = false
-# overscan_margin = { "left": 10, "top": 10, "right": 10, "bottom": 10 }
-
 # Or disable ratings altogether
-# atings = false
+#ratings = false
 
-# Directories to search for videos in, wildcards accepted. This key is required.
-search_dirs = [
-    { path = "/media/VintagePiTV/videos", recurse = true},
-    { path = "/media/VintagePiTV", ignore = true },
-    "/media/*",
-    # { path = "/media/*", recurse = true },
-]
-
-# Set valid file extensions to "defaults"
+# Set valid file extensions to sane defaults
 valid_file_extensions = "defaults"
 # Or or provide a list of extensions (without the period)
 # valid_file_extensions = [ "mp4", "mkv", "mov", "avi" ]
+
+# Margin of monitor in pixels, for overscan purposes
+overscan_margins = false
+#overscan_margins = { "left": 10, "top": 10, "right": 10, "bottom": 10 }
 
 ### MPV options ###
 [mpv_options]
@@ -59,3 +65,35 @@ valid_file_extensions = "defaults"
 #drm-mode = "1920x1080"  # DRM mode, set custom resolution here [https://mpv.io/manual/stable/#video-output-drivers-drm-mode]
                          # Use "preferred", "highest", or for more options, run: $ mpv --drm-mode=help
 #alsa-device = "hw:0,0"
+
+[[video]]
+filename = "colorbars.mkv"  # Required. Should match filename exactly, omitting the directory completely
+name = "Color Bars"  # Custom name for file, if omitted/empty will be based on filename
+# Optional keys below
+enabled = true  # If false, any file with this name will be ignored
+rating = "G"  # If false or invalid, will be assigned the default rating. Default is first rating in 'ratings' above.
+subtitles = false  # true to enable subtitles embedded into the video,
+                   # or an absolute or relaive path to subtitle file (usually <filename>.srt)
+
+## Add more videos below you want to customize below
+
+#[[video]]
+#filename = "another.mp4"
+#name = "Scary Video"
+#rating = "R"
+#subtitles = true
+
+
+[[video]]
+filename = "they-live.mp4"
+name = "They Live!"
+rating = "R"
+subtitles = true
+
+[[video]]
+filename = "zardoz.mkv"
+
+[[video]]
+filename = "debbie-does-dallas.mp4"
+enabled = false
+name = "  "

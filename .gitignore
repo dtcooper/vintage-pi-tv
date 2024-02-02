@@ -6,4 +6,3 @@ __pycache__
 /videos/
 config.toml
 version.txt
-videos-db.toml

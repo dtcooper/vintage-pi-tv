@@ -115,7 +115,7 @@ if [ "${DO_AUDIO}" ]; then
                     --load=module-coreaudio-detect --daemonize=true --exit-idle-time=-1 2> /dev/null
             fi
             if pulseaudio --check 2> /dev/null > /dev/null; then
-                DOCKER_EXEC+=('-e' 'tcp:host.docker.internal')
+                DOCKER_EXEC+=('-e' 'PULSE_SERVER=tcp:host.docker.internal')
                 DO_AUDIO_SUCCESS=1
             fi
         ;;

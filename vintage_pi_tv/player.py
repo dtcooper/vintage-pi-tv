@@ -37,6 +37,10 @@ class Player:
         self.videos_db = videos_db
         self.reload_pid = reload_pid
         self.should_exit = False
+        self._static_frames: list | None = None
+        self._static_height: int
+        self._static_width: int
+        self._last_static_frame_indexes: list = []
 
         # Prep arguents for MPV
         kwargs = {k.replace("-", "_"): v for k, v in self.config.mpv_options.items() if not isinstance(v, bool) or v}
@@ -126,23 +130,33 @@ class Player:
     #         self.play(self.videos_db.get_next_video())
 
     def get_static_frame(self):
-        width, height = self.mpv.osd_width, self.mpv.osd_height
-        frame = numpy.random.randint(0, 0xFF + 1, width * height * 4, dtype=numpy.uint8)
-        frame[3::4] = 0xFF
-        return width, height, frame
+        """Generate random static frame from a cache of 15 frames, with no repetitions for up to 5 frames"""
+        if not self._static_frames:
+            self._static_frames = []
+            self._static_width, self._static_height = self.mpv.osd_width, self.mpv.osd_height
+            size = self._static_width * self._static_height * 4
+            logger.debug("Generating 15 static frames")
+            for _ in range(15):
+                frame = numpy.random.randint(0, 0xFF + 1, size, dtype=numpy.uint8)
+                frame[3::4] = 0xFF
+                self._static_frames.append(frame)
+            logger.debug("Done generating frames")
+
+        choices = list(set(range(len(self._static_frames))) ^ set(self._last_static_frame_indexes))
+        frame_index = random.choice(choices)
+        frame = self._static_frames[frame_index]
+        self._last_static_frame_indexes.append(frame_index)
+        if len(self._last_static_frame_indexes) > 5:
+            self._last_static_frame_indexes.pop(0)
+
+        return self._static_width, self._static_height, frame
 
     def show_static(self):
         start = time.monotonic()
         clock = FPSClock()
 
-        frames = [self.get_static_frame() for _ in range(16)]
-        i = 0
-
-        while time.monotonic() - 3.5 < start:
-            width, height, static_frame = frames[i]
-            i = (i + 1) % len(frames)
-            if i == 0:
-                random.shuffle(frames)
+        while time.monotonic() - 2 < start:
+            width, height, static_frame = self.get_static_frame()
 
             source = f"&{static_frame.ctypes.data}"
             self.mpv.overlay_add(1, 0, 0, source, 0, "bgra", width, height, width * 4)
@@ -151,8 +165,14 @@ class Player:
 
     def run(self):
         self.show_static()
+        video = self.videos_db.get_next_video()
 
-        self.play(self.videos_db.get_next_video())
+        if video is None:
+            self.critical("No videos. Exiting.")
+            self.kill_entire_app()
+        else:
+            logger.info(f"Playing {video.path}")
+            self.play(video)
         # self.play(self.videos_db.videos[Path("/home/dave/media/DTC/videos/until-the-end-of-the-world.mkv")])
 
         # Wait for file to play
@@ -163,11 +183,9 @@ class Player:
             self.mpv.seek(random.uniform(0.0, self.mpv.duration))
 
         i = 0
-        logger.debug(self.mpv.video_params)
 
         while not self.should_exit:
-            # print(f'loop tid: {threading.current_thread().ident}')
-            # logger.debug(f"run({video!r})")
+            self.videos_db.rebuild_channels_if_needed()
             time.sleep(0.05)
             i += 1
             if i > 2500:

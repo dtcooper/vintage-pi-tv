@@ -12,7 +12,6 @@ mpv = "^1.0.5"
 numpy = "^1.26.3"
 schema = "^0.7.5"
 starlette = "^0.36.1"
-tomlkit = "^0.12.3"
 uvicorn = "^0.27.0.post1"
 watchfiles = "^0.21.0"
 

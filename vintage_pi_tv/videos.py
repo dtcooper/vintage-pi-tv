@@ -1,17 +1,13 @@
-import datetime
-import glob
 import logging
 import os
 from pathlib import Path
 import random
-from typing import Any
+import sys
+import threading
 
-from schema import SchemaError
-import tomlkit
+import watchfiles
 
 from .config import Config
-from .constants import DATETIME_FORMAT
-from .schemas import videos_schema
 from .utils import listdir_recursive
 
 
@@ -20,163 +16,155 @@ logger = logging.getLogger(__name__)
 
 class Video:
     def __init__(
-        self, path: Path, config: Config, name: str, enabled: bool, rating: bool | str, subtitles: bool | Path
+        self,
+        config: Config,
+        path: Path,
+        channel: int,
+        name: str | None,
+        rating: bool | str,
+        subtitles: bool | Path,
     ):
-        self.path = path
         self.config = config
-        self.name = name.strip()
-        if not self.name:
-            self.name = self.get_automatic_name(path)
-        self.enabled = enabled
+
+        self.path = path
+        self.channel = channel
+        self.name = name or self.get_automatic_video_name()
         self.rating = rating
-        if rating and rating in config.ratings_dict:
-            self.rating = rating
-        else:
+        if not self.rating or self.rating not in config.ratings_dict:
             self.rating = config.default_rating
         self.subtitles = subtitles
-        self.channel: int | None = None  # Set manually by VideosDB
 
     @staticmethod
-    def get_automatic_name(path: Path) -> str:
+    def get_automatic_video_name(path: Path) -> str:
         return path.stem.strip().replace("-", " ").replace("_", " ").title()
 
-    def to_toml(self) -> tuple[str, dict[str, Any]]:
-        metadata: dict[str, Any] = {"name": self.name}
-        if self.rating != self.config.default_rating:  # If it's not the default, save it
-            metadata["rating"] = self.rating
-        if not self.enabled:
-            metadata["enabled"] = False
-        if self.subtitles:
-            metadata["subtitles"] = str(self.subtitles) if isinstance(self.subtitles, Path) else self.subtitles
-        return (str(self.path), metadata)
+    def __repr__(self):
+        return f"Video(name={self.name!r}, path={self.path!r}, channel={self.channel})"
 
 
 class VideosDB:
-    def __init__(self, config: Config):
-        self.config: Config = config
-        self.videos: dict[Path, Video] = {}
-        self.toml: "tomlkit.TOMLDocument" = tomlkit.TOMLDocument()
+    def _init_dirs(self):
+        self.search_dirs = list()
+        self.search_dirs_recursive = list()
+        self.exclude_dirs = list()
 
-        self.init_videos_db()
-
-    def load_videos_db(self):
-        if self.config.videos_db_file:
-            try:
-                with open(self.config.videos_db_file) as file:
-                    self.toml = tomlkit.load(file)
-                videos = videos_schema.validate(self.toml.unwrap())
-                last_saved = videos.pop("last_automatic_save")
-                last_saved = last_saved.strftime(DATETIME_FORMAT) if last_saved else "unknown"
-            except SchemaError as e:
-                logger.error(f"Error parsing video 'videos_db_file', disabling the use of config file: {e}")
-                self.config.videos_db_file = False
-            except Exception:
-                logger.critical(f"Error opening 'videos_db_file' {self.config.videos_db_file}", exc_info=True)
-            else:
-                self.videos.update({path: Video(path, self.config, **metadata) for path, metadata in videos.items()})
-                logger.info(f"Loaded {len(self.videos)} video(s) from {last_saved} from {self.config.videos_db_file}")
-        else:
-            logger.info("'videos_db_file' set to false")
-
-    def save_videos_db(self) -> None:
-        if self.config.videos_db_file:
-            save_time = datetime.datetime.now().replace(microsecond=0)
-            self.toml["last_automatic_save"] = save_time
-            temp_file = self.config.videos_db_file.parent / f"{self.config.videos_db_file.name}.tmp"
-            try:
-                with open(temp_file, "w") as file:
-                    tomlkit.dump(self.toml, file)
-                os.rename(temp_file, self.config.videos_db_file)
-                logger.info(
-                    f"Saved {len(self.toml) - 1} videos to {self.config.videos_db_file} at"
-                    f" {save_time.strftime(DATETIME_FORMAT)}"
-                )
-            except Exception:
-                logger.critical(
-                    f"Error saving 'videos_db_file' {self.config.videos_db_file}. Disabling saving.", exc_info=True
-                )
-                self.config.videos_db_file = False
-        else:
-            logger.debug("Skipping videos db save since 'videos_db_file' is false")
-
-    def init_videos_db(self) -> None:
-        search_dirs: set[Path] = set()
-        exclude_dirs: set[Path] = set()
-        recurse: dict[Path, bool] = {}
-
-        # Build directories to search in and directories to ignore
         for info in self.config.search_dirs:
-            for path in map(Path, glob.glob(str(info["path"].expanduser().absolute()))):
-                if path.is_dir():
-                    if info["ignore"]:
-                        exclude_dirs.add(path)
-                    else:
-                        search_dirs.add(path)
-                        recurse[path] = info["recurse"]
+            if info["path"].is_dir():
+                if info["ignore"]:
+                    logger.debug(f"Adding ignore dir: {info['path']}")
+                    self.exclude_dirs.append(info["path"])
+                elif info["recurse"]:
+                    logger.debug(f"Adding recursive search dir: {info['path']}")
+                    self.search_dirs_recursive.append(info["path"])
                 else:
-                    logger.warning(f"Path in 'search_dirs' {path} is not a directory. Skipping.")
+                    logger.debug(f"Adding search dir: {info['path']}")
+                    self.search_dirs.append(info["path"])
+            else:
+                logger.warning(f"Path in 'search_dirs' {info['path']} is not a directory. Skipping.")
 
-        search_dirs = search_dirs - exclude_dirs
-        for path in search_dirs:
-            logger.info(f"Adding search path {path}{' (recursive)' if recurse[path] else ''}")
-        for path in exclude_dirs:
-            logger.info(f"Adding ignore path {path}")
+        if not self.search_dirs and not self.search_dirs_recursive:
+            logger.critical("No search_dirs are actually valid directories.")
+            sys.exit(1)
 
-        # Find all videos contained with in the directories to search
-        video_files: set[Path] = set()
-        for search_dir in search_dirs:
-            listdir = listdir_recursive if recurse[search_dir] else os.listdir
-            dir_contents = ((search_dir / p) for p in listdir(search_dir))
-            for path in dir_contents:
-                if path.is_file() and any(path.name.lower().endswith(ext) for ext in self.config.valid_file_extensions):
-                    video_files.add(path)
-                else:
-                    logger.debug(f"Ignoring file: {path}")
+        logger.info(
+            f"Added {len(self.search_dirs) + len(self.search_dirs_recursive)} search dirs,"
+            f" {len(self.exclude_dirs)} exclude dirs"
+        )
 
-        self.load_videos_db()
+    def is_valid_path(self, path):
+        return path.name.lower().endswith(self.config.valid_file_extensions) and not any(
+            exclude_dir in path.parents for exclude_dir in self.exclude_dirs
+        )
 
-        # Existing videos (lower channels, dictionaries in Python >= 3.6 retain their ordering)
-        for video in self.videos.values():
-            logger.debug(f"Found existing video: {video.path}")
-            if not video.path.is_file():
-                video.enabled = False
-            self.write_video_to_db(video, skip_write=True)
+    def queue_channel_rebuild(self):
+        with self.rebuild_channel_lock:
+            self.wants_channel_rebuild = True
 
-        # Discovered videos on disk (higher channels, after lower ones)
-        num_found = 0
-        for path in sorted(video_files):
-            if path not in self.videos:  # Already exists
-                num_found += 1
-                logger.debug(f"Found new video: {path}")
-                video = self.videos[path] = Video(
-                    path, self.config, name="", enabled=True, rating=False, subtitles=False
-                )
-                self.write_video_to_db(video, skip_write=True)
+    def rebuild_channels_if_needed(self):
+        # Make sure this gets checked and modified automically
+        with self.rebuild_channel_lock:
+            if not self.wants_channel_rebuild:
+                return
+            self.wants_channel_rebuild = False
 
-        logger.info(f"Found {num_found} new video(s) from 'search_dirs'")
+        logger.info("Rebuilding channel list...")
 
-        # Assign channels and ratings
-        channel = 1
-        for video in self.videos.values():
-            if video.enabled:
-                video.channel = channel
-                logger.debug(f"Assigning channel {channel} to {video.path}")
-                channel += 1
+        videos = []  # List of kwargs for video objects
 
-        logger.info(f"Found {len(self.videos)} video(s)")
-        self.save_videos_db()
+        for search_dirs, listdir in ((self.search_dirs, os.listdir), (self.search_dirs_recursive, listdir_recursive)):
+            for search_dir in search_dirs:
+                for path in ((search_dir / filename) for filename in listdir(search_dir)):
+                    if path.is_file() and self.is_valid_path(path):
+                        filename = path.name.strip().lower()
+                        from_config = False
+                        video = {"path": path, "name": "", "enabled": True, "subtitles": False, "rating": False}
+                        config_metadata = self.config.videos.get(filename)
+                        if config_metadata is not None:
+                            from_config = True
+                            video.update(config_metadata)
+                        if not video["name"]:
+                            video["name"] = Video.get_automatic_video_name(path)
+                        # Format: (<found from config bool>, <video kwargs>)
+                        videos.append((from_config, video))
+                        if video["enabled"]:
+                            logger.debug(f"Found video {path} [name={video['name']!r}] [found in config={from_config}]")
+                        else:
+                            logger.debug(f"Ignoring video {path} as enabled=False")
 
-    def write_video_to_db(self, video: Video, skip_write: bool = False):
-        path, metadata = video.to_toml()
-        if path in self.toml:
-            self.toml[path].update(metadata)  # Update in place, preserves comments/whitespace
+        def channel_sort_key(from_config_video):
+            _, video = from_config_video
+            return (video["name"], video["path"])
+
+        logger.info(f"Sorting channels by mode: {self.config.channel_mode}")
+
+        # Sort by channel mode
+        if self.config.channel_mode == "random":
+            random.shuffle(videos)
+        elif self.config.channel_mode == "alphabetical":
+            videos.sort(key=channel_sort_key)
         else:
-            self.toml[path] = metadata
-            self.toml[path].trivia.comment = f"# Added at {datetime.datetime.now().strftime(DATETIME_FORMAT)}"
-            self.toml[path].trivia.comment_ws = "  "
+            videos_config = [v for v in videos if v[0]]
+            if self.config.channel_mode == "config-only":
+                videos = videos_config
+            else:
+                videos_non_config = [v for v in videos if not v[0]]
+                if self.config.channel_mode == "config-first-random":
+                    random.shuffle(videos_non_config)
+                elif self.config.channel_mode == "config-first-alphabetical":
+                    videos_non_config.sort(key=channel_sort_key)
+                videos = videos_config + videos_non_config
 
-        if not skip_write:
-            self.save_videos_db()
+        videos = filter(lambda v: v.pop("enabled"), map(lambda v: v[1], videos))
+        self.videos = [Video(config=self.config, channel=channel, **video) for channel, video in enumerate(videos, 1)]
+        logger.info(f"Generated {len(self.videos)} channels")
 
-    def get_next_video(self):
-        return random.choice(list(self.videos.values()))
+    def get_next_video(self) -> Video:
+        return random.choice(self.videos)
+
+    def watch_thread(self, search_dirs, recursive):
+        logger.info(f"Starting search_dirs watching thread {recursive=}")
+
+        for changes in watchfiles.watch(*search_dirs, watch_filter=lambda _, path: self.is_valid_path(Path(path))):
+            logger.info("Detected file change(s). Queuing for channel rebuild.")
+            for change, path in changes:
+                logger.debug(f"Detected file change ({change.name}): {path}")
+            self.queue_channel_rebuild()
+
+    def __init__(self, config: Config):
+        self.channels: list[Video] = []
+        self.config: Config = config
+        self.search_dirs: list[Path] = []
+        self.search_dirs_recursive: list[Path] = []
+        self.exclude_dirs: list[Path] = []
+        self.wants_channel_rebuild: bool = True
+        self.rebuild_channel_lock: threading.Lock = threading.Lock()
+
+        self._init_dirs()
+        self.rebuild_channels_if_needed()
+        if self.search_dirs:
+            thread = threading.Thread(target=self.watch_thread, args=(self.search_dirs, False), daemon=True)
+            thread.start()
+        if self.search_dirs_recursive:
+            thread = threading.Thread(target=self.watch_thread, args=(self.search_dirs_recursive, False), daemon=True)
+            thread.start()
+        logger.info("Videos DB fully initialized")

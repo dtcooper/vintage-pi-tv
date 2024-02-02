@@ -36,7 +36,6 @@ else
 fi
 
 install -vm 644 sample-config.toml "${ROOTFS_DIR}/boot/firmware/vintage-pi-tv-config.toml"
-install -vm 644 sample-videos-db.toml "${ROOTFS_DIR}/boot/firmware/vintage-pi-tv-videos-db.toml"
 popd
 
 on_chroot <<EOF

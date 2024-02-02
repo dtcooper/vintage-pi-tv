@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import sys
 
 from starlette.applications import Starlette
 from starlette.responses import PlainTextResponse
@@ -8,6 +9,10 @@ from starlette.routing import Route
 
 from .constants import ENV_ARGS_VAR_NAME
 from .tv import VintagePiTV
+
+
+if sys.version_info < (3, 7):
+    raise Exception("Python version 3.7 or greater needed!")  # For ordering of dicts
 
 
 logger = logging.getLogger(__name__)

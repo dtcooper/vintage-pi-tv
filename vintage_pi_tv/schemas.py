@@ -1,7 +1,6 @@
-import datetime
 from pathlib import Path
 
-from schema import And, Optional, Or, Schema, Use
+from schema import And, Optional, Or, Schema, SchemaError, Use
 
 from .constants import DEFAULT_DEV_MPV_OPTIONS, DEFAULT_DOCKER_MPV_OPTIONS, DEFAULT_MPV_OPTIONS, DEFAULT_RATINGS
 from .utils import is_docker, is_raspberry_pi
@@ -27,6 +26,20 @@ mpv_options_schema = Schema({
     Optional(NON_EMPTY_STRING): NON_EMPTY_STRING,
 })
 
+
+class UniqueVideoNameSchema(Schema):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._values = set()
+
+    def validate(self, data):
+        data = super(UniqueVideoNameSchema, self).validate(data)
+        if data in self._values:
+            raise SchemaError(f"Non-unique filename in video list: {data}")
+        self._values.add(data)
+        return data
+
+
 config_schema = Schema(
     {
         Optional("log_level", default="INFO"): And(
@@ -35,7 +48,15 @@ config_schema = Schema(
             Or("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"),
             error="Invalid 'log_level'. Must be one of 'critical', 'error', 'warning', 'info', or 'debug'.",
         ),
-        Optional("videos_db_file", default=False): Or(False, Use(str)),
+        Optional("channel_mode", default="random"): And(
+            Use(str),
+            Use(lambda s: s.strip().lower()),
+            Or("random", "alphabetical", "config-only", "config-first-random", "config-first-alphabetical"),
+            error=(
+                "Invalid 'channel_mode'. Must be one of 'random', 'alphabetical', 'config-only', "
+                "'config-first-random', or 'config-first-alphabetical'"
+            ),
+        ),
         Optional("enable_audio_visualization", default=True): Use(bool),
         Optional("ratings", default=DEFAULT_RATINGS): Or(
             False,
@@ -84,16 +105,12 @@ config_schema = Schema(
         ),
         Optional("valid_file_extensions", default="defaults"): Or([NON_EMPTY_STRING], "defaults"),
         Optional("mpv_options", default=mpv_options_schema.validate({})): mpv_options_schema,
+        Optional("video", default=[]): [{
+            "filename": UniqueVideoNameSchema(And(Use(str), Use(lambda s: s.strip().lower()), len)),
+            Optional("enabled", default=True): Use(bool),
+            Optional("name", default=""): And(Use(lambda s: s or ""), Use(str), Use(lambda s: s.strip())),
+            Optional("rating", default=False): Or(False, And(Use(str), Use(lambda s: s.strip().upper()))),
+            Optional("subtitles", default=False): Or(bool, And(Use(str), len, Use(Path))),
+        }],
     },
 )
-
-
-videos_schema = Schema({
-    Optional("last_automatic_save", default=False): Or(False, datetime.datetime),
-    And(Use(str), len, Use(Path)): Schema({
-        Optional("enabled", default=True): Use(bool),
-        Optional("name", default=""): And(Use(lambda s: s or ""), Use(str)),
-        Optional("rating", default=False): Or(False, And(Use(str), Use(lambda s: s.strip().upper()))),
-        Optional("subtitles", default=False): Or(bool, And(Use(str), len, Use(Path))),
-    }),
-})

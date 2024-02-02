@@ -4,8 +4,6 @@ SCRIPT_NAME='/usr/local/lib/vintage-pi-tv-sys-mods/resize_partitions.sh'
 FIRST_BOOT_SCRIPT_NAME='/usr/lib/raspberrypi-sys-mods/firstboot'
 CONFIG_SRC=vintage-pi-tv-config.toml
 CONFIG_DEST=config.toml
-VIDEOS_DB_SRC=vintage-pi-tv-videos-db.toml
-VIDEOS_DB_DEST=videos-db.toml
 ROOT_DEV_MAX_PARTSIZE="$((1024 * 1024 * 512 * 15))"  # 7.5GiB
 EXFAT_PARTITION_LABEL='VintagePiTV'  # 11 characters max?
 
@@ -93,13 +91,6 @@ EOF
     EXFAT_DEV_END=$((DEV_SIZE - 1))
     if [ "${EXFAT_DEV_START}" -ge "${DEV_SIZE}" ]; then
         echo "WARNING: ${ROOT_DEV} doesn't have enough space on it for an exFAT partition."
-        mount -o remount,rw "$FWLOC"
-        sync
-        # Config needs to be readonly in that case
-        sed -i 's/^\s*videos_db_file.*=.*$/videos_db_file = false # Forced false since no extra space on exFAT partition/' "${FWLOC}/${CONFIG_SRC}"
-        sync
-        mount -o remount,ro "$FWLOC"
-        sync
     else
         parted -s "${ROOT_DEV}" "unit B mkpart primary ntfs ${EXFAT_DEV_START}B ${EXFAT_DEV_END}B"
         wait_for_partition "${EXFAT_PART_DEV}"
@@ -117,7 +108,6 @@ EOF
         mount -o remount,rw "$FWLOC"
         sync
         mv -v "${FWLOC}/${CONFIG_SRC}" "/mnt/${CONFIG_DEST}"
-        mv -v "${FWLOC}/${VIDEOS_DB_SRC}" "/mnt/${VIDEOS_DB_DEST}"
         mount -o remount,ro "$FWLOC"
         sync
         umount /mnt
