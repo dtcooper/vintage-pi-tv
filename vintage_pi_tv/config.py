@@ -37,12 +37,12 @@ class Config:
 
         try:
             self._config = config_schema.validate(toml)
-            self.validate()
+            self._validate()
         except (SchemaError, InvalidConfigError) as e:
             logger.critical(f"Invalid configuration: {e}")
             sys.exit(1)
 
-    def validate(self) -> None:
+    def _validate(self) -> None:
         if self.valid_file_extensions == "defaults":
             valid_extensions = list(DEFAULT_VIDEO_FILE_EXTENSIONS)
             if self.enable_audio_visualization:
