@@ -1,9 +1,7 @@
 #!/bin/bash -e
 
-if [ -f files/github_env ]; then
-    source files/github_env
-else
-    echo 'WARNING: no files/github_env found, so using sane defaults.'
+if [ -z "${GITHUB_REF_TYPE}" ] || [ -z "${GITHUB_REF_NAME}" ] || [ -z "${GITHUB_REPOSITORY}" ]; then
+    echo 'WARNING: At least one optional GITHUB_* environment variable not found. Will use sane defaults.'
 fi
 
 GITHUB_REF_TYPE="${GITHUB_REF_TYPE:-branch}"

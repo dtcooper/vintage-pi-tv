@@ -30,39 +30,37 @@ jobs:
           pushd image/stage/04-install-vintage-pi-tv/files
           mkdir vintage-pi-tv
           sudo mount -vo bind ../../../.. vintage-pi-tv
-
-          echo "GITHUB_REF_TYPE=${GITHUB_REF_TYPE}" >> github_env
-          echo "GITHUB_REF_NAME=${GITHUB_REF_NAME}" >> github_env
-          echo "GITHUB_REPOSITORY=${GITHUB_REPOSITORY}" >> github_env
           popd
 
           if [ "${GITHUB_REF_TYPE}" = 'tag' ]; then
             IMG_NAME_SUFFIX="${GITHUB_REF_NAME}"
-            echo "short-version=${GITHUB_REF_NAME:1}" >> "${GITHUB_OUTPUT}"
+            echo "short-version=${GITHUB_REF_NAME:1}" | tee -a "${GITHUB_OUTPUT}"
           else
             SHORT_SHA=${GITHUB_SHA:0:8}
             IMG_NAME_SUFFIX="preview-${SHORT_SHA}"
-            echo "short-sha=${SHORT_SHA}" >> "${GITHUB_OUTPUT}"
+            echo "short-sha=${SHORT_SHA}" | tee -a "${GITHUB_OUTPUT}"
           fi
           source image/config
-          echo "disable-first-boot-user-rename=${DISABLE_FIRST_BOOT_USER_RENAME}" >> "${GITHUB_OUTPUT}"
-          echo "hostname=${TARGET_HOSTNAME}" >> "${GITHUB_OUTPUT}"
-          echo "image-name=${IMG_NAME}_${IMG_NAME_SUFFIX}" >> "${GITHUB_OUTPUT}"
-          echo "keyboard-keymap=${KEYBOARD_KEYMAP}" >> "${GITHUB_OUTPUT}"
-          echo "keyboard-layout=${KEYBOARD_LAYOUT}" >> "${GITHUB_OUTPUT}"
-          echo "locale=${LOCALE_DEFAULT}" >> "${GITHUB_OUTPUT}"
-          echo "password=${FIRST_USER_PASS}" >> "${GITHUB_OUTPUT}"
-          echo "pi-gen-release=${PI_GEN_RELEASE}" >> "${GITHUB_OUTPUT}"
-          echo "timezone=${TIMEZONE_DEFAULT}" >> "${GITHUB_OUTPUT}"
-          echo "username=${FIRST_USER_NAME}" >> "${GITHUB_OUTPUT}"
-          echo "wpa-country=${WPA_COUNTRY}" >> "${GITHUB_OUTPUT}"
+          echo "disable-first-boot-user-rename=${DISABLE_FIRST_BOOT_USER_RENAME}" | tee -a "${GITHUB_OUTPUT}"
+          echo "hostname=${TARGET_HOSTNAME}" | tee -a "${GITHUB_OUTPUT}"
+          echo "image-name=${IMG_NAME}_${IMG_NAME_SUFFIX}" | tee -a "${GITHUB_OUTPUT}"
+          echo "keyboard-keymap=${KEYBOARD_KEYMAP}" | tee -a "${GITHUB_OUTPUT}"
+          echo "keyboard-layout=${KEYBOARD_LAYOUT}" | tee -a "${GITHUB_OUTPUT}"
+          echo "locale=${LOCALE_DEFAULT}" | tee -a "${GITHUB_OUTPUT}"
+          echo "password=${FIRST_USER_PASS}" | tee -a "${GITHUB_OUTPUT}"
+          echo "pi-gen-release=${PI_GEN_RELEASE}" | tee -a "${GITHUB_OUTPUT}"
+          echo "timezone=${TIMEZONE_DEFAULT}" | tee -a "${GITHUB_OUTPUT}"
+          echo "username=${FIRST_USER_NAME}" | tee -a "${GITHUB_OUTPUT}"
+          echo "wpa-country=${WPA_COUNTRY}" | tee -a "${GITHUB_OUTPUT}"
       -
         name: Build image
-        uses: usimd/pi-gen-action@v1
+        uses: usimd/pi-gen-action@v1.8.0
         id: build
         with:
-          compression: none
+          compression: xz
+          compression-level: 9e
           disable-first-boot-user-rename: ${{ steps.setup.outputs.disable-first-boot-user-rename }}
+          docker-opts: '--env GITHUB_REF_TYPE=${{ github.ref_type }} --env GITHUB_REF_NAME=${{ github.ref_name }} --env GITHUB_REPOSITORY=${{ github.repository }}'
           hostname: ${{ steps.setup.outputs.hostname }}
           image-name: ${{ steps.setup.outputs.image-name }}
           keyboard-keymap: ${{ steps.setup.outputs.keyboard-keymap }}
@@ -72,32 +70,30 @@ jobs:
           pi-gen-release: ${{ steps.setup.outputs.pi-gen-release }}
           pi-gen-version: arm64
           release: bookworm
-          stage-list: "stage0 stage1 stage2 ./image/stage"
+          stage-list: 'stage0 stage1 stage2 ./image/stage'
           timezone: ${{ steps.setup.outputs.timezone }}
           username: ${{ steps.setup.outputs.username }}
           verbose-output: true
           wpa-country: ${{ steps.setup.outputs.wpa-country }}
       -
-        name: Compress build
-        id: compress
+        name: Finalize build
+        id: finalize
         shell: bash
         run: |
-          IMG_PATH="$(basename "${{ steps.build.outputs.image-path }}")"
-          mv -v "${{ steps.build.outputs.image-path }}" "${IMG_PATH}"
-          echo 'Compressing image. This may take a while.'
-          xz -T0 -9e "${IMG_PATH}"
-          SHA256SUM="$(sha256sum "${IMG_PATH}.xz" | awk '{ print $1 }')"
-          echo "${SHA256SUM}  ${IMG_PATH}.xz" > "${IMG_PATH}.xz.sha256sum"
-          echo "image-sha256sum=${SHA256SUM}" >> "${GITHUB_OUTPUT}"
-          echo "image-compressed=${IMG_PATH}.xz" >> "${GITHUB_OUTPUT}"
+          FINAL_PATH="$(basename "${{ steps.build.outputs.image-path }}")"
+          mv -v "${{ steps.build.outputs.image-path }}" "${FINAL_PATH}"
+          SHA256SUM="$(sha256sum "${FINAL_PATH}" | awk '{ print $1 }')"
+          echo "${SHA256SUM}  ${FINAL_PATH}" > "${FINAL_PATH}.sha256sum"
+          echo "image-sha256sum=${SHA256SUM}" | tee -a "${GITHUB_OUTPUT}"
+          echo "final-path=${FINAL_PATH}" | tee -a "${GITHUB_OUTPUT}"
       -
         name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: vintage-pi-tv-build
           path: |
-            ${{ steps.compress.outputs.image-compressed }}
-            ${{ steps.compress.outputs.image-compressed }}.sha256sum
+            ${{ steps.finalize.outputs.final-path }}
+            ${{ steps.finalize.outputs.final-path }}.sha256sum
           if-no-files-found: error
           retention-days: 2
           compression-level: 0  # Already compressed with xz above
@@ -119,7 +115,7 @@ jobs:
         name: Tag and upload release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: ${{ steps.compress.outputs.image-compressed }},${{ steps.compress.outputs.image-compressed }}.sha256sum
+          artifacts: ${{ steps.finalize.outputs.final-path }},${{ steps.finalize.outputs.final-path }}.sha256sum
           name: ${{ github.ref_type == 'tag' && format('Version {0}', steps.setup.outputs.short-version) || format('Preview Build {0}', steps.setup.outputs.short-sha) }}
           tag: ${{ github.ref_type == 'tag' && github.ref_name || 'preview-build' }}
           prerelease: ${{ github.ref_type != 'tag' }}
@@ -127,7 +123,7 @@ jobs:
           body: |-
             Vintage Pi TV ${{ github.ref_type == 'tag' && format('Release v{0}', steps.setup.outputs.short-version) || format('Preview Build {0}', steps.setup.outputs.short-sha) }}
 
-            Image filename: `${{ steps.compress.outputs.image-compressed }}`
-            SHA256SUM: `${{ steps.compress.outputs.image-sha256sum }}`
+            Image filename: `${{ steps.finalize.outputs.final-path }}`
+            SHA256SUM: `${{ steps.finalize.outputs.image-sha256sum }}`
 
             ${{ github.ref_type != 'tag' &&  '_**This development preview build may not be safe; use it at your own risk.**_' || ''}}
