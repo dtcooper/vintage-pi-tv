@@ -71,10 +71,28 @@ class VideosDB:
             f" {len(self._exclude_dirs)} exclude dirs"
         )
 
-    def _is_valid_video_path(self, path):
-        return path.name.lower().endswith(self._config.valid_file_extensions) and not any(
-            exclude_dir in path.parents for exclude_dir in self._exclude_dirs
-        )
+    def _is_valid_video_path(self, path: Path):
+        # Ends with a valid extension
+        if not path.name.strip().lower().endswith(self._config.valid_file_extensions):
+            return False
+
+        for exclude_dir in self._exclude_dirs:
+            # If the path is a subdirectory of an exclude dir
+            if path.is_relative_to(exclude_dir):
+                for search_dir in self._search_dirs + self._search_dirs_recursive:
+                    # There is path is a subdirectory of a search dir and that search dir is a subdirectory of the exclude dir
+                    # In this case, we explicitly DO NOT ignore this file
+                    if path.is_relative_to(search_dir) and search_dir.is_relative_to(exclude_dir):
+                        logger.debug(
+                            f"Path {path} would have been filtered by exclude dir {exclude_dir}, but search dir"
+                            f" {search_dir} exists after it"
+                        )
+                        break
+                else:
+                    logger.debug(f"Path {path} was filtered by exclude dir: {exclude_dir}")
+                    return False
+
+        return True
 
     def queue_channel_rebuild(self):
         with self._rebuild_channel_lock:
@@ -90,10 +108,15 @@ class VideosDB:
         logger.info("Rebuilding channel list...")
 
         videos = []  # List of kwargs for video objects
+        seen_paths = set()
 
         for search_dirs, listdir in ((self._search_dirs, os.listdir), (self._search_dirs_recursive, listdir_recursive)):
             for search_dir in search_dirs:
                 for path in ((search_dir / filename) for filename in listdir(search_dir)):
+                    if path in seen_paths:
+                        continue
+                    seen_paths.add(path)
+
                     if path.is_file() and self._is_valid_video_path(path):
                         filename = path.name.strip().lower()
                         from_config = False
@@ -144,7 +167,9 @@ class VideosDB:
     def _watch_thread(self, search_dirs, recursive):
         logger.info(f"Starting search_dirs watching thread {recursive=}")
 
-        for changes in watchfiles.watch(*search_dirs, watch_filter=lambda _, path: self._is_valid_video_path(Path(path))):
+        for changes in watchfiles.watch(
+            *search_dirs, watch_filter=lambda _, path: self._is_valid_video_path(Path(path))
+        ):
             logger.info("Detected file change(s). Queuing for channel rebuild.")
             for change, path in changes:
                 logger.debug(f"Detected file change ({change.name}): {path}")
