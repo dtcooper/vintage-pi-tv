@@ -54,25 +54,25 @@ class Player:
         try:
             self.mpv = mpv.MPV(log_handler=mpv_log, loglevel="status", force_window="immediate", **kwargs)
         except Exception as e:
-            # Exceptions from mpv are formed very weirdly
             if (
                 len(e.args) == 3
-                and isinstance(e.args[2], tuple)
+                and e.args[1] == mpv.ErrorCode.OPTION_NOT_FOUND
                 and len(e.args[2]) == 3
                 and isinstance(e.args[2][1], bytes)
                 and isinstance(e.args[2][2], bytes)
             ):
-                logger.critical(f"Invalid mpv option: {e.args[2][1].decode()} = {e.args[2][2].decode()!r}! Exiting.")
+                logger.critical(f"Invalid mpv option: {e.args[2][1].decode()} = {e.args[2][2].decode()!r}! Exiting.", exc_info=True)
             else:
                 logger.critical(
                     "Error initializing mpv. Are you sure 'mpv_options' are set properly? Exiting.", exc_info=True
                 )
             sys.exit(1)
+        logger.info("MPV initialized")
 
         # Since we're primarily operating in fullscreen mode, window size should not be changed
         # And if it does change, user is shit out of luck
         self.width, self.height = self.mpv.osd_width, self.mpv.osd_height
-        logger.info(f"Dimensions {self.width}x{self.height}")
+        logger.info(f"Screen dimensions {self.width}x{self.height}")
 
         self.playing = False
         self.killed = False

@@ -51,7 +51,7 @@ overscan_margins = false
 # See https://github.com/jaseg/python-mpv and https://mpv.io/manual/stable/ for more details
 
 ### Defaults (uncomment to change)
-#ao = "pipewire"      # audio output driver [https://mpv.io/manual/stable/#audio-output-drivers]
+#ao = "alsa"          # audio output driver [https://mpv.io/manual/stable/#audio-output-drivers]
 #vo = "gpu"           # video output driver [https://mpv.io/manual/stable/#video-output-drivers]
 #hwdec = "auto-safe"
 #profile = "sw-fast"
@@ -59,12 +59,14 @@ overscan_margins = false
 #fullscreen = true
 
 ### More relevant settings
-#drm-connector = "TODO"  # Which monitor to use [https://mpv.io/manual/stable/#video-output-drivers-drm-connector]
-                         # For options, run: $ mpv --drm-connector=help
-
+#audio-device = "alsa/default:CARD=A"  # Which audio device to use. For options run: $ mpv --audio-device=help
+                                       # Unless you changed 'ao' above, you'll want devices that start with 'alsa/...'
+#drm-connector = "HDMI-A-1"  # Which monitor to use [https://mpv.io/manual/stable/#video-output-drivers-drm-connector]
+                             # For options, run: $ mpv --drm-connector=help
 #drm-mode = "1920x1080"  # DRM mode, set custom resolution here [https://mpv.io/manual/stable/#video-output-drivers-drm-mode]
                          # Use "preferred", "highest", or for more options, run: $ mpv --drm-mode=help
-#alsa-device = "hw:0,0"
+#drm-mode = "1280x768@119.80"
+#drm-mode = "35"
 
 [[video]]
 filename = "colorbars.mkv"  # Required. Should match filename exactly, omitting the directory completely
