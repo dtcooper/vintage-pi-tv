@@ -54,11 +54,10 @@ jobs:
           echo "wpa-country=${WPA_COUNTRY}" | tee -a "${GITHUB_OUTPUT}"
       -
         name: Build image
-        uses: usimd/pi-gen-action@v1.8.0
+        uses: usimd/pi-gen-action@v1
         id: build
         with:
-          compression: xz
-          compression-level: 9e
+          compression: none
           disable-first-boot-user-rename: ${{ steps.setup.outputs.disable-first-boot-user-rename }}
           docker-opts: '--env GITHUB_REF_TYPE=${{ github.ref_type }} --env GITHUB_REF_NAME=${{ github.ref_name }} --env GITHUB_REPOSITORY=${{ github.repository }}'
           hostname: ${{ steps.setup.outputs.hostname }}
@@ -80,8 +79,11 @@ jobs:
         id: finalize
         shell: bash
         run: |
-          FINAL_PATH="$(basename "${{ steps.build.outputs.image-path }}")"
-          mv -v "${{ steps.build.outputs.image-path }}" "${FINAL_PATH}"
+          IMAGE_PATH="$(basename "${{ steps.build.outputs.image-path }}")"
+          mv -v "${{ steps.build.outputs.image-path }}" "${IMAGE_PATH}"
+          echo 'Compressing image. This may take a while.'
+          xz -T0 -9e "${IMAGE_PATH}"
+          FINAL_PATH="${IMAGE_PATH}.xz"
           SHA256SUM="$(sha256sum "${FINAL_PATH}" | awk '{ print $1 }')"
           echo "${SHA256SUM}  ${FINAL_PATH}" > "${FINAL_PATH}.sha256sum"
           echo "image-sha256sum=${SHA256SUM}" | tee -a "${GITHUB_OUTPUT}"
