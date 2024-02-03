@@ -82,18 +82,3 @@ subtitles = false  # true to enable subtitles embedded into the video,
 #name = "Scary Video"
 #rating = "R"
 #subtitles = true
-
-
-[[video]]
-filename = "they-live.mp4"
-name = "They Live!"
-rating = "R"
-subtitles = true
-
-[[video]]
-filename = "zardoz.mkv"
-
-[[video]]
-filename = "debbie-does-dallas.mp4"
-enabled = false
-name = "  "

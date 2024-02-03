@@ -97,6 +97,8 @@ DOCKER_EXEC=(
         -p "${PORT}:8000"
 )
 
+export DOCKER_CLI_HINTS=false
+
 if [ "${DO_REBUILD}" ] || [ -z "$("${DOCKER_CMD}" images -q "${CONTAINER_NAME}" 2> /dev/null)" ]; then
     echo "Building container ${CONTAINER_NAME} now."
     "${DOCKER_CMD}" build -t "${CONTAINER_NAME}" -f docker/Dockerfile .
