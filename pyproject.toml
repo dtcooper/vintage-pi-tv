@@ -14,6 +14,7 @@ schema = "^0.7.5"
 starlette = "^0.36.1"
 uvicorn = "^0.27.0.post1"
 watchfiles = "^0.21.0"
+tomlkit = "^0.12.3"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.1.1"

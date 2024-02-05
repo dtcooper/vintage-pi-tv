@@ -2,7 +2,14 @@ from pathlib import Path
 
 from schema import And, Optional, Or, Schema, SchemaError, Use
 
-from .constants import DEFAULT_DEV_MPV_OPTIONS, DEFAULT_DOCKER_MPV_OPTIONS, DEFAULT_MPV_OPTIONS, DEFAULT_RATINGS
+from .constants import (
+    DEFAULT_DEV_MPV_OPTIONS,
+    DEFAULT_DOCKER_MPV_OPTIONS,
+    DEFAULT_IR_SCANCODES,
+    DEFAULT_KEYBOARD_KEYS,
+    DEFAULT_MPV_OPTIONS,
+    DEFAULT_RATINGS,
+)
 from .utils import is_docker, is_raspberry_pi
 
 
@@ -42,22 +49,22 @@ class UniqueVideoNameSchema(Schema):
 
 config_schema = Schema(
     {
-        Optional("log_level", default="INFO"): And(
+        Optional("log-level", default="INFO"): And(
             str,
             Use(lambda s: s.strip().upper()),
             Or("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"),
-            error="Invalid 'log_level'. Must be one of 'critical', 'error', 'warning', 'info', or 'debug'.",
+            error="Invalid 'log-level'. Must be one of 'critical', 'error', 'warning', 'info', or 'debug'.",
         ),
-        Optional("channel_mode", default="random"): And(
+        Optional("channel-mode", default="random"): And(
             str,
             Use(lambda s: s.strip().lower()),
             Or("random", "alphabetical", "config-only", "config-first-random", "config-first-alphabetical"),
             error=(
-                "Invalid 'channel_mode'. Must be one of 'random', 'alphabetical', 'config-only', "
+                "Invalid 'channel-mode'. Must be one of 'random', 'alphabetical', 'config-only', "
                 "'config-first-random', or 'config-first-alphabetical'"
             ),
         ),
-        Optional("enable_audio_visualization", default=True): Use(bool),
+        Optional("enable-audio-visualization", default=True): Use(bool),
         Optional("ratings", default=DEFAULT_RATINGS): Or(
             False,
             And(
@@ -70,10 +77,10 @@ config_schema = Schema(
                 len,
             ),
         ),
-        Optional("overscan_margins", default={"left": 0, "top": 0, "right": 0, "bottom": 0}): Or(
+        Optional("overscan-margins", default={"left": 0, "top": 0, "right": 0, "bottom": 0}): Or(
             Schema({direction: And(Use(int), lambda i: i >= 0) for direction in ("left", "top", "right", "bottom")}),
         ),
-        "search_dirs": Schema(
+        "search-dirs": Schema(
             And(
                 len,
                 [
@@ -108,12 +115,22 @@ config_schema = Schema(
                 ],
             ),
             error=(
-                "'search_dirs' must be a list of one or more paths or {{ path = <path>, recurse = <bool>, ignore ="
+                "'search-dirs' must be a list of one or more paths or {{ path = <path>, recurse = <bool>, ignore ="
                 " <bool> }} style dictionaries. (NOTE: 'recurse' and 'ignore' can never both be set to true.)"
             ),
         ),
-        Optional("valid_file_extensions", default="defaults"): Or([NON_EMPTY_STRING], "defaults"),
-        Optional("mpv_options", default=mpv_options_schema.validate({})): mpv_options_schema,
+        Optional("valid-file-extensions", default="defaults"): Or([NON_EMPTY_STRING], "defaults"),
+        Optional("mpv-options", default=mpv_options_schema.validate({})): mpv_options_schema,
+        Optional("keyboard", default={"enabled": False}): Schema({
+            Optional("enabled", default=False): bool,
+            **{Optional(k, default=v): Or(False, NON_EMPTY_STRING) for k, v in DEFAULT_KEYBOARD_KEYS.items()},
+        }),
+        Optional("ir-remote", default={"enabled": False}): Schema({
+            Optional("enabled", default=False): bool,
+            Optional("protocol", default="nec"): str,
+            Optional("variant", default="nec"): str,
+            **{Optional(k, default=v): Or(False, int) for k, v in DEFAULT_IR_SCANCODES.items()},
+        }),
         Optional("video", default=[]): [{
             "filename": UniqueVideoNameSchema(And(str, len, Use(lambda s: s.strip().lower()))),
             Optional("enabled", default=True): bool,

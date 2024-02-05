@@ -27,16 +27,16 @@ class Config:
 
     def __init__(self, path: None | Path, extra_search_dirs: tuple | list = ()):
         if path is None:
-            toml = {"log_level": "debug"}
+            toml = {"log-level": "debug"}
         else:
             with open(path, "rb") as file:
                 toml = tomllib.load(file)
 
         # Add in extras
-        toml.setdefault("search_dirs", []).extend(extra_search_dirs)
+        toml.setdefault("search-dirs", []).extend(extra_search_dirs)
 
         try:
-            self._config = config_schema.validate(toml)
+            self._config = {k.replace("-", "_"): v for k, v in config_schema.validate(toml).items()}
             self._validate()
         except (SchemaError, InvalidConfigError) as e:
             logger.critical(f"Invalid configuration: {e}")

@@ -8,6 +8,8 @@ GITHUB_REF_TYPE="${GITHUB_REF_TYPE:-branch}"
 GITHUB_REF_NAME="${GITHUB_REF_NAME:-main}"
 GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-dtcooper/vintage-pi-tv}"
 
+install -vm 644 files/099_vintage_pi_tv_ir_keytable "${ROOTFS_DIR}/etc/sudoers.d/099_vintage_pi_tv_ir_keytable"
+
 if [ ! -d files/vintage-pi-tv ]; then
     echo 'WARNING: Vintage Pi TV repository not found at files/vintage-pi-tv so cloning fresh copy.'
     git clone "https://github.com/${GITHUB_REPOSITORY}.git" files/vintage-pi-tv
@@ -37,6 +39,9 @@ install -vm 644 sample-config.toml "${ROOTFS_DIR}/boot/firmware/vintage-pi-tv-co
 popd
 
 on_chroot <<EOF
+addgroup --system ir-keytable
+adduser "${FIRST_USER_NAME}" ir-keytable
+
 chown -R "${FIRST_USER_NAME}:${FIRST_USER_NAME}" /opt/vintage-pi-tv
 
 su - "${FIRST_USER_NAME}" -c "/opt/poetry/bin/poetry config virtualenvs.in-project true"

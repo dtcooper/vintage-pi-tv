@@ -1,10 +1,10 @@
 #### Vintage Pi TV configuration ####
 
 # Log level, one of: silent, error, warning, info, or debug
-log_level = 'debug'
+log-level = 'debug'
 
 # Directories to search for videos in.
-search_dirs = [
+search-dirs = [
     "/media/VintagePiTV/videos",  # Will not recurse if just a string
     { path = "/media/VintagePiTV", ignore = true },  # Ignore folder
     { path = "/media", recurse = true},
@@ -19,33 +19,32 @@ search_dirs = [
 #
 # NOTE: A newly discovered file will always added as the last channels as it is discovered
 #
-#channel_mode = "alphabetical"
-channel_mode = "config-first-alphabetical"
+#channel-mode = "alphabetical"
+channel-mode = "config-first-alphabetical"
 
 # Sould we provide visualizations for audio files?
-enable_audio_visualization = true
+enable-audio-visualization = true
 
 # Ratings must be in order least restricted to most restricted, eg. G first, X last
 ratings = [
     { rating = "G", description = "General" },  # First item will be the default
     { rating = "PG", description = "Parental Guidance"},
     { rating = "R", description = "Restricted" },
-    { rating = "X", description = "Adult"}
+    { rating = "X", description = "Adult" }
 ]
 # Or disable ratings altogether
 #ratings = false
 
 # Set valid file extensions to sane defaults
-valid_file_extensions = "defaults"
+valid-file-extensions = "defaults"
 # Or or provide a list of extensions (without the period)
-# valid_file_extensions = [ "mp4", "mkv", "mov", "avi" ]
+# valid-file-extensions = [ "mp4", "mkv", "mov", "avi" ]
 
 # Margin of monitor in pixels, for overscan purposes
-overscan_margins = false
-#overscan_margins = { "left": 10, "top": 10, "right": 10, "bottom": 10 }
+overscan-margins = { left = 0, top = 0, right = 0, bottom = 0 }
 
 ### MPV options ###
-[mpv_options]
+[mpv-options]
 
 # WARNING: For advanced users only! Arguments converted the mpv.MPV(...) constructor in python-mpv
 # See https://github.com/jaseg/python-mpv and https://mpv.io/manual/stable/ for more details
@@ -67,6 +66,41 @@ overscan_margins = false
                          # Use "preferred", "highest", or for more options, run: $ mpv --drm-mode=help
 #drm-mode = "1280x768@119.80"
 #drm-mode = "35"
+
+[keyboard]
+enabled = true
+# For a list of keys, run: $ mpv --input-keylist
+back = "DEL"
+down = "DOWN"
+enter = "ENTER"
+home = "h"
+left = "LEFT"
+menu = "m"
+mute = "0"
+power = "ESC"
+right = "RIGHT"
+up = "UP"
+volume-down = "-"
+volume-up = "="
+
+[ir-remote]
+enabled = false
+# Below are for the Argon 40 remote https://argon40.com/products/argon-remote
+#protocol = "nec"
+#variant = "nec"
+# Keys below here
+#back = 0x9d
+#down = 0xd2
+#enter = 0xce
+#home = 0xcb
+#left = 0x99
+#menu = 0x90
+#mute = false
+#power = false
+#right = 0xc1
+#up = 0xca
+#volume-down = 0x81
+#volume-up = 0x80
 
 [[video]]
 filename = "colorbars.mkv"  # Required. Should match filename exactly, omitting the directory completely
