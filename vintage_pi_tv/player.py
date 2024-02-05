@@ -61,7 +61,9 @@ class Player:
                 and isinstance(e.args[2][1], bytes)
                 and isinstance(e.args[2][2], bytes)
             ):
-                logger.critical(f"Invalid mpv option: {e.args[2][1].decode()} = {e.args[2][2].decode()!r}! Exiting.", exc_info=True)
+                logger.critical(
+                    f"Invalid mpv option: {e.args[2][1].decode()} = {e.args[2][2].decode()!r}! Exiting.", exc_info=True
+                )
             else:
                 logger.critical(
                     "Error initializing mpv. Are you sure 'mpv_options' are set properly? Exiting.", exc_info=True

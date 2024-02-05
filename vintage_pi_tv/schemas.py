@@ -6,8 +6,8 @@ from .constants import DEFAULT_DEV_MPV_OPTIONS, DEFAULT_DOCKER_MPV_OPTIONS, DEFA
 from .utils import is_docker, is_raspberry_pi
 
 
-NON_EMPTY_STRING = And(Use(str), len)
-NON_EMPTY_PATH = And(Use(str), len, Use(Path))
+NON_EMPTY_STRING = And(str, len)
+NON_EMPTY_PATH = And(str, len, Use(lambda path: Path(path).expanduser().resolve()))
 
 
 if is_docker():
@@ -43,13 +43,13 @@ class UniqueVideoNameSchema(Schema):
 config_schema = Schema(
     {
         Optional("log_level", default="INFO"): And(
-            Use(str),
+            str,
             Use(lambda s: s.strip().upper()),
             Or("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"),
             error="Invalid 'log_level'. Must be one of 'critical', 'error', 'warning', 'info', or 'debug'.",
         ),
         Optional("channel_mode", default="random"): And(
-            Use(str),
+            str,
             Use(lambda s: s.strip().lower()),
             Or("random", "alphabetical", "config-only", "config-first-random", "config-first-alphabetical"),
             error=(
@@ -70,8 +70,7 @@ config_schema = Schema(
                 len,
             ),
         ),
-        Optional("overscan_margins", default=False): Or(
-            False,
+        Optional("overscan_margins", default={"left": 0, "top": 0, "right": 0, "bottom": 0}): Or(
             Schema({direction: And(Use(int), lambda i: i >= 0) for direction in ("left", "top", "right", "bottom")}),
         ),
         "search_dirs": Schema(
@@ -94,7 +93,17 @@ config_schema = Schema(
                             Optional("recurse", default=False): False,
                             "ignore": True,
                         },
-                        And(str, len, Use(lambda path: {"path": Path(path), "recurse": False, "ignore": False})),
+                        And(
+                            str,
+                            len,
+                            Use(
+                                lambda path: {
+                                    "path": Path(path).expanduser().resolve(),
+                                    "recurse": False,
+                                    "ignore": False,
+                                }
+                            ),
+                        ),
                     )
                 ],
             ),
@@ -106,11 +115,11 @@ config_schema = Schema(
         Optional("valid_file_extensions", default="defaults"): Or([NON_EMPTY_STRING], "defaults"),
         Optional("mpv_options", default=mpv_options_schema.validate({})): mpv_options_schema,
         Optional("video", default=[]): [{
-            "filename": UniqueVideoNameSchema(And(Use(str), Use(lambda s: s.strip().lower()), len)),
-            Optional("enabled", default=True): Use(bool),
-            Optional("name", default=""): And(Use(lambda s: s or ""), Use(str), Use(lambda s: s.strip())),
-            Optional("rating", default=False): Or(False, And(Use(str), Use(lambda s: s.strip().upper()))),
-            Optional("subtitles", default=False): Or(bool, And(Use(str), len, Use(Path))),
+            "filename": UniqueVideoNameSchema(And(str, len, Use(lambda s: s.strip().lower()))),
+            Optional("enabled", default=True): bool,
+            Optional("name", default=""): And(Use(lambda s: s or ""), str, Use(lambda s: s.strip())),
+            Optional("rating", default=False): Or(False, And(str, Use(lambda s: s.strip().upper()))),
+            Optional("subtitles", default=False): Or(bool, NON_EMPTY_PATH),
         }],
     },
 )
