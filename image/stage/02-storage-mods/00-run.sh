@@ -10,8 +10,6 @@ sed -i 's|init=/usr/lib/raspberrypi-sys-mods/firstboot|init=/usr/local/lib/vinta
 on_chroot <<EOF
 addgroup --system storage
 adduser "${FIRST_USER_NAME}" storage
-addgroup --system ir-keytable
-adduser "${FIRST_USER_NAME}" ir-keytable
 
 systemctl enable udiskie.service
 EOF
