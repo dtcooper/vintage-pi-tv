@@ -49,18 +49,19 @@ class VideosDB:
         self._exclude_dirs = list()
 
         for info in self._config.search_dirs:
-            if info["path"].is_dir():
+
                 if info["ignore"]:
                     logger.debug(f"Adding ignore dir: {info['path']}")
                     self._exclude_dirs.append(info["path"])
-                elif info["recurse"]:
-                    logger.debug(f"Adding recursive search dir: {info['path']}")
-                    self._search_dirs_recursive.append(info["path"])
+                if info["path"].is_dir():
+                    if info["recurse"]:
+                        logger.debug(f"Adding recursive search dir: {info['path']}")
+                        self._search_dirs_recursive.append(info["path"])
+                    else:
+                        logger.debug(f"Adding search dir: {info['path']}")
+                        self._search_dirs.append(info["path"])
                 else:
-                    logger.debug(f"Adding search dir: {info['path']}")
-                    self._search_dirs.append(info["path"])
-            else:
-                logger.warning(f"Path in 'search_dirs' {info['path']} is not a directory. Skipping.")
+                    logger.warning(f"Path in 'search_dirs' {info['path']} is not a directory. Skipping.")
 
         if not self._search_dirs and not self._search_dirs_recursive:
             logger.critical("No search_dirs are actually valid directories.")
@@ -79,7 +80,7 @@ class VideosDB:
         for exclude_dir in self._exclude_dirs:
             # If the path is a subdirectory of an exclude dir
             if path.is_relative_to(exclude_dir):
-                for search_dir in self._search_dirs + self._search_dirs_recursive:
+                for search_dir in (self._search_dirs + self._search_dirs_recursive):
                     # There is path is a subdirectory of a search dir and that search dir is a subdirectory of the exclude dir
                     # In this case, we explicitly DO NOT ignore this file
                     if path.is_relative_to(search_dir) and search_dir.is_relative_to(exclude_dir):
