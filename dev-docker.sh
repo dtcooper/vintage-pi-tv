@@ -31,6 +31,7 @@ Develop Vintage Pi TV in a Docker container with noVNC
 
 Options:
     -r, --rebuild           Force a rebuild of the Docker container
+    -R, --no-cache-rebuild  Force a rebuild of the Docker container (no cache)
     -p <int>, --port <int>  Port to bind the HTTP server to
     -a, --audio             Attempt to enable sound via Pulseaudio
     -b, --browser           Open web browser after starting container
@@ -41,6 +42,7 @@ EOF
 }
 
 DO_REBUILD=
+DO_NO_CACHE_REBUILD=
 PORT=8000
 DO_AUDIO=
 DO_OPEN_BROWSER=
@@ -51,6 +53,9 @@ while [ "${1:0:1}" = '-' ]; do
   case "$1" in
         -r|--rebuild)
             DO_REBUILD=1
+        ;;
+        -R|--no-cache-rebuild)
+            DO_NO_CACHE_REBUILD=1
         ;;
         -p|--port)
             PORT="${2}"
@@ -99,9 +104,10 @@ DOCKER_EXEC=(
 
 export DOCKER_CLI_HINTS=false
 
-if [ "${DO_REBUILD}" ] || [ -z "$("${DOCKER_CMD}" images -q "${CONTAINER_NAME}" 2> /dev/null)" ]; then
+if [ "${DO_NO_CACHE_REBUILD}" ] || [ "${DO_REBUILD}" ] || [ -z "$("${DOCKER_CMD}" images -q "${CONTAINER_NAME}" 2> /dev/null)" ]; then
     echo "Building container ${CONTAINER_NAME} now."
-    "${DOCKER_CMD}" build -t "${CONTAINER_NAME}" -f docker/Dockerfile .
+    echo "${DOCKER_CMD}" build -t "${CONTAINER_NAME}" ${DO_NO_CACHE_REBUILD:+--no-cache --pull} -f docker/Dockerfile .
+    "${DOCKER_CMD}" build -t "${CONTAINER_NAME}" ${DO_NO_CACHE_REBUILD:+--no-cache --pull} -f docker/Dockerfile .
 fi
 
 if [ "${DO_AUDIO}" ]; then
