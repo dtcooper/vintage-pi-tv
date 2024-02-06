@@ -21,8 +21,6 @@ verify_cmd_exists () {
     fi
 }
 
-verify_cmd_exists "${DOCKER_CMD}" Docker
-
 do_help_and_exit () {
     cat <<EOF
 Usage: ${_CMD} [-h] [-r] [-p <int>]
@@ -91,6 +89,8 @@ if [ -z "${DO_FORCE}" ] && [ -e "${_PI_LOOKUP_FILE}" ] && grep -qi 'raspberry pi
     echo "Won't run on a Raspberry Pi. Use -f / --force option to override this."
     exit 1
 fi
+
+verify_cmd_exists "${DOCKER_CMD}" Docker
 
 DOCKER_EXEC=(
     "${DOCKER_CMD}" run --rm -it
