@@ -122,7 +122,7 @@ config_schema = Schema(
         ),
         Optional("valid-file-extensions", default="defaults"): Or([NON_EMPTY_STRING], "defaults"),
         Optional("mpv-options", default=mpv_options_schema.validate({})): mpv_options_schema,
-        Optional("keyboard", default={"enabled": False}): Schema({
+        Optional("keyboard", default={"enabled": True, **DEFAULT_KEYBOARD_KEYS}): Schema({
             Optional("enabled", default=False): bool,
             **{
                 Optional(k, default=v): Or(False, And(str, len, Use(lambda s: s.strip().upper()), is_valid_key))

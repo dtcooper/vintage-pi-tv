@@ -18,15 +18,16 @@ try:
     from evdev.ecodes import EV_KEY, KEY
     from evdev.events import KeyEvent
     import pyudev
+
 except ImportError:
     KEYBOARD_AVAILABLE = False
 else:
     KEYBOARD_AVAILABLE = True
+    KEY_EVENT_DOWN = KeyEvent.key_down
+    KEY_EVENT_HOLD = KeyEvent.key_hold
 
 
 logger = logging.getLogger(__name__)
-KEY_EVENT_DOWN = KeyEvent.key_down
-KEY_EVENT_HOLD = KeyEvent.key_hold
 
 
 def is_valid_key(s):
