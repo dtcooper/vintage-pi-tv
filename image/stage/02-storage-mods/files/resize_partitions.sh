@@ -7,7 +7,7 @@ CONFIG_DEST=config.toml
 ROOT_DEV_MAX_PARTSIZE="$((1024 * 1024 * 512 * 15))"  # 7.5GiB
 EXFAT_PARTITION_LABEL=VintagePiTV  # 11 characters max on ExFAT label?
 EXFAT_VIDEOS_DIR=videos
-PI_USERNAME=pi  # Runs before any renaming is done by Raspberry Pi OS
+PI_HOME="$(getent passwd 1000 | cut -d: -f6)"
 
 reboot_pi() {
     umount "$FWLOC"
@@ -95,8 +95,8 @@ EOF
         echo "WARNING: ${ROOT_DEV} doesn't have enough space on it for an exFAT partition."
         mount -o remount,rw /
         sync
-        ln -s "${FWLOC}/${CONFIG_SRC}" "/home/${PI_USERNAME}/${CONFIG_DEST}"
-        chown -vh "${PI_USERNAME}:${PI_USERNAME}" "/home/${PI_USERNAME}/${CONFIG_DEST}"
+        ln -s "${FWLOC}/${CONFIG_SRC}" "${PI_HOME}/${CONFIG_DEST}"
+        chown -vh 1000:1000 "${PI_HOME}/${CONFIG_DEST}"
         sync
         mount -o remount,ro /
         sync
@@ -121,9 +121,9 @@ EOF
         sync
         mount -o remount,rw /
         sync
-        ln -s "/media/${EXFAT_PARTITION_LABEL}/${CONFIG_DEST}" "/home/${PI_USERNAME}/${CONFIG_DEST}"
-        ln -s "/media/${EXFAT_PARTITION_LABEL}/${EXFAT_VIDEOS_DIR}" "/home/${PI_USERNAME}/${EXFAT_VIDEOS_DIR}"
-        chown -vh "${PI_USERNAME}:${PI_USERNAME}" "/home/${PI_USERNAME}/${CONFIG_DEST}" "/home/${PI_USERNAME}/${EXFAT_VIDEOS_DIR}"
+        ln -s "/media/${EXFAT_PARTITION_LABEL}/${CONFIG_DEST}" "${PI_HOME}/${CONFIG_DEST}"
+        ln -s "/media/${EXFAT_PARTITION_LABEL}/${EXFAT_VIDEOS_DIR}" "${PI_HOME}/${EXFAT_VIDEOS_DIR}"
+        chown -vh 1000:1000 "${PI_HOME}/${CONFIG_DEST}" "${PI_HOME}/${EXFAT_VIDEOS_DIR}"
         sync
         mount -o remount,ro /
         sync
