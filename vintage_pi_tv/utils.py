@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def init_logger():
-    log_fmt = "{asctime} {levelprefix:<8} {message}"
+    log_fmt = "{asctime} {levelprefix:<8} {message} [thread={threadName}]"
     vintage_pi_tv_logger = logging.getLogger(__name__).parent
     vintage_pi_tv_logger.setLevel(logging.INFO)
 

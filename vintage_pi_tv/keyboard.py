@@ -5,7 +5,6 @@ import queue
 import selectors
 import subprocess
 import tempfile
-import threading
 import time
 
 import tomlkit
@@ -18,7 +17,6 @@ try:
     from evdev.ecodes import EV_KEY, KEY
     from evdev.events import KeyEvent
     import pyudev
-
 except ImportError:
     KEYBOARD_AVAILABLE = False
 else:
@@ -81,7 +79,7 @@ class Keyboard:
             logger.warning("No scancodes provided for IR remote. Disabling")
             self.config.ir_remote["enabled"] = False
 
-    def _input_thread(self):
+    def keyboard_thread(self):
         # Listening for key events on Linux is a fucking mess.
         logger.info("Starting input thread")
         context = pyudev.Context()
@@ -152,6 +150,3 @@ class Keyboard:
             self._enable_ir_remote()
         else:
             logger.info("IR remote disabled")
-
-        thread = threading.Thread(target=self._input_thread, daemon=True)
-        thread.start()

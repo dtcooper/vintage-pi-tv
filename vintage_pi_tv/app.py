@@ -22,14 +22,6 @@ async def index(request):
     return PlainTextResponse("There are only forty people in the world and five of them are hamburgers.\n")
 
 
-async def startup():
-    print("Startup")
-
-
-async def shutdown():
-    print("Shutdown")
-
-
 routes = [Route("/", index)]
 
 # __main__.py passes these arguments as environment variables

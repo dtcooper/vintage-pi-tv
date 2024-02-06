@@ -166,16 +166,23 @@ class VideosDB:
         return random.choice(self.videos)
 
     def _watch_thread(self, search_dirs, recursive):
-        logger.info(f"Starting search_dirs watching thread {recursive=}")
+        logger.info(f"Starting search-dirs watching thread {recursive=}")
 
         for changes in watchfiles.watch(
-            *search_dirs, watch_filter=lambda _, path: self._is_valid_video_path(Path(path))
+            *search_dirs, stop_event=self.stop_event, watch_filter=lambda _, path: self._is_valid_video_path(Path(path))
         ):
             logger.info("Detected file change(s). Queuing for channel rebuild.")
             for change, path in changes:
                 logger.debug(f"Detected file change ({change.name}): {path}")
             with self._rebuild_channel_lock:
                 self._wants_channel_rebuild = True
+
+    def watch_thread(self, recursive):
+        search_dirs = self._search_dirs_recursive if recursive else self._search_dirs
+        if search_dirs:
+            self._watch_thread(search_dirs, recursive)
+        else:
+            logger.info(f"No need to start watch-dirs thread for {recursive=}")
 
     def __init__(self, config: Config):
         self.channels: list[Video] = []
@@ -185,13 +192,9 @@ class VideosDB:
         self._exclude_dirs: list[Path] = []
         self._wants_channel_rebuild: bool = True
         self._rebuild_channel_lock: threading.Lock = threading.Lock()
+        self.stop_event = threading.Event()
 
         self._init_dirs()
         self.rebuild_channels_if_needed()
-        if self._search_dirs:
-            thread = threading.Thread(target=self._watch_thread, args=(self._search_dirs, False), daemon=True)
-            thread.start()
-        if self._search_dirs_recursive:
-            thread = threading.Thread(target=self._watch_thread, args=(self._search_dirs_recursive, False), daemon=True)
-            thread.start()
+
         logger.info("Videos DB fully initialized")

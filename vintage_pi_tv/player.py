@@ -133,7 +133,7 @@ class Player:
             clock.tick(60)
         self.mpv.overlay_remove(1)
 
-    def run(self):
+    def run_thread(self):
         self.show_static()
         video = self.videos_db.get_next_video()
 

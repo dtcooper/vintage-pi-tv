@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from pathlib import Path
 import queue
@@ -85,17 +84,28 @@ class VintagePiTV:
             config=self.config, videos_db=self.videos, queue=self.event_queue, reload_pid=uvicorn_reload_parent_pid
         )
 
-        # XXX
-        def test_event_queue_consumer():
-            while item := self.event_queue.get():
-                logger.info(f"XXX --- Got keypress: {item}")
-
-        thread = threading.Thread(target=test_event_queue_consumer, daemon=True)
-        thread.start()
+    def test_event_queue_consumer_thread(self):
+        while item := self.event_queue.get():
+            logger.info(f"XXX --- Got keypress: {item}")
 
     def startup(self):
-        loop = asyncio.get_event_loop()
-        loop.run_in_executor(None, self.player.run)
+        threads = [
+            {"name": "player", "target": self.player.run_thread},
+            {"name": "watch", "target": self.videos.watch_thread, "kwargs": {"recursive": False}, "daemon": False},
+            {"name": "watch_rec", "target": self.videos.watch_thread, "kwargs": {"recursive": True}, "daemon": False},
+            {"name": "test", "target": self.test_event_queue_consumer_thread},
+        ]
+        if self.keyboard:
+            threads.append({"name": "keyboard", "target": self.keyboard.keyboard_thread})
 
-    async def shutdown(self):
-        self.player.stop()
+        for kwargs in threads:
+            logger.info(f"Spawning {kwargs['name']} thread")
+            thread = threading.Thread(daemon=kwargs.pop("daemon", True), **kwargs)
+            thread.start()
+
+        threads = list(threading.enumerate())
+        logger.debug(f"{len(threads)} threads are running {', '.join(t.name for t in threads)}")
+
+    def shutdown(self):
+        # Using a stop_event for watchfiles prevents weird "FATAL: exception not rethrown" log messages
+        self.videos.stop_event.set()
