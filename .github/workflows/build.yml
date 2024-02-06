@@ -108,6 +108,20 @@ jobs:
           retention-days: 2
           compression-level: 0  # Already compressed with xz above
       -
+        name: Remove old preview release
+        uses: dev-drprasad/delete-tag-and-release@v0.2.1
+        if: github.ref_type != 'tag'
+        with:
+          delete_release: true
+          tag_name: preview-build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      -
+        name: Wait for preview release to delete
+        shell: bash
+        if: github.ref_type != 'tag'
+        run: sleep 15s
+      -
         name: Tag and upload release
         uses: ncipollo/release-action@v1
         with:
@@ -115,8 +129,6 @@ jobs:
           name: ${{ github.ref_type == 'tag' && format('Version {0}', steps.setup.outputs.short-version) || format('Preview Build {0}', steps.setup.outputs.short-sha) }}
           tag: ${{ github.ref_type == 'tag' && github.ref_name || 'preview-build' }}
           prerelease: ${{ github.ref_type != 'tag' }}
-          allowUpdates: ${{ github.ref_type != 'tag' }}
-          updateOnlyUnreleased: true
           body: |-
             Vintage Pi TV ${{ github.ref_type == 'tag' && format('Release v{0}', steps.setup.outputs.short-version) || format('Preview Build {0}', steps.setup.outputs.short-sha) }}
 
