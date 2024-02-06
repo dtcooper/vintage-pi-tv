@@ -61,15 +61,15 @@ class VideosDB:
                     logger.debug(f"Adding search dir: {info['path']}")
                     self._search_dirs.append(info["path"])
             else:
-                logger.warning(f"Path in 'search_dirs' {info['path']} is not a directory. Skipping.")
+                logger.warning(f"Path in 'search-dirs' {info['path']} is not a directory. Skipping.")
 
         if not self._search_dirs and not self._search_dirs_recursive:
-            logger.critical("No search_dirs are actually valid directories.")
+            logger.critical("No search-dirs are actually valid directories.")
             sys.exit(1)
 
         logger.info(
             f"Added {len(self._search_dirs) + len(self._search_dirs_recursive)} search dirs,"
-            f" {len(self._exclude_dirs)} exclude dirs"
+            f" {len(self._exclude_dirs)} ignore dirs"
         )
 
     def _is_valid_video_path(self, path: Path):
