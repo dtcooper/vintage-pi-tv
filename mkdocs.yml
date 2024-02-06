@@ -1,0 +1,38 @@
+repo_name: dtcooper/vintage-pi-tv
+repo_url: https://github.com/dtcooper/vintage-pi-tv/
+site_name: Vintage Pi TV
+site_url: https://github.com/dtcooper/vintage-pi-tv/
+site_description: Vintage TV for Raspberry Pi
+extra:
+  generator: false
+
+theme:
+  name: material
+  icon:
+    logo: material/television-classic
+    repo: fontawesome/brands/github
+  features:
+    - content.tabs.link
+    - navigation.expand
+    - navigation.instant
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - search.highlight
+    - search.suggest
+    - toc.integrate
+  palette:
+    - scheme: default
+      media: "(prefers-color-scheme: light)"
+      primary: indigo
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      media: "(prefers-color-scheme: dark)"
+      primary: deep purple
+      accent: light blue
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
