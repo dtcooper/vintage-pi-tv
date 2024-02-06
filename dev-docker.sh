@@ -95,19 +95,20 @@ fi
 DOCKER_EXEC=(
     "${DOCKER_CMD}" run --rm -it
         -v "${PWD}:/app"
-        -v "${PWD}/videos:/videos"
+        -v "${PWD}/videos:/app/videos"
         -v "${PWD}/docker/daemons.conf:/etc/supervisor/conf.d/daemons.conf"
         -v "${PWD}/docker/nginx.conf:/etc/nginx/sites-enabled/default"
         -v "${PWD}/docker/entrypoint.sh:/entrypoint.sh"
-        -p "${PORT}:8000"
+        -p "127.0.0.1:${PORT}:8000"
 )
 
 export DOCKER_CLI_HINTS=false
 
 if [ "${DO_NO_CACHE_REBUILD}" ] || [ "${DO_REBUILD}" ] || [ -z "$("${DOCKER_CMD}" images -q "${CONTAINER_NAME}" 2> /dev/null)" ]; then
     echo "Building container ${CONTAINER_NAME} now."
-    echo "${DOCKER_CMD}" build -t "${CONTAINER_NAME}" ${DO_NO_CACHE_REBUILD:+--no-cache --pull} -f docker/Dockerfile .
-    "${DOCKER_CMD}" build -t "${CONTAINER_NAME}" ${DO_NO_CACHE_REBUILD:+--no-cache --pull} -f docker/Dockerfile .
+    BUILD_CMD=("${DOCKER_CMD}" build -t "${CONTAINER_NAME}" ${DO_NO_CACHE_REBUILD:+--no-cache --pull} -f docker/Dockerfile .)
+    echo "\$ ${BUILD_CMD[*]}"
+    "${BUILD_CMD[@]}"
 fi
 
 if [ "${DO_AUDIO}" ]; then
@@ -153,5 +154,6 @@ if [ "${DO_OPEN_BROWSER}" ]; then
 fi
 
 DOCKER_EXEC+=("${CONTAINER_NAME}" "$@")
-echo "${DOCKER_EXEC[@]}"
+echo "Listening on http://127.0.0.1:8000/$([ -z "${DO_OPEN_BROWSER}" ] && echo ' (use -b to open browser)')"
+echo "\$ ${DOCKER_EXEC[*]}"
 exec "${DOCKER_EXEC[@]}"

@@ -52,7 +52,7 @@ def run(args=None):
         parser.error("--wait-for-config-seconds should greater than or equal to 0")
 
     if is_docker() and not args.extra_search_dirs:
-        args.extra_search_dirs.append("/videos")
+        args.extra_search_dirs.append("/app/videos")
 
     # Since uvicorn needs to completely load program for --reload to work, most of these as environment variables
     env = {key: getattr(args, key) for key in vars(args).keys() if key not in ("reload", "host", "port")}

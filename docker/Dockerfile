@@ -23,8 +23,9 @@ RUN apt-get update \
         less \
         nano \
         procps \
-    && apt-file update \
-    && rm -rf /var/lib/apt/lists/*
+        wget \
+    # Don't delete package index, since we're developing here
+    && apt-file update
 
 # Install noVNC to nginx root
 RUN rm -rf /var/www/html \

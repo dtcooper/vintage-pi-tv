@@ -86,21 +86,14 @@ config_schema = Schema(
                 len,
                 [
                     Or(
-                        {
-                            "path": NON_EMPTY_PATH,
-                            Optional("recurse", default=False): False,
-                            Optional("ignore", default=False): False,
-                        },
-                        {
-                            "path": NON_EMPTY_PATH,
-                            "recurse": True,
-                            Optional("ignore", default=False): False,
-                        },
-                        {
-                            "path": NON_EMPTY_PATH,
-                            Optional("recurse", default=False): False,
-                            "ignore": True,
-                        },
+                        And(
+                            {
+                                "path": NON_EMPTY_PATH,
+                                Optional("recurse", default=False): False,
+                                Optional("ignore", default=False): False,
+                            },
+                            lambda d: not (d["recurse"] and d["ignore"]),
+                        ),
                         And(
                             str,
                             len,
