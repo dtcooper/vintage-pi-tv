@@ -83,8 +83,14 @@ jobs:
         run: |
           IMAGE_PATH="$(basename "${{ steps.build.outputs.image-path }}")"
           mv -v "${{ steps.build.outputs.image-path }}" "${IMAGE_PATH}"
-          echo 'Compressing image. This may take a while.'
-          xz -T0 -9e "${IMAGE_PATH}"
+          if [ "${GITHUB_REF_TYPE}" = 'tag' ]; then
+            # More compression for tagged release
+            echo 'Compressing image for release. This may take a while.'
+            xz -T0 -9e "${IMAGE_PATH}"
+          else
+            echo 'Compressing image. This may take a while.'
+            xz -T0 -9 "${IMAGE_PATH}"
+          fi
           FINAL_PATH="${IMAGE_PATH}.xz"
           SHA256SUM="$(sha256sum "${FINAL_PATH}" | awk '{ print $1 }')"
           echo "${SHA256SUM}  ${FINAL_PATH}" > "${FINAL_PATH}.sha256sum"
