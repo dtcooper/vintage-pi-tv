@@ -61,7 +61,7 @@ def run(args=None):
     kwargs = {"host": args.host, "port": args.port}
     if args.reload:
         env["uvicorn_reload_parent_pid"] = os.getpid()
-        kwargs.update({"reload": True})
+        kwargs.update({"reload": True, "reload_includes": ["*.py", "*.toml"]})
 
     os.environ[ENV_ARGS_VAR_NAME] = json.dumps(env, sort_keys=True, separators=(",", ":"))
     uvicorn.run("vintage_pi_tv.app:app", **kwargs)

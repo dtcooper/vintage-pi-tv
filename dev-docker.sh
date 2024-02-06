@@ -105,7 +105,7 @@ DOCKER_EXEC=(
 export DOCKER_CLI_HINTS=false
 
 if [ "${DO_NO_CACHE_REBUILD}" ] || [ "${DO_REBUILD}" ] || [ -z "$("${DOCKER_CMD}" images -q "${CONTAINER_NAME}" 2> /dev/null)" ]; then
-    echo "Building container ${CONTAINER_NAME} now."
+    echo "# Building container ${CONTAINER_NAME} now."
     BUILD_CMD=("${DOCKER_CMD}" build -t "${CONTAINER_NAME}" ${DO_NO_CACHE_REBUILD:+--no-cache --pull} -f docker/Dockerfile .)
     echo "\$ ${BUILD_CMD[*]}"
     "${BUILD_CMD[@]}"

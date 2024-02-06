@@ -90,7 +90,7 @@ jobs:
           IMAGE_PATH="$(basename "${{ steps.build.outputs.image-path }}")"
           mv -v "${{ steps.build.outputs.image-path }}" "${IMAGE_PATH}"
           echo 'Compressing image. This may take several minutes.'
-          xz -T0 -9e "${IMAGE_PATH}"
+          xz -v -T0 -9e "${IMAGE_PATH}"
           FINAL_PATH="${IMAGE_PATH}.xz"
           SHA256SUM="$(sha256sum "${FINAL_PATH}" | awk '{ print $1 }')"
           echo "${SHA256SUM}  ${FINAL_PATH}" > "${FINAL_PATH}.sha256sum"

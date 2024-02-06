@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import errno
 import functools
 import logging
@@ -6,10 +8,15 @@ import selectors
 import subprocess
 import tempfile
 import time
+from typing import TYPE_CHECKING
 
 import tomlkit
 
 from .constants import DEFAULT_IR_SCANCODES
+
+
+if TYPE_CHECKING:
+    from .config import Config
 
 
 try:
@@ -139,7 +146,7 @@ class Keyboard:
                 logger.exception("Something went wrong while monitoring keyboard events. Trying again.")
                 time.sleep(0.5)
 
-    def __init__(self, queue: queue.Queue, config):
+    def __init__(self, queue: queue.Queue, config: Config):
         if not KEYBOARD_AVAILABLE:
             raise Exception("No keyboard is available on this platform! Should not have gotten here.")
 
