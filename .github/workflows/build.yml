@@ -89,14 +89,8 @@ jobs:
         run: |
           IMAGE_PATH="$(basename "${{ steps.build.outputs.image-path }}")"
           mv -v "${{ steps.build.outputs.image-path }}" "${IMAGE_PATH}"
-          if [ "${GITHUB_REF_TYPE}" = 'tag' ]; then
-            # More compression for tagged release
-            echo 'Compressing image for release. This may take a while.'
-            xz -T0 -9e "${IMAGE_PATH}"
-          else
-            echo 'Compressing image. This may take a while.'
-            xz -T0 -9 "${IMAGE_PATH}"
-          fi
+          echo 'Compressing image. This may take several minutes.'
+          xz -T0 -9e "${IMAGE_PATH}"
           FINAL_PATH="${IMAGE_PATH}.xz"
           SHA256SUM="$(sha256sum "${FINAL_PATH}" | awk '{ print $1 }')"
           echo "${SHA256SUM}  ${FINAL_PATH}" > "${FINAL_PATH}.sha256sum"
@@ -114,20 +108,6 @@ jobs:
           retention-days: 2
           compression-level: 0  # Already compressed with xz above
       -
-        name: Remove old preview release
-        uses: dev-drprasad/delete-tag-and-release@v0.2.1
-        if: github.ref_type != 'tag'
-        with:
-          delete_release: true
-          tag_name: preview-build
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Wait for preview release to delete
-        shell: bash
-        if: github.ref_type != 'tag'
-        run: sleep 15s
-      -
         name: Tag and upload release
         uses: ncipollo/release-action@v1
         with:
@@ -135,7 +115,8 @@ jobs:
           name: ${{ github.ref_type == 'tag' && format('Version {0}', steps.setup.outputs.short-version) || format('Preview Build {0}', steps.setup.outputs.short-sha) }}
           tag: ${{ github.ref_type == 'tag' && github.ref_name || 'preview-build' }}
           prerelease: ${{ github.ref_type != 'tag' }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          allowUpdates: ${{ github.ref_type != 'tag' }}
+          updateOnlyUnreleased: true
           body: |-
             Vintage Pi TV ${{ github.ref_type == 'tag' && format('Release v{0}', steps.setup.outputs.short-version) || format('Preview Build {0}', steps.setup.outputs.short-sha) }}
 
