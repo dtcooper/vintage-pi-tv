@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Starting supervisord..."
+echo "# Starting supervisord in container..."
 supervisord -c /etc/supervisor/supervisord.conf
 
 pushd /app > /dev/null || exit 1

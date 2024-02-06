@@ -118,10 +118,12 @@ if [ "${DO_AUDIO}" ]; then
         Darwin)
             verify_cmd_exists pulseaudio 'Pulseaudio'
             if ! pulseaudio --check 2> /dev/null > /dev/null; then
-                echo 'NOTE: Attempting to start Pulseaudio daemon on macOS.'
-                echo '      Use the following command to stop it: $ pulseaudio --kill'
-                pulseaudio -n --load='module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1' \
-                    --load=module-coreaudio-detect --daemonize=true --exit-idle-time=-1 2> /dev/null
+                echo '# NOTE: Attempting to start Pulseaudio daemon on macOS.'
+                echo '#       Use the following command to stop it: $ pulseaudio --kill'
+                PULSE_CMD=(pulseaudio -n --load='module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1'
+                    --load=module-coreaudio-detect --daemonize=true --exit-idle-time=-1)
+                echo "\$ ${PULSE_CMD[*]}"
+                "${PULSE_CMD[@]}" 2> /dev/null
             fi
             if pulseaudio --check 2> /dev/null > /dev/null; then
                 DOCKER_EXEC+=('-e' 'PULSE_SERVER=tcp:host.docker.internal')
@@ -154,6 +156,6 @@ if [ "${DO_OPEN_BROWSER}" ]; then
 fi
 
 DOCKER_EXEC+=("${CONTAINER_NAME}" "$@")
-echo "Listening on http://127.0.0.1:8000/$([ -z "${DO_OPEN_BROWSER}" ] && echo ' (use -b to open browser)')"
+echo "# Listening on http://127.0.0.1:8000/$([ -z "${DO_OPEN_BROWSER}" ] && echo ' (use -b to open browser)')"
 echo "\$ ${DOCKER_EXEC[*]}"
 exec "${DOCKER_EXEC[@]}"
