@@ -5,7 +5,9 @@ FIRST_BOOT_SCRIPT_NAME='/usr/lib/raspberrypi-sys-mods/firstboot'
 CONFIG_SRC=vintage-pi-tv-config.toml
 CONFIG_DEST=config.toml
 ROOT_DEV_MAX_PARTSIZE="$((1024 * 1024 * 512 * 15))"  # 7.5GiB
-EXFAT_PARTITION_LABEL='VintagePiTV'  # 11 characters max?
+EXFAT_PARTITION_LABEL=VintagePiTV  # 11 characters max on ExFAT label?
+EXFAT_VIDEOS_DIR=videos
+PI_USERNAME=pi  # Runs before any renaming is done by Raspberry Pi OS
 
 reboot_pi() {
     umount "$FWLOC"
@@ -91,6 +93,13 @@ EOF
     EXFAT_DEV_END=$((DEV_SIZE - 1))
     if [ "${EXFAT_DEV_START}" -ge "${DEV_SIZE}" ]; then
         echo "WARNING: ${ROOT_DEV} doesn't have enough space on it for an exFAT partition."
+        mount -o remount,rw /
+        sync
+        ln -s "${FWLOC}/${CONFIG_SRC}" "/home/${PI_USERNAME}/${CONFIG_DEST}"
+        chown -vh "${PI_USERNAME}:${PI_USERNAME}" "/home/${PI_USERNAME}/${CONFIG_DEST}"
+        sync
+        mount -o remount,ro /
+        sync
     else
         parted -s "${ROOT_DEV}" "unit B mkpart primary ntfs ${EXFAT_DEV_START}B ${EXFAT_DEV_END}B"
         wait_for_partition "${EXFAT_PART_DEV}"
@@ -100,15 +109,23 @@ EOF
         mount -o rw "${EXFAT_PART_DEV}" /mnt
         sync
         # Add a sample video
-        mkdir -v /mnt/videos
+        mkdir -v "/mnt/${EXFAT_VIDEOS_DIR}"
         ffmpeg -y \
             -f lavfi -i smptebars=duration=30:size=1280x720:rate=30 \
             -f lavfi -i "sine=frequency=1000:sample_rate=48000:duration=30" \
-            /mnt/videos/colorbars.mkv
+            "/mnt/${EXFAT_VIDEOS_DIR}/colorbars.mkv"
         mount -o remount,rw "$FWLOC"
         sync
         mv -v "${FWLOC}/${CONFIG_SRC}" "/mnt/${CONFIG_DEST}"
         mount -o remount,ro "$FWLOC"
+        sync
+        mount -o remount,rw /
+        sync
+        ln -s "/media/${EXFAT_PARTITION_LABEL}/${CONFIG_DEST}" "/home/${PI_USERNAME}/${CONFIG_DEST}"
+        ln -s "/media/${EXFAT_PARTITION_LABEL}/${EXFAT_VIDEOS_DIR}" "/home/${PI_USERNAME}/${EXFAT_VIDEOS_DIR}"
+        chown -vh "${PI_USERNAME}:${PI_USERNAME}" "/home/${PI_USERNAME}/${CONFIG_DEST}" "/home/${PI_USERNAME}/${EXFAT_VIDEOS_DIR}"
+        sync
+        mount -o remount,ro /
         sync
         umount /mnt
         sync
