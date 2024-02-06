@@ -8,22 +8,21 @@ DEFAULT_CONFIG_PATHS = (
 
 # Should match example-config.toml
 DEFAULT_KEYBOARD_KEYS = {
-    "power": "ESC",
-    "left": "LEFT",
-    "up": "UP",
-    "right": "RIGHT",
-    "down": "DOWN",
-    "enter": "ENTER",
-    "menu": "m",
-    "home": "h",
-    "back": "DEL",
-    "mute": "0",
-    "volume-up": "=",
-    "volume-down": "-",
+    "back": "KEY_DELETE",
+    "down": "KEY_DOWN",
+    "enter": "KEY_ENTER",
+    "home": "KEY_H",
+    "left": "KEY_LEFT",
+    "menu": "KEY_M",
+    "mute": "KEY_0",
+    "power": "KEY_ESC",
+    "right": "KEY_RIGHT",
+    "up": "KEY_UP",
+    "volume-down": "KEY_MINUS",
+    "volume-up": "KEY_EQUAL",
 }
 
 # Should match example-config.toml
-IR_F_NUM_START = 13
 DEFAULT_IR_SCANCODES = {
     "back": 0x9D,
     "down": 0xD2,
@@ -38,11 +37,6 @@ DEFAULT_IR_SCANCODES = {
     "volume-down": 0x81,
     "volume-up": 0x80,
 }
-
-# Start at F13 and go up (should be less than 12 keys above)
-IR_RECIEVER_KEYS = {f"F{n}": k for n, k in enumerate(DEFAULT_IR_SCANCODES.keys(), IR_F_NUM_START)}
-if len(IR_RECIEVER_KEYS) > 12:
-    raise Exception("Only 24 function keys to assign! Something went very wrong!")
 
 DEFAULT_RATINGS = [
     {"rating": "G", "description": "General"},

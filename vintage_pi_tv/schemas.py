@@ -10,6 +10,7 @@ from .constants import (
     DEFAULT_MPV_OPTIONS,
     DEFAULT_RATINGS,
 )
+from .keyboard import is_valid_key
 from .utils import is_docker, is_raspberry_pi
 
 
@@ -123,7 +124,10 @@ config_schema = Schema(
         Optional("mpv-options", default=mpv_options_schema.validate({})): mpv_options_schema,
         Optional("keyboard", default={"enabled": False}): Schema({
             Optional("enabled", default=False): bool,
-            **{Optional(k, default=v): Or(False, NON_EMPTY_STRING) for k, v in DEFAULT_KEYBOARD_KEYS.items()},
+            **{
+                Optional(k, default=v): Or(False, And(str, len, Use(lambda s: s.strip().upper()), is_valid_key))
+                for k, v in DEFAULT_KEYBOARD_KEYS.items()
+            },
         }),
         Optional("ir-remote", default={"enabled": False}): Schema({
             Optional("enabled", default=False): bool,

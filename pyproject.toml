@@ -23,6 +23,10 @@ ipdb = "^0.13.13"
 ipython = "^8.21.0"
 isort = "^5.13.2"
 
+[tool.poetry.group.keyboard.dependencies]
+pyudev = "^0.24.1"
+evdev = "^1.6.1"
+
 [tool.poetry.scripts]
 tv = 'vintage_pi_tv.__main__:run'
 

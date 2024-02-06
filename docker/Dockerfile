@@ -43,7 +43,7 @@ WORKDIR /app
 COPY pyproject.toml poetry.lock /app/
 
 # Install deps (comment out readme in pyproject to prevent failure)
-RUN sed -i 's/^readme = /#\0/' pyproject.toml && poetry install
+RUN sed -i 's/^readme = /#\0/' pyproject.toml && poetry install --without=keyboard
 
 # Set up entrypoint which stats Xvfb, x11vnc and nginx serving noVNC
 ENV DISPLAY=:0

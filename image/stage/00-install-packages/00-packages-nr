@@ -4,4 +4,5 @@ git
 ir-keytable
 libmpv2
 mpv
+python-dev
 udiskie

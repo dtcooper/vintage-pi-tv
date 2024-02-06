@@ -1,9 +1,9 @@
 import logging
 import os
 from pathlib import Path
+import queue
 import random
 import signal
-import string
 import sys
 import time
 
@@ -32,9 +32,10 @@ def mpv_log(level, prefix, text):
 
 
 class Player:
-    def __init__(self, config: Config, videos_db: VideosDB, reload_pid: int | None = None):
+    def __init__(self, config: Config, videos_db: VideosDB, queue: queue.Queue, reload_pid: int | None = None):
         self.config = config
         self.videos_db = videos_db
+        self.queue = queue
         self.reload_pid = reload_pid
         self.should_exit = False
         self._static_frames: list | None = None
@@ -79,39 +80,6 @@ class Player:
         self.playing = False
         self.killed = False
         self.duration = 0
-
-        @self.mpv.event_callback("end-file")
-        def _(*args, **kwargs):
-            logger.debug(f"end-file: {args=}, {kwargs=}")
-            self.playing = False
-
-        def observe(name, value):
-            logger.debug(f"VALUE CHANGE: {name} = {value!r}")
-
-        # for prop in ("time-pos/full", "duration/full", "idle-active", "osd-dimensions", "core-idle"):
-        #     self.mpv.observe_property(prop, observe)
-
-        @self.mpv.event_callback("shutdown")
-        def _(*args, **kwargs):
-            logger.debug(f"shutdown: {args=}, {kwargs=}")
-            # Seems to happen when you click "X" on the X11 video driver
-            self.kill_entire_app()
-
-        @self.mpv.key_binding("ESC")
-        def _(state, name, char):
-            logger.debug(f"ESC: {state=}, {name=}, {char=}")
-            self.kill_entire_app()
-
-        @self.mpv.key_binding("MBTN_LEFT")
-        def _(state, name, char):
-            if state[0] == "d":
-                logger.debug(f"Left click, osd dimensions: {self.mpv.osd_width}x{self.mpv.osd_height}")
-
-        def keydown(state, name, char):
-            logger.debug(f"KEYPRESS: {state=}, {name=}, {char=}")
-
-        for k in string.ascii_lowercase:
-            self.mpv.register_key_binding(k, keydown)
 
     def stop(self):
         self.should_exit = True

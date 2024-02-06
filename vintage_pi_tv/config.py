@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 import sys
 import tomllib
-from typing import Literal
+from typing import Any, Literal
 
 from schema import SchemaError
 
@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 class Config:
     channel_mode: Literal["random", "alphabetical", "config-only", "config-first-random", "config-first-alphabetical"]
     enable_audio_visualization: bool | str
+    ir_remote: dict[str, Any]
+    keyboard: dict[str, Any]
     log_level: Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]
     mpv_options: dict[str, str]
     overscan_margins: list[int]

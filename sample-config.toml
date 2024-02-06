@@ -69,26 +69,26 @@ overscan-margins = { left = 0, top = 0, right = 0, bottom = 0 }
 
 [keyboard]
 enabled = true
-# For a list of keys, run: $ mpv --input-keylist
-back = "DEL"
-down = "DOWN"
-enter = "ENTER"
-home = "h"
-left = "LEFT"
-menu = "m"
-mute = "0"
-power = "ESC"
-right = "RIGHT"
-up = "UP"
-volume-down = "-"
-volume-up = "="
+# For a list of keys, run: $ python -c 'import evdev.ecodes as e; print("\n".join(k for k in dir(e) if k.startswith("KEY_")))'
+back = "KEY_DELETE"
+down = "KEY_DOWN"
+enter = "KEY_ENTER"
+home = "KEY_H"
+left = "KEY_LEFT"
+menu = "KEY_M"
+mute = "KEY_0"
+power = "KEY_ESC"
+right = "KEY_RIGHT"
+up = "KEY_UP"
+volume-down = "KEY_MINUS"
+volume-up = "KEY_EQUAL"
 
 [ir-remote]
 enabled = false
 # Below are for the Argon 40 remote https://argon40.com/products/argon-remote
 #protocol = "nec"
 #variant = "nec"
-# Keys below here
+# Keys below here, keyboard needs to be enabled they need to _also_ be defined above
 #back = 0x9d
 #down = 0xd2
 #enter = 0xce
