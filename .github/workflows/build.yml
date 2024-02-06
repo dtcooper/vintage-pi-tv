@@ -35,12 +35,12 @@ jobs:
           if [ "${GITHUB_REF_TYPE}" = 'tag' ]; then
             IMG_NAME_SUFFIX="${GITHUB_REF_NAME}"
             echo "short-version=${GITHUB_REF_NAME:1}" | tee -a "${GITHUB_OUTPUT}"
-            echo "pi-gen-release=${PI_GEN_RELEASE} (${GITHUB_REF_NAME})" | tee -a "${GITHUB_OUTPUT}"
+            PI_GEN_RELEASE_EXTRA="${GITHUB_REF_NAME}"
           else
             SHORT_SHA=${GITHUB_SHA:0:8}
             IMG_NAME_SUFFIX="preview-${SHORT_SHA}"
             echo "short-sha=${SHORT_SHA}" | tee -a "${GITHUB_OUTPUT}"
-            echo "pi-gen-release=${PI_GEN_RELEASE} (preview build ${SHORT_SHA})" | tee -a "${GITHUB_OUTPUT}"
+            PI_GEN_RELEASE_EXTRA="preview build ${SHORT_SHA}"
           fi
           source image/config
           echo "disable-first-boot-user-rename=${DISABLE_FIRST_BOOT_USER_RENAME}" | tee -a "${GITHUB_OUTPUT}"
@@ -50,6 +50,7 @@ jobs:
           echo "keyboard-layout=${KEYBOARD_LAYOUT}" | tee -a "${GITHUB_OUTPUT}"
           echo "locale=${LOCALE_DEFAULT}" | tee -a "${GITHUB_OUTPUT}"
           echo "password=${FIRST_USER_PASS}" | tee -a "${GITHUB_OUTPUT}"
+          echo "pi-gen-release=${PI_GEN_RELEASE} (${PI_GEN_RELEASE_EXTRA})" | tee -a "${GITHUB_OUTPUT}"
           echo "timezone=${TIMEZONE_DEFAULT}" | tee -a "${GITHUB_OUTPUT}"
           echo "username=${FIRST_USER_NAME}" | tee -a "${GITHUB_OUTPUT}"
           echo "wpa-country=${WPA_COUNTRY}" | tee -a "${GITHUB_OUTPUT}"

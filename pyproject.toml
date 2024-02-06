@@ -9,7 +9,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 mpv = "^1.0.5"
-numpy = "^1.26.3"
+numpy = "^1.26.4"
 schema = "^0.7.5"
 starlette = "^0.37.0"
 tomlkit = "^0.12.3"
