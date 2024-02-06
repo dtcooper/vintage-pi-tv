@@ -51,4 +51,6 @@ else
     su - "${FIRST_USER_NAME}" -c "cd /opt/vintage-pi-tv ; /opt/poetry/bin/poetry install"
 fi
 su - "${FIRST_USER_NAME}" -c "ln -vs /opt/vintage-pi-tv vintage-pi-tv"
+su - "${FIRST_USER_NAME}" -c "ln -vs /opt/vintage-pi-tv/LICENSE LICENSE"
+su - "${FIRST_USER_NAME}" -c "ln -vs /opt/vintage-pi-tv/README.md README.md"
 EOF
