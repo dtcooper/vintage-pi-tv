@@ -95,7 +95,7 @@ EOF
         echo "WARNING: ${ROOT_DEV} doesn't have enough space on it for an exFAT partition."
         mount -o remount,rw /
         sync
-        ln -s "${FWLOC}/${CONFIG_SRC}" "${PI_HOME}/${CONFIG_DEST}"
+        ln -vs "${FWLOC}/${CONFIG_SRC}" "${PI_HOME}/${CONFIG_DEST}"
         chown -vh 1000:1000 "${PI_HOME}/${CONFIG_DEST}"
         sync
         mount -o remount,ro /
@@ -121,8 +121,8 @@ EOF
         sync
         mount -o remount,rw /
         sync
-        ln -s "/media/${EXFAT_PARTITION_LABEL}/${CONFIG_DEST}" "${PI_HOME}/${CONFIG_DEST}"
-        ln -s "/media/${EXFAT_PARTITION_LABEL}/${EXFAT_VIDEOS_DIR}" "${PI_HOME}/${EXFAT_VIDEOS_DIR}"
+        ln -vs "/media/${EXFAT_PARTITION_LABEL}/${CONFIG_DEST}" "${PI_HOME}/${CONFIG_DEST}"
+        ln -vs "/media/${EXFAT_PARTITION_LABEL}/${EXFAT_VIDEOS_DIR}" "${PI_HOME}/${EXFAT_VIDEOS_DIR}"
         chown -vh 1000:1000 "${PI_HOME}/${CONFIG_DEST}" "${PI_HOME}/${EXFAT_VIDEOS_DIR}"
         sync
         mount -o remount,ro /
