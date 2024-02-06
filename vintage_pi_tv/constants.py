@@ -24,12 +24,12 @@ DEFAULT_KEYBOARD_KEYS = {
 
 # Should match example-config.toml
 DEFAULT_IR_SCANCODES = {
-    "back": 0x9D,
+    "back": 0x90,
     "down": 0xD2,
     "enter": 0xCE,
     "home": 0xCB,
     "left": 0x99,
-    "menu": 0x90,
+    "menu": 0x9D,
     "mute": False,
     "power": False,  # Would be 0x9C
     "right": 0xC1,

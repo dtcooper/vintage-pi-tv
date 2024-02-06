@@ -89,16 +89,16 @@ enabled = false
 #protocol = "nec"
 #variant = "nec"
 # Keys below here, keyboard needs to be enabled they need to _also_ be defined above
-#back = 0x9d
-#down = 0xd2
-#enter = 0xce
-#home = 0xcb
+#back = 0x90
+#down = 0xD2
+#enter = 0xCE
+#home = 0xCB
 #left = 0x99
-#menu = 0x90
+#menu = 0x9D
 #mute = false
-#power = false
-#right = 0xc1
-#up = 0xca
+#power = false  # Would be 0x9C for Argon 40 remote
+#right = 0xC1
+#up = 0xCA
 #volume-down = 0x81
 #volume-up = 0x80
 
