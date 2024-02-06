@@ -37,17 +37,19 @@ def is_valid_key(s):
 
 class Keyboard:
     def _enable_ir_remote(self):
-        scancodes = {}
+        scancodes = tomlkit.table()
 
         for key in DEFAULT_IR_SCANCODES.keys():
-            if value := self.config.ir_remote[key]:
-                if not isinstance(value, bool):
-                    if keyboard_key := self.config.keyboard[key]:
-                        item = tomlkit.item(keyboard_key)
-                        item.comment(key)
-                        scancodes[f"0x{value:02X}"] = item
-                    else:
-                        logger.warning(f"Can't enable {key} for IR remote, as there's no keyboard key assigned for it!")
+            value = self.config.ir_remote[key]
+            if not isinstance(value, bool):
+                if keyboard_key := self.config.keyboard[key]:
+                    item = tomlkit.item(keyboard_key)
+                    item.comment(key)
+                    scancodes.add(f"0x{value:02X}", item)
+                else:
+                    logger.warning(f"Can't enable {key} for IR remote, as there's no keyboard key assigned for it!")
+            else:  # Will always be false if it's a bool
+                scancodes.add(tomlkit.comment(f"{key} disabled by config"))
 
         if scancodes:
             toml = tomlkit.document()

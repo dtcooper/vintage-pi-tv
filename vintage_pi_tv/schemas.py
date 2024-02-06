@@ -16,23 +16,15 @@ from .utils import is_docker, is_raspberry_pi
 
 NON_EMPTY_STRING = And(str, len)
 NON_EMPTY_PATH = And(str, len, Use(lambda path: Path(path).expanduser().resolve()))
+MPV_OPTION = Or(And(bool, Use(lambda val: "yes" if val else "no")), NON_EMPTY_STRING)
 
 
 if is_docker():
-    mpv_options = DEFAULT_DOCKER_MPV_OPTIONS
+    MPV_OPTIONS = DEFAULT_DOCKER_MPV_OPTIONS
 elif is_raspberry_pi():
-    mpv_options = DEFAULT_MPV_OPTIONS
+    MPV_OPTIONS = DEFAULT_MPV_OPTIONS
 else:
-    mpv_options = DEFAULT_DEV_MPV_OPTIONS
-
-mpv_options_schema = Schema({
-    **{
-        Optional(key, default=default): Or(And(bool, Use(lambda val: "yes" if val else "no")), NON_EMPTY_STRING)
-        for key, default in mpv_options.items()
-    },
-    # Catch-all for any other strings
-    Optional(NON_EMPTY_STRING): NON_EMPTY_STRING,
-})
+    MPV_OPTIONS = DEFAULT_DEV_MPV_OPTIONS
 
 
 class UniqueVideoNameSchema(Schema):
@@ -89,8 +81,8 @@ config_schema = Schema(
                         And(
                             {
                                 "path": NON_EMPTY_PATH,
-                                Optional("recurse", default=False): False,
-                                Optional("ignore", default=False): False,
+                                Optional("recurse", default=False): bool,
+                                Optional("ignore", default=False): bool,
                             },
                             lambda d: not (d["recurse"] and d["ignore"]),
                         ),
@@ -114,7 +106,11 @@ config_schema = Schema(
             ),
         ),
         Optional("valid-file-extensions", default="defaults"): Or([NON_EMPTY_STRING], "defaults"),
-        Optional("mpv-options", default=mpv_options_schema.validate({})): mpv_options_schema,
+        Optional("mpv-options", default=MPV_OPTIONS): Schema({
+            **{Optional(k, default=v): MPV_OPTION for k, v in MPV_OPTIONS.items()},
+            # Catch-all for any other strings
+            Optional(NON_EMPTY_STRING): NON_EMPTY_STRING,
+        }),
         Optional("keyboard", default={"enabled": True, **DEFAULT_KEYBOARD_KEYS}): Schema({
             Optional("enabled", default=False): bool,
             **{
