@@ -8,7 +8,14 @@ from .config import Config
 from .constants import DEFAULT_CONFIG_PATHS
 from .keyboard import KEYBOARD_AVAILABLE, Keyboard
 from .player import Player
-from .utils import get_vintage_pi_tv_version, init_logger, is_docker, is_raspberry_pi, set_log_level
+from .utils import (
+    get_vintage_pi_tv_version,
+    init_logger,
+    is_docker,
+    is_raspberry_pi,
+    retry_thread_wrapper,
+    set_log_level,
+)
 from .videos import VideosDB
 
 
@@ -93,14 +100,17 @@ class VintagePiTV:
             {"name": "player", "target": self.player.run_thread},
             {"name": "watch", "target": self.videos.watch_thread, "kwargs": {"recursive": False}, "daemon": False},
             {"name": "watch_rec", "target": self.videos.watch_thread, "kwargs": {"recursive": True}, "daemon": False},
+            {"name": "channels", "target": self.videos.rebuild_channels_thread},
             {"name": "test", "target": self.test_event_queue_consumer_thread},
         ]
         if self.keyboard:
             threads.append({"name": "keyboard", "target": self.keyboard.keyboard_thread})
 
         for kwargs in threads:
+            kwargs.setdefault("daemon", True)
+            kwargs["target"] = retry_thread_wrapper(kwargs["target"])
             logger.info(f"Spawning {kwargs['name']} thread")
-            thread = threading.Thread(daemon=kwargs.pop("daemon", True), **kwargs)
+            thread = threading.Thread(**kwargs)
             thread.start()
 
         threads = list(threading.enumerate())

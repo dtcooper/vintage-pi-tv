@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 
 try:
-    from evdev import InputDevice, categorize, ecodes, list_devices
+    from evdev import InputDevice, ecodes, list_devices
     from evdev.ecodes import EV_KEY
     from evdev.events import KeyEvent
     import pyudev

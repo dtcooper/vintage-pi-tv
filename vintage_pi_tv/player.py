@@ -155,7 +155,6 @@ class Player:
         i = 0
 
         while not self.should_exit:
-            self.videos_db.rebuild_channels_if_needed()
             time.sleep(0.05)
             i += 1
             if i > 2500:

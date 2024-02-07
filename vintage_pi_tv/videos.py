@@ -17,26 +17,28 @@ logger = logging.getLogger(__name__)
 class Video:
     def __init__(
         self,
-        config: Config,
+        videos_db: "VideosDB",
         path: Path,
-        channel: int,
         name: str | None,
         rating: bool | str,
         subtitles: bool | Path,
     ):
-        self._config = config
+        self._videos_db = videos_db
 
         self.path = path
-        self.channel = channel
         self.name = name or self.get_automatic_video_name()
         self.rating = rating
-        if not self.rating or self.rating not in self._config.ratings_dict:
-            self.rating = config.default_rating
+        if not self.rating or self.rating not in self._videos_db.config.ratings_dict:
+            self.rating = self._videos_db.config.default_rating
         self.subtitles = subtitles
 
     @staticmethod
     def get_automatic_video_name(path: Path) -> str:
         return path.stem.strip().replace("-", " ").replace("_", " ").title()
+
+    @property
+    def channel(self) -> int:
+        return self._videos_db.channels.get(self.path, 0)
 
     def __repr__(self):
         return f"Video(name={self.name!r}, path={self.path!r}, channel={self.channel})"
@@ -48,7 +50,7 @@ class VideosDB:
         self._search_dirs_recursive = list()
         self._exclude_dirs = list()
 
-        for info in self._config.search_dirs:
+        for info in self.config.search_dirs:
 
             if info["ignore"]:
                 logger.debug(f"Adding ignore dir: {info['path']}")
@@ -74,7 +76,7 @@ class VideosDB:
 
     def _is_valid_video_path(self, path: Path):
         # Ends with a valid extension
-        if not path.name.strip().lower().endswith(self._config.valid_file_extensions):
+        if not path.name.strip().lower().endswith(self.config.valid_file_extensions):
             return False
 
         for exclude_dir in self._exclude_dirs:
@@ -95,17 +97,7 @@ class VideosDB:
 
         return True
 
-    def queue_channel_rebuild(self):
-        with self._rebuild_channel_lock:
-            self._wants_channel_rebuild = True
-
-    def rebuild_channels_if_needed(self):
-        # Make sure this gets checked and modified automically
-        with self._rebuild_channel_lock:
-            if not self._wants_channel_rebuild:
-                return
-            self._wants_channel_rebuild = False
-
+    def _rebuild_channels(self):
         logger.info("Rebuilding channel list...")
 
         videos = []  # List of kwargs for video objects
@@ -122,7 +114,7 @@ class VideosDB:
                         filename = path.name.strip().lower()
                         from_config = False
                         video = {"path": path, "name": "", "enabled": True, "subtitles": False, "rating": False}
-                        config_metadata = self._config.videos.get(filename)
+                        config_metadata = self.config.videos.get(filename)
                         if config_metadata is not None:
                             from_config = True
                             video.update(config_metadata)
@@ -131,7 +123,7 @@ class VideosDB:
                         # Format: (<found from config bool>, <video kwargs>)
                         videos.append((from_config, video))
                         if video["enabled"]:
-                            logger.debug(f"Found video {path} [name={video['name']!r}] [found in config={from_config}]")
+                            logger.debug(f"Found video {path} [name={video['name']!r}] [{from_config=}]")
                         else:
                             logger.debug(f"Ignoring video {path} as enabled=False")
 
@@ -139,31 +131,46 @@ class VideosDB:
             _, video = from_config_video
             return (video["name"], video["path"])
 
-        logger.info(f"Sorting channels by mode: {self._config.channel_mode}")
+        logger.info(f"Sorting channels by mode: {self.config.channel_mode}")
 
         # Sort by channel mode
-        if self._config.channel_mode == "random":
+        if self.config.channel_mode == "random":
             random.shuffle(videos)
-        elif self._config.channel_mode == "alphabetical":
+        elif self.config.channel_mode == "alphabetical":
             videos.sort(key=channel_sort_key)
         else:
             videos_config = [v for v in videos if v[0]]
-            if self._config.channel_mode == "config-only":
+            if self.config.channel_mode == "config-only":
                 videos = videos_config
             else:
                 videos_non_config = [v for v in videos if not v[0]]
-                if self._config.channel_mode == "config-first-random":
+                if self.config.channel_mode == "config-first-random":
                     random.shuffle(videos_non_config)
-                elif self._config.channel_mode == "config-first-alphabetical":
+                elif self.config.channel_mode == "config-first-alphabetical":
                     videos_non_config.sort(key=channel_sort_key)
                 videos = videos_config + videos_non_config
 
-        videos = filter(lambda v: v.pop("enabled"), map(lambda v: v[1], videos))
-        self.videos = [Video(config=self._config, channel=channel, **video) for channel, video in enumerate(videos, 1)]
+        videos = [Video(videos_db=self, **v) for v in filter(lambda v: v.pop("enabled"), map(lambda v: v[1], videos))]
+        # Operation should be atomic, assign both at same time
+        self._videos = {"objects": videos, "channels": {v.path: i for i, v in enumerate(videos, 1)}}
         logger.info(f"Generated {len(self.videos)} channels")
+
+    @property
+    def videos(self) -> list[Video]:
+        return self._videos["objects"]
+
+    @property
+    def channels(self) -> dict[Path, int]:
+        return self._videos["channel"]
 
     def get_next_video(self) -> Video:
         return random.choice(self.videos)
+
+    def rebuild_channels_thread(self):
+        while True:
+            self._rebuild_event.wait()
+            self._rebuild_event.clear()
+            self._rebuild_channels()
 
     def _watch_thread(self, search_dirs, recursive):
         logger.info(f"Starting search-dirs watching thread {recursive=}")
@@ -174,8 +181,7 @@ class VideosDB:
             logger.info("Detected file change(s). Queuing for channel rebuild.")
             for change, path in changes:
                 logger.debug(f"Detected file change ({change.name}): {path}")
-            with self._rebuild_channel_lock:
-                self._wants_channel_rebuild = True
+            self._rebuild_event.set()
 
     def watch_thread(self, recursive):
         search_dirs = self._search_dirs_recursive if recursive else self._search_dirs
@@ -185,16 +191,15 @@ class VideosDB:
             logger.info(f"No need to start watch-dirs thread for {recursive=}")
 
     def __init__(self, config: Config):
-        self.channels: list[Video] = []
-        self._config: Config = config
+        self.config: Config = config
         self._search_dirs: list[Path] = []
         self._search_dirs_recursive: list[Path] = []
         self._exclude_dirs: list[Path] = []
         self._wants_channel_rebuild: bool = True
-        self._rebuild_channel_lock: threading.Lock = threading.Lock()
+        self._rebuild_event: threading.Event = threading.Event()
         self.stop_event = threading.Event()
 
         self._init_dirs()
-        self.rebuild_channels_if_needed()
+        self._rebuild_channels()
 
         logger.info("Videos DB fully initialized")

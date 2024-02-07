@@ -1,8 +1,9 @@
-from functools import cache
+from functools import cache, wraps
 import logging
 import os
 from pathlib import Path
 import subprocess
+import threading
 import time
 
 from uvicorn.logging import ColourizedFormatter
@@ -104,3 +105,21 @@ def get_vintage_pi_tv_version():
     except Exception:
         logger.exception("Error resolving version")
     return "unknown"
+
+
+def retry_thread_wrapper(func):
+    wraps(func)
+
+    def wrapped(*args, **kwargs):
+        thread_name = threading.current_thread().name
+        while True:
+            try:
+                func(*args, **kwargs)
+            except Exception:
+                logger.exception(f"Thread {thread_name} threw an exception. Restarting soon.")
+                time.sleep(0.25)
+            else:
+                logger.debug(f"Thread {thread_name} returned cleanly. Exiting.")
+                break
+
+    return wrapped
