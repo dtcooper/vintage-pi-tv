@@ -14,6 +14,13 @@ if [ -e '/.dockerenv' ]; then
     echo "Won't run inside of Docker."
 fi
 
+DO_REBUILD=
+DO_NO_CACHE_REBUILD=
+PORT=8000
+DO_AUDIO=
+DO_OPEN_BROWSER=
+DO_FORCE=
+
 verify_cmd_exists () {
     if ! which "${1}" 2> /dev/null > /dev/null; then
         echo "${2:-The '$1' command} is required to run this script"
@@ -23,14 +30,14 @@ verify_cmd_exists () {
 
 do_help_and_exit () {
     cat <<EOF
-Usage: ${_CMD} [-h] [-r] [-p <int>]
+Usage: ${_CMD} [-r] [-R] [-p <int>] [-a] [-b] [-f] [-h]
 
 Develop Vintage Pi TV in a Docker container with noVNC
 
 Options:
     -r, --rebuild           Force a rebuild of the Docker container
     -R, --no-cache-rebuild  Force a rebuild of the Docker container (no cache)
-    -p <int>, --port <int>  Port to bind the HTTP server to
+    -p <int>, --port <int>  Port to bind the HTTP server to (default: ${PORT})
     -a, --audio             Attempt to enable sound via Pulseaudio
     -b, --browser           Open web browser after starting container
     -f, --force             Force running of this tool, even on a Raspberry Pi
@@ -38,13 +45,6 @@ Options:
 EOF
     exit "${1:-0}"
 }
-
-DO_REBUILD=
-DO_NO_CACHE_REBUILD=
-PORT=8000
-DO_AUDIO=
-DO_OPEN_BROWSER=
-DO_FORCE=
 
 # If first argument starts with a hyphen, it's meant for this program
 while [ "${1:0:1}" = '-' ]; do

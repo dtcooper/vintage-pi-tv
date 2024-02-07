@@ -8,6 +8,7 @@ if [ ! -d pi-gen ]; then
 fi
 
 cd pi-gen
+rm -vf deploy/*
 touch stage2/SKIP_IMAGES
 ln -sf ../config .
 
@@ -17,3 +18,10 @@ PIGEN_DOCKER_OPTS="-v ./../stage:/pi-gen/vintage-pi-tv -v ./../..:/pi-gen/vintag
 if [ -d ../stage/04-install-vintage-pi-tv/files/vintage-pi-tv ]; then
     rmdir ../stage/04-install-vintage-pi-tv/files/vintage-pi-tv
 fi
+
+cd ..
+
+FULL_IMAGE_PATH="$(ls -1 pi-gen/deploy/image_*.img* | head -n 1)"
+IMAGE_PATH="${FULL_IMAGE_PATH/#"pi-gen/deploy/image_"}"
+mv -v "${FULL_IMAGE_PATH}" "${IMAGE_PATH}"
+echo "New image: ${IMAGE_PATH}"
