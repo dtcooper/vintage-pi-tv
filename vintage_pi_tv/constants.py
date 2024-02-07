@@ -107,6 +107,7 @@ DEFAULT_VIDEO_FILE_EXTENSIONS = [
     "mkv",
     "mov",
     "wmv",
+    "m4v",
     "flv",
     "3gp",
     "mpeg",
