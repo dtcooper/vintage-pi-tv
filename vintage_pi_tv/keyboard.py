@@ -20,8 +20,8 @@ if TYPE_CHECKING:
 
 
 try:
-    from evdev import InputDevice, ecodes, list_devices
-    from evdev.ecodes import EV_KEY, KEY
+    from evdev import InputDevice, categorize, ecodes, list_devices
+    from evdev.ecodes import EV_KEY
     from evdev.events import KeyEvent
     import pyudev
 except ImportError:
@@ -30,6 +30,7 @@ else:
     KEYBOARD_AVAILABLE = True
     KEY_EVENT_DOWN = KeyEvent.key_down
     KEY_EVENT_HOLD = KeyEvent.key_hold
+    KEY = ecodes.bytype[EV_KEY]
 
 
 logger = logging.getLogger(__name__)
