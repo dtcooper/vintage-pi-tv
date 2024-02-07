@@ -33,7 +33,7 @@ jobs:
         id: setup
         shell: bash
         run: |
-          pushd image/stage/04-install-vintage-pi-tv/files
+          pushd image/stage-vintage-pi-tv/04-install-vintage-pi-tv/files
           mkdir vintage-pi-tv
           sudo mount -vo bind ../../../.. vintage-pi-tv
           popd
@@ -77,7 +77,7 @@ jobs:
           pi-gen-release: ${{ steps.setup.outputs.pi-gen-release }}
           pi-gen-version: arm64
           release: bookworm
-          stage-list: 'stage0 stage1 stage2 ./image/stage'
+          stage-list: 'stage0 stage1 stage2 ./image/stage-vintage-pi-tv'
           timezone: ${{ steps.setup.outputs.timezone }}
           username: ${{ steps.setup.outputs.username }}
           verbose-output: true

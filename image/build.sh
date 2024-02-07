@@ -12,11 +12,11 @@ rm -vf deploy/*
 touch stage2/SKIP_IMAGES
 ln -sf ../config .
 
-PIGEN_DOCKER_OPTS="-v ./../stage:/pi-gen/vintage-pi-tv -v ./../..:/pi-gen/vintage-pi-tv/04-install-vintage-pi-tv/files/vintage-pi-tv -e GITHUB_REF_TYPE=copy" ./build-docker.sh
+PIGEN_DOCKER_OPTS="-v ./../stage-vintage-pi-tv:/pi-gen/vintage-pi-tv -v ./../..:/pi-gen/vintage-pi-tv/04-install-vintage-pi-tv/files/vintage-pi-tv -e GITHUB_REF_TYPE=copy" ./build-docker.sh
 
 # Gets created with -v arg above, delete it
-if [ -d ../stage/04-install-vintage-pi-tv/files/vintage-pi-tv ]; then
-    rmdir ../stage/04-install-vintage-pi-tv/files/vintage-pi-tv
+if [ -d ../stage-vintage-pi-tv/04-install-vintage-pi-tv/files/vintage-pi-tv ]; then
+    rmdir ../stage-vintage-pi-tv/04-install-vintage-pi-tv/files/vintage-pi-tv
 fi
 
 cd ..
