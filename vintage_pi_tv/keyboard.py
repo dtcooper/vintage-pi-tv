@@ -89,7 +89,6 @@ class Keyboard:
 
     def keyboard_thread(self):
         # Listening for key events on Linux is a fucking mess.
-        logger.info("Starting input thread")
         context = pyudev.Context()
         monitor = pyudev.Monitor.from_netlink(context)
         monitor.filter_by(subsystem="input")

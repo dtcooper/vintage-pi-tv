@@ -38,7 +38,11 @@ class Video:
 
     @property
     def channel(self) -> int:
-        return self._videos_db.channels.get(self.path, 0)
+        return self._videos_db.channels.get(self.path, -1)
+
+    @property
+    def display_channel(self) -> int:
+        return self.channel + 1
 
     def __repr__(self):
         return f"Video(name={self.name!r}, path={self.path!r}, channel={self.channel})"
@@ -51,11 +55,10 @@ class VideosDB:
         self._exclude_dirs = list()
 
         for info in self.config.search_dirs:
-
             if info["ignore"]:
                 logger.debug(f"Adding ignore dir: {info['path']}")
                 self._exclude_dirs.append(info["path"])
-            if info["path"].is_dir():
+            elif info["path"].is_dir():
                 if info["recurse"]:
                     logger.debug(f"Adding recursive search dir: {info['path']}")
                     self._search_dirs_recursive.append(info["path"])
@@ -152,8 +155,9 @@ class VideosDB:
 
         videos = [Video(videos_db=self, **v) for v in filter(lambda v: v.pop("enabled"), map(lambda v: v[1], videos))]
         # Operation should be atomic, assign both at same time
-        self._videos = {"objects": videos, "channels": {v.path: i for i, v in enumerate(videos, 1)}}
-        logger.info(f"Generated {len(self.videos)} channels")
+        with self._channel_lock:
+            self._videos = {"objects": videos, "channels": {v.path: i for i, v in enumerate(videos)}}
+            logger.info(f"Generated {len(self.videos)} channels")
 
     @property
     def videos(self) -> list[Video]:
@@ -163,8 +167,17 @@ class VideosDB:
     def channels(self) -> dict[Path, int]:
         return self._videos["channel"]
 
-    def get_next_video(self) -> Video:
-        return random.choice(self.videos)
+    def get_random_video(self) -> Video:
+        video = random.choice(self.videos)
+        logger.debug(f"Randomly chose video {video.path}")
+        return video
+
+    def get_video_for_channel(self, channel: int) -> Video:
+        with self._channel_lock:  # Prevents self.videos from being modified while working here
+            if len(self.channels) == 0:
+                return None
+            channel = channel % len(self.channels)
+            return self.video[channel]
 
     def rebuild_channels_thread(self):
         while True:
@@ -172,11 +185,11 @@ class VideosDB:
             self._rebuild_event.clear()
             self._rebuild_channels()
 
-    def _watch_thread(self, search_dirs, recursive):
-        logger.info(f"Starting search-dirs watching thread {recursive=}")
-
+    def _watch_thread_helper(self, search_dirs, recursive):
         for changes in watchfiles.watch(
-            *search_dirs, stop_event=self.stop_event, watch_filter=lambda _, path: self._is_valid_video_path(Path(path))
+            *search_dirs,
+            stop_event=self.watch_stop_event,
+            watch_filter=lambda _, path: self._is_valid_video_path(Path(path)),
         ):
             logger.info("Detected file change(s). Queuing for channel rebuild.")
             for change, path in changes:
@@ -186,7 +199,7 @@ class VideosDB:
     def watch_thread(self, recursive):
         search_dirs = self._search_dirs_recursive if recursive else self._search_dirs
         if search_dirs:
-            self._watch_thread(search_dirs, recursive)
+            self._watch_thread_helper(search_dirs, recursive)
         else:
             logger.info(f"No need to start watch-dirs thread for {recursive=}")
 
@@ -197,7 +210,8 @@ class VideosDB:
         self._exclude_dirs: list[Path] = []
         self._wants_channel_rebuild: bool = True
         self._rebuild_event: threading.Event = threading.Event()
-        self.stop_event = threading.Event()
+        self._channel_lock: threading.Lock = threading.Lock()
+        self.watch_stop_event = threading.Event()
 
         self._init_dirs()
         self._rebuild_channels()

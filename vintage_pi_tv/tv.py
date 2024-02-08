@@ -97,11 +97,16 @@ class VintagePiTV:
 
     def startup(self):
         threads = [
-            {"name": "player", "target": self.player.run_player_thread},
-            {"name": "osd", "target": self.player.run_osd_thread},
+            {"target": self.player.player_thread},
+            {"target": self.player.osd_thread},
             {"name": "watch", "target": self.videos.watch_thread, "kwargs": {"recursive": False}, "daemon": False},
-            {"name": "watch_rec", "target": self.videos.watch_thread, "kwargs": {"recursive": True}, "daemon": False},
-            {"name": "channels", "target": self.videos.rebuild_channels_thread},
+            {
+                "name": "watch_recursive",
+                "target": self.videos.watch_thread,
+                "kwargs": {"recursive": True},
+                "daemon": False,
+            },
+            {"target": self.videos.rebuild_channels_thread},
             {"name": "test", "target": self.test_event_queue_consumer_thread},
         ]
         if self.keyboard:
@@ -111,6 +116,7 @@ class VintagePiTV:
 
         for kwargs in threads:
             kwargs.setdefault("daemon", True)
+            kwargs.setdefault("name", kwargs["target"].__name__.removesuffix("_thread"))
             kwargs["target"] = retry_thread_wrapper(kwargs["target"])
             logger.info(f"Spawning {kwargs['name']} thread")
             thread = threading.Thread(**kwargs)
@@ -120,5 +126,5 @@ class VintagePiTV:
         logger.debug(f"{len(threads)} threads are running {', '.join(t.name for t in threads)}")
 
     def shutdown(self):
-        # Using a stop_event for watchfiles prevents weird "FATAL: exception not rethrown" log messages
-        self.videos.stop_event.set()
+        # Using a threading.Event for watchfiles prevents weird "FATAL: exception not rethrown" log messages
+        self.videos.watch_stop_event.set()

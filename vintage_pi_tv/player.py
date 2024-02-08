@@ -135,10 +135,10 @@ class Player:
                 clock.tick(24)
             self.remove_overlay(0)
 
-    def run_osd_thread(self):
+    def osd_thread(self):
         pass
 
-    def run_player_thread(self):
+    def player_thread(self):
         self._static_event.set()
         end_static = monotonic() + self._config.static_time
         end_status = -1
