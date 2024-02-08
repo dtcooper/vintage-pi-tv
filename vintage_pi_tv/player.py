@@ -5,14 +5,21 @@ import queue
 import random
 import signal
 import sys
-import time
+import threading
+from time import monotonic
 
 import mpv
 import numpy
+import numpy.typing
+import pygame
+import pygame.freetype
 
 from .config import Config
 from .utils import FPSClock
 from .videos import Video, VideosDB
+
+
+pygame.freetype.init()
 
 
 logger = logging.getLogger(__name__)
@@ -33,19 +40,16 @@ def mpv_log(level, prefix, text):
 
 class Player:
     def __init__(self, config: Config, videos_db: VideosDB, queue: queue.Queue, reload_pid: int | None = None):
-        self.config = config
-        self.videos_db = videos_db
+        self._static_event: threading.Event = threading.Event()
+        self._status_event: threading.Event = threading.Event()
+        self._config = config
+        self._videos_db = videos_db
         self.queue = queue
-        self.reload_pid = reload_pid
-        self.should_exit = False
-        self._static_frames: list | None = None
-        self._static_height: int
-        self._static_width: int
-        self._last_static_frame_indexes: list = []
+        self._reload_pid = reload_pid
 
         # Prep arguents for MPV
-        kwargs = {k.replace("-", "_"): v for k, v in self.config.mpv_options.items() if not isinstance(v, bool) or v}
-        if self.config.enable_audio_visualization:
+        kwargs = {k.replace("-", "_"): v for k, v in self._config.mpv_options.items() if not isinstance(v, bool) or v}
+        if self._config.enable_audio_visualization:
             kwargs.update({
                 "scripts": str(Path(__file__).parent / "visualizer.lua"),
                 "script_opts": "visualizer-name=avectorscope,visualizer-height=12",
@@ -72,92 +76,88 @@ class Player:
             sys.exit(1)
         logger.info("MPV initialized")
 
-        # Since we're primarily operating in fullscreen mode, window size should not be changed
+        # Since we're primarily operating in fullscreen mode (except in development) window size should not be changed.
         # And if it does change, user is shit out of luck
-        self.width, self.height = self.mpv.osd_width, self.mpv.osd_height
-        logger.info(f"Screen dimensions {self.width}x{self.height}")
+        self.width: int = self.mpv.osd_width
+        self.height: int = self.mpv.osd_height
+        self.size: tuple[int, int] = (self.width, self.height)
+        self.shape: tuple[int, int, int] = (self.width, self.height, 4)
+        self.status_overlay_array: numpy.typing.ArrayLike = numpy.zeros(self.shape, dtype=numpy.uint8)
+        self.status_overlay: pygame.Surface = pygame.image.frombuffer(self.status_overlay_array, self.size, "BGRA")
+        self.menu_overlay_array: numpy.typing.ArrayLike = numpy.zeros(self.shape, dtype=numpy.uint8)
+        self.menu_overlay: pygame.Surface = pygame.image.frombuffer(self.status_overlay_array, self.size, "BGRA")
+        self.font_cache: dict[int, pygame.font.Font] = {}
+        self.font_size_scale: float = min(self.width * 9 / 16, self.height) / 720
+        self.font: pygame.freetype.Font = pygame.freetype.Font(Path(__file__).parent / "undefined-medium.ttf")
 
-        self.playing = False
-        self.killed = False
-        self.duration = 0
-
-    def stop(self):
-        self.should_exit = True
-
-    def play(self, video: Video):
-        self.playing = True
-        self.mpv.loadfile(str(video.path))
+    def render_text(self, text, color, size):
+        return self.font.render(text, color, size=size * self.font_size_scale)
 
     def kill_entire_app(self):
         if not self.killed:
-            pid = self.reload_pid or os.getpid()
+            pid = self._reload_pid or os.getpid()
             logger.critical(f"mpv appears to have been shut down! Forcing exit of program (pid: {pid})")
             self.killed = True
             os.kill(pid, signal.SIGINT)
 
-    # def loop(self):
-    #     while not self.should_exit:
-    #         self.play(self.videos_db.get_next_video())
+    def update_overlay(self, overlay, num):
+        self.mpv.overlay_add(num, 0, 0, f"&{overlay.ctypes.data}", 0, "bgra", self.width, self.height, self.width * 4)
 
-    def get_static_frame(self):
-        """Generate random static frame from a cache of 15 frames, with no repetitions for up to 5 frames"""
-        if not self._static_frames:
-            self._static_frames = []
-            self._static_width, self._static_height = self.mpv.osd_width, self.mpv.osd_height
-            size = self._static_width * self._static_height * 4
-            logger.debug("Generating 15 static frames")
-            for _ in range(15):
-                frame = numpy.random.randint(0, 0xFF + 1, size, dtype=numpy.uint8)
-                frame[3::4] = 0xFF
-                self._static_frames.append(frame)
-            logger.debug("Done generating frames")
+    def remove_overlay(self, num):
+        self.mpv.overlay_remove(num)
 
-        choices = list(set(range(len(self._static_frames))) ^ set(self._last_static_frame_indexes))
-        frame_index = random.choice(choices)
-        frame = self._static_frames[frame_index]
-        self._last_static_frame_indexes.append(frame_index)
-        if len(self._last_static_frame_indexes) > 5:
-            self._last_static_frame_indexes.pop(0)
+    def run_static_thread(self):
+        frames = []
+        for _ in range(15):
+            frame = numpy.random.randint(0, 0xFF + 1, self.shape, dtype=numpy.uint8)
+            frame[:, :, -1] = 0xFF
+            frames.append(frame)
+        logger.debug(f"{len(frames)} static frames ({self.width}x{self.height}) were pre-rendered")
 
-        return self._static_width, self._static_height, frame
-
-    def show_static(self):
-        start = time.monotonic()
+        no_repeat_num = len(frames) // 3
+        indexes = set(range(len(frames)))
         clock = FPSClock()
 
-        while time.monotonic() - 2 < start:
-            width, height, static_frame = self.get_static_frame()
+        while True:
+            self._static_event.wait()
+            last_indexes = []
 
-            source = f"&{static_frame.ctypes.data}"
-            self.mpv.overlay_add(1, 0, 0, source, 0, "bgra", width, height, width * 4)
-            clock.tick(60)
-        self.mpv.overlay_remove(1)
+            while self._static_event.is_set():
+                no_repeat_indexes = list(indexes ^ set(last_indexes))
+                index = random.choice(no_repeat_indexes)
+                frame = frames[index]
 
-    def run_thread(self):
-        self.show_static()
-        video = self.videos_db.get_next_video()
+                self.update_overlay(frame, num=0)
 
-        if video is None:
-            self.critical("No videos. Exiting.")
-            self.kill_entire_app()
-        else:
-            logger.info(f"Playing {video.path}")
-            self.play(video)
-        # self.play(self.videos_db.videos[Path("/home/dave/media/DTC/videos/until-the-end-of-the-world.mkv")])
+                last_indexes.append(index)
+                if len(last_indexes) > no_repeat_num:
+                    last_indexes.pop(0)
+                clock.tick(24)
+            self.remove_overlay(0)
 
-        # Wait for file to play
-        while not self.should_exit and self.mpv.core_idle and self.playing:
-            time.sleep(0.05)
+    def run_osd_thread(self):
+        pass
 
-        if self.playing:
-            self.mpv.seek(random.uniform(0.0, self.mpv.duration))
+    def run_player_thread(self):
+        self._static_event.set()
+        end_static = monotonic() + self._config.static_time
+        end_status = -1
+        clock = FPSClock()
+        video: Video | None = None
 
-        i = 0
+        text = self.render_text("Hi, mom!", "blue", 64)
+        self.status_overlay.blit(text[0], (0, 0))
+        self.update_overlay(self.status_overlay_array, 5)
 
-        while not self.should_exit:
-            time.sleep(0.05)
-            i += 1
-            if i > 2500:
-                self.kill_entire_app()
+        while True:
+            now = monotonic()
 
-        logger.info("Player thread exiting.")
+            if now > end_static:
+                self._static_event.clear()
+                if video is None:
+                    pass
+
+            if now > end_status:
+                self._status_event.clear()
+
+            clock.tick(12)

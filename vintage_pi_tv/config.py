@@ -21,9 +21,10 @@ class Config:
     keyboard: dict[str, Any]
     log_level: Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]
     mpv_options: dict[str, str]
-    overscan_margins: list[int]
+    overscan_margins: dict[str, int]
     ratings: list[dict[str, str]]
     search_dirs: list[dict[str, Path | bool]]
+    static_time: float
     valid_file_extensions: set[str]
     videos: list[dict]
 

@@ -119,7 +119,7 @@ def retry_thread_wrapper(func):
                 logger.exception(f"Thread {thread_name} threw an exception. Restarting soon.")
                 time.sleep(0.25)
             else:
-                logger.debug(f"Thread {thread_name} returned cleanly. Exiting.")
+                logger.warning(f"Thread {thread_name} returned cleanly. Not restarting.")
                 break
 
     return wrapped

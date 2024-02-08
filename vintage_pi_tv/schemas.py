@@ -57,6 +57,9 @@ config_schema = Schema(
                 "'config-first-random', or 'config-first-alphabetical'"
             ),
         ),
+        Optional("static-time", default=3.5): Or(
+            And(Or(False, 0, 0.0), Use(lambda _: False)), And(Use(float), lambda f: f > 0.0)
+        ),
         Optional("enable-audio-visualization", default=True): Use(bool),
         Optional("ratings", default=DEFAULT_RATINGS): Or(
             False,

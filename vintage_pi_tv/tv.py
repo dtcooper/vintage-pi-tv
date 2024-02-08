@@ -34,7 +34,7 @@ class VintagePiTV:
             config_file_tries = ()
 
         config_file_tries = [Path(p).absolute() for p in config_file_tries]
-        self.config = None
+        self.config: Config = None
 
         for config_file_try in config_file_tries:
             for i in range(config_wait + 1):
@@ -86,8 +86,8 @@ class VintagePiTV:
             logger.warning("Can't enable IR remote if keyboard is disabled!")
             self.config.ir_remote["enabled"] = False
 
-        self.videos = VideosDB(config=self.config)
-        self.player = Player(
+        self.videos: VideosDB = VideosDB(config=self.config)
+        self.player: Player = Player(
             config=self.config, videos_db=self.videos, queue=self.event_queue, reload_pid=uvicorn_reload_parent_pid
         )
 
@@ -97,7 +97,8 @@ class VintagePiTV:
 
     def startup(self):
         threads = [
-            {"name": "player", "target": self.player.run_thread},
+            {"name": "player", "target": self.player.run_player_thread},
+            {"name": "osd", "target": self.player.run_osd_thread},
             {"name": "watch", "target": self.videos.watch_thread, "kwargs": {"recursive": False}, "daemon": False},
             {"name": "watch_rec", "target": self.videos.watch_thread, "kwargs": {"recursive": True}, "daemon": False},
             {"name": "channels", "target": self.videos.rebuild_channels_thread},
@@ -105,6 +106,8 @@ class VintagePiTV:
         ]
         if self.keyboard:
             threads.append({"name": "keyboard", "target": self.keyboard.keyboard_thread})
+        if self.config.static_time > 0:
+            threads.append({"name": "static", "target": self.player.run_static_thread})
 
         for kwargs in threads:
             kwargs.setdefault("daemon", True)

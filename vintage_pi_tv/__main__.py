@@ -56,15 +56,15 @@ def run(args=None):
 
     # Since uvicorn needs to completely load program for --reload to work, most of these as environment variables
     env = {key: getattr(args, key) for key in vars(args).keys() if key not in ("reload", "host", "port")}
-    env["uvicorn_reload_parent_pid"] = None
 
-    kwargs = {"host": args.host, "port": args.port}
+    uvicorn_kwargs = {"host": args.host, "port": args.port}
     if args.reload:
         env["uvicorn_reload_parent_pid"] = os.getpid()
-        kwargs.update({"reload": True, "reload_includes": ["*.py", "*.toml"]})
+        uvicorn_kwargs.update({"reload": True, "reload_includes": ["*.py", "*.toml"]})
 
     os.environ[ENV_ARGS_VAR_NAME] = json.dumps(env, sort_keys=True, separators=(",", ":"))
-    uvicorn.run("vintage_pi_tv.app:app", **kwargs)
+    os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
+    uvicorn.run("vintage_pi_tv.app:app", **uvicorn_kwargs)
 
 
 if __name__ == "__main__":
