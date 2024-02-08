@@ -56,6 +56,9 @@ parted_data() {
 }
 
 main() {
+    figlet -f slant 'Vintage Pi TV'
+    figlet -f smslant -- '- Storage Mods -'
+
     [ "${ROOT_DEV_NAME}" = "${BOOT_DEV_NAME}" ] || error 'Root device was expected to be the same as boot device'
     [ ! -e "${EXFAT_PART_DEV}" ] || error 'Third partition already exists'
     [ "${ROOT_DEV_FSTYPE}" = 'ext4' ] || error 'Root device was expected to be ext4'
@@ -172,6 +175,8 @@ mount -o remount,ro "$FWLOC"
 sync
 
 main
+
+figlet -f smslant -- '-All done!-'
 
 echo 'Rebooting in 5 seconds...'
 sleep 5
