@@ -125,6 +125,9 @@ class VintagePiTV:
         threads = list(threading.enumerate())
         logger.debug(f"{len(threads)} threads are running {', '.join(t.name for t in threads)}")
 
+        for level in ("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "TRACE"):
+            logger.log(getattr(logging, level), f"Test {level} message")
+
     def shutdown(self):
         # Using a threading.Event for watchfiles prevents weird "FATAL: exception not rethrown" log messages
         self.videos.watch_stop_event.set()

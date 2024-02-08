@@ -89,15 +89,16 @@ class VideosDB:
                     # There is path is a subdirectory of a search dir and that search dir is a subdirectory of the
                     # exclude dir. In this case, we explicitly DO NOT ignore this file.
                     if path.is_relative_to(search_dir) and search_dir.is_relative_to(exclude_dir):
-                        logger.debug(
+                        logger.trace(
                             f"Path {path} would have been filtered by exclude dir {exclude_dir}, but search dir"
                             f" {search_dir} exists after it"
                         )
                         break
                 else:
-                    logger.debug(f"Path {path} was filtered by exclude dir: {exclude_dir}")
+                    logger.trace(f"Path {path} was filtered by exclude dir: {exclude_dir}")
                     return False
 
+        logger.trace(f"Path {path} is a valid video path")
         return True
 
     def _rebuild_channels(self):
@@ -105,6 +106,7 @@ class VideosDB:
 
         videos = []  # List of kwargs for video objects
         seen_paths = set()
+        ignored_files = 0
 
         for search_dirs, listdir in ((self._search_dirs, os.listdir), (self._search_dirs_recursive, listdir_recursive)):
             for search_dir in search_dirs:
@@ -113,22 +115,27 @@ class VideosDB:
                         continue
                     seen_paths.add(path)
 
-                    if path.is_file() and self._is_valid_video_path(path):
-                        filename = path.name.strip().lower()
-                        from_config = False
-                        video = {"path": path, "name": "", "enabled": True, "subtitles": False, "rating": False}
-                        config_metadata = self.config.videos.get(filename)
-                        if config_metadata is not None:
-                            from_config = True
-                            video.update(config_metadata)
-                        if not video["name"]:
-                            video["name"] = Video.get_automatic_video_name(path)
-                        # Format: (<found from config bool>, <video kwargs>)
-                        videos.append((from_config, video))
-                        if video["enabled"]:
-                            logger.debug(f"Found video {path} [name={video['name']!r}] [{from_config=}]")
+                    if path.is_file():
+                        if self._is_valid_video_path(path):
+                            filename = path.name.strip().lower()
+                            from_config = False
+                            video = {"path": path, "name": "", "enabled": True, "subtitles": False, "rating": False}
+                            config_metadata = self.config.videos.get(filename)
+                            if config_metadata is not None:
+                                from_config = True
+                                video.update(config_metadata)
+                            if not video["name"]:
+                                video["name"] = Video.get_automatic_video_name(path)
+                            # Format: (<found from config bool>, <video kwargs>)
+                            if video["enabled"]:
+                                del video["enabled"]
+                                videos.append((from_config, video))
+                                logger.debug(f"Found video {path} [name={video['name']!r}] [{from_config=}]")
+                            else:
+                                logger.debug(f"Ignoring video {path} as enabled=False")
+                                ignored_files += 1
                         else:
-                            logger.debug(f"Ignoring video {path} as enabled=False")
+                            ignored_files += 1
 
         def channel_sort_key(from_config_video):
             _, video = from_config_video
@@ -151,13 +158,15 @@ class VideosDB:
                     random.shuffle(videos_non_config)
                 elif self.config.channel_mode == "config-first-alphabetical":
                     videos_non_config.sort(key=channel_sort_key)
+                else:
+                    raise Exception("Invalid 'channel-mode' (should never get here!)")
                 videos = videos_config + videos_non_config
 
-        videos = [Video(videos_db=self, **v) for v in filter(lambda v: v.pop("enabled"), map(lambda v: v[1], videos))]
+        videos = [Video(videos_db=self, **v) for (_, v) in videos]
         # Operation should be atomic, assign both at same time
         with self._channel_lock:
             self._videos = {"objects": videos, "channels": {v.path: i for i, v in enumerate(videos)}}
-            logger.info(f"Generated {len(self.videos)} channels")
+            logger.info(f"Generated {len(self.videos)} channels, ignored {ignored_files} files")
 
     @property
     def videos(self) -> list[Video]:

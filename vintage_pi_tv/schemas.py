@@ -45,8 +45,8 @@ config_schema = Schema(
         Optional("log-level", default="INFO"): And(
             str,
             Use(lambda s: s.strip().upper()),
-            Or("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"),
-            error="Invalid 'log-level'. Must be one of 'critical', 'error', 'warning', 'info', or 'debug'.",
+            Or("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "TRACE"),
+            error="Invalid 'log-level'. Must be one of 'critical', 'error', 'warning', 'info', 'debug', or 'trace'.",
         ),
         Optional("channel-mode", default="random"): And(
             str,

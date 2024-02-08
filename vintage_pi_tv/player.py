@@ -87,11 +87,34 @@ class Player:
         self.menu_overlay_array: numpy.typing.ArrayLike = numpy.zeros(self.shape, dtype=numpy.uint8)
         self.menu_overlay: pygame.Surface = pygame.image.frombuffer(self.status_overlay_array, self.size, "BGRA")
         self.font_cache: dict[int, pygame.font.Font] = {}
-        self.font_size_scale: float = min(self.width * 9 / 16, self.height) / 720
+        self.font_scale: float = min(self.width * 9 / 16, self.height) / 720
+        self.pixel_scale: float = min(self.width * 9 / 16, self.height) / 360
         self.font: pygame.freetype.Font = pygame.freetype.Font(Path(__file__).parent / "undefined-medium.ttf")
 
-    def render_text(self, text, color, size):
-        return self.font.render(text, color, size=size * self.font_size_scale)
+        self._generate_no_videos_overlay()
+
+    def _generate_no_videos_overlay(self):
+        self._no_videos_overlay_shown: bool = False
+        self._no_videos_overlay_array: numpy.typing.ArrayLike = numpy.zeros(self.shape, dtype=numpy.uint8)
+        no_videos_overlay = pygame.image.frombuffer(self._no_videos_overlay_array, self.size, "BGRA")
+        no_videos_overlay.fill("black")
+        top, top_rect = self.render_text("No video files detected!", 56)
+        bottom, bottom_rect = self.render_text(
+            "Insert USB with videos or place some on boot drive.", 30, style=pygame.freetype.STYLE_OBLIQUE
+        )
+        surf = pygame.Surface(
+            (max(top_rect.width, bottom_rect.width), top_rect.height + bottom_rect.height + self.pixel_scale * 20)
+        )
+        surf.fill("black")
+        rect = surf.get_rect()
+        surf.blit(top, top.get_rect(top=0, centerx=rect.centerx))
+        surf.blit(bottom, bottom.get_rect(bottom=rect.bottom, centerx=rect.centerx))
+        no_videos_overlay.blit(surf, surf.get_rect(center=no_videos_overlay.get_rect().center))
+
+    def render_text(
+        self, text, size, color=(0xFF, 0xFF, 0xFF, 0xFF), style=pygame.freetype.STYLE_DEFAULT
+    ) -> tuple[pygame.Surface, pygame.Rect]:
+        return self.font.render(text, fgcolor=color, size=size * self.font_scale, style=style)
 
     def kill_entire_app(self):
         if not self.killed:
@@ -138,16 +161,20 @@ class Player:
     def osd_thread(self):
         pass
 
+    def _no_videos_overlay(self, show: bool = True):
+        if show and not self._no_videos_overlay_shown:
+            self.update_overlay(self._no_videos_overlay_array, 63)
+            self._no_videos_overlay_shown = True
+        elif not show and self._no_videos_overlay_shown:
+            self.remove_overlay(63)
+            self._no_videos_overlay_shown = False
+
     def player_thread(self):
         self._static_event.set()
         end_static = monotonic() + self._config.static_time
-        end_status = -1
+        end_osd = -1
         clock = FPSClock()
         video: Video | None = None
-
-        text = self.render_text("Hi, mom!", "blue", 64)
-        self.status_overlay.blit(text[0], (0, 0))
-        self.update_overlay(self.status_overlay_array, 5)
 
         while True:
             now = monotonic()
@@ -155,9 +182,14 @@ class Player:
             if now > end_static:
                 self._static_event.clear()
                 if video is None:
-                    pass
+                    # video = self._videos_db.get_random_video()
 
-            if now > end_status:
+                    if video is None:
+                        self._no_videos_overlay(show=True)
+                    else:
+                        self._no_videos_overlay(show=False)
+
+            if now > end_osd:
                 self._status_event.clear()
 
             clock.tick(12)

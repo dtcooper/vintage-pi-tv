@@ -1,6 +1,6 @@
 #### Vintage Pi TV configuration ####
 
-# Log level, one of: silent, error, warning, info, or debug
+# Log level, one of: silent, error, warning, info, debug, or trace
 log-level = 'info'
 
 # Directories to search for videos in.

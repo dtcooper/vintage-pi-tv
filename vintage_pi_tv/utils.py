@@ -6,13 +6,25 @@ import subprocess
 import threading
 import time
 
-from uvicorn.logging import ColourizedFormatter
+from uvicorn.logging import TRACE_LOG_LEVEL as TRACE, ColourizedFormatter
 
 
 logger = logging.getLogger(__name__)
 
 
 def init_logger():
+    def trace(self, message, *args, **kwargs):
+        if self.isEnabledFor(TRACE):
+            self._log(TRACE, message, args, **kwargs)
+
+    def root_trace(message, *args, **kwargs):
+        logging.log(TRACE, message, *args, **kwargs)
+
+    logging.addLevelName(TRACE, "TRACE")
+    setattr(logging, "TRACE", TRACE)
+    setattr(logging.getLoggerClass(), "trace", trace)
+    setattr(logging, "trace", root_trace)
+
     log_fmt = "{asctime} {levelprefix:<8} {message} [thread={threadName}]"
     vintage_pi_tv_logger = logging.getLogger(__name__).parent
     vintage_pi_tv_logger.setLevel(logging.INFO)
