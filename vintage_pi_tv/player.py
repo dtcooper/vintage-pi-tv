@@ -205,14 +205,11 @@ class Player:
     def player_thread(self):
         self._static_event.set()
         end_static = tick() + self._config.static_time
-        end_osd = -1
         clock = FPSClock()
         video: Video | None = None
 
         while True:
-            now = tick()
-
-            if now > end_static:
+            if tick() > end_static:
                 if video is None:
                     video = self._videos_db.get_random_video()
                     if video is None:
@@ -229,18 +226,22 @@ class Player:
                         else:
                             self._static_event.clear()
                             duration = self.mpv.duration
-                            place = random.uniform(0, self.mpv.duration)
+                            place = self.mpv.duration - 30. #random.uniform(0, self.mpv.duration)
                             logger.debug(
                                 f"Playing {video.path} and Seeking to {datetime.timedelta(seconds=place)} /"
                                 f" {datetime.timedelta(seconds=duration)}"
                             )
-                            self.mpv.seek(place)
+                            self.mpv.seek(place, "relative")
 
-                self._no_videos_overlay(show=video is None)
+                    self._no_videos_overlay(show=video is None)
+                else:
+                    if self.mpv.idle_active:
+                        logger.debug(f"Playback for {video.path} done!")
+                        video = None
+                        self._static_event.set()
+                        end_static = tick() + self._config.static_time
+
             else:
                 self._no_videos_overlay(show=False)
-
-            if now > end_osd:
-                self._status_event.clear()
 
             clock.tick(12)
