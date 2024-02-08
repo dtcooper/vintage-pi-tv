@@ -1,5 +1,10 @@
 ENV_ARGS_VAR_NAME = "__VINTAGE_PI_TV_ARGS"
 
+WHITE = (0xFF, 0xFF, 0xFF, 0xFF)
+TRANSPARENT = (0x00, 0x00, 0x00, 0x00)
+BLACK = (0x00, 0x00, 0x00, 0xFF)
+BLACK_SEETHRU = (0x00, 0x00, 0x00, 0x44)
+
 DEFAULT_CONFIG_PATHS = (
     "/media/VintagePiTV/config.toml",
     "/boot/firmware/vintage-pi-tv-config.toml",

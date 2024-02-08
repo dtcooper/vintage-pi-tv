@@ -10,6 +10,12 @@ search-dirs = [
     { path = "/media", recurse = true},
 ]
 
+# One of letterbox, zoom, stretch
+#   - letterbox -- Add black bars to sides of videos that don't match your screen's aspect ratio
+#   - stretch -- Stretch video to fit screen exactly, possibly warping it in the process
+#   - zoom -- Zoom into video so it fits, losing the top or bottom of videos that don't match your screen's aspect ratio
+aspect-mode = "letterbox"
+
 # Amount of static to play between videos. Set to 0 or false to disable
 static-time = 3.5
 

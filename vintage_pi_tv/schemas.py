@@ -57,6 +57,9 @@ config_schema = Schema(
                 "'config-first-random', or 'config-first-alphabetical'"
             ),
         ),
+        Optional("aspect-mode", default="letterbox"): And(
+            str, Use(lambda s: s.strip().lower()), Or("letterbox", "stretch", "zoom")
+        ),
         Optional("static-time", default=3.5): Or(
             And(Or(False, 0, 0.0), Use(lambda _: False)), And(Use(float), lambda f: f > 0.0)
         ),

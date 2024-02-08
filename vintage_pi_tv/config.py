@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class Config:
+    aspect_mode: Literal["letterbox", "stretch", "zoom"]
     channel_mode: Literal["random", "alphabetical", "config-only", "config-first-random", "config-first-alphabetical"]
     enable_audio_visualization: bool | str
     ir_remote: dict[str, Any]
@@ -56,7 +57,6 @@ class Config:
             self.ratings_dict.update({rating["rating"]: rating["description"] for rating in self.ratings})
 
         self.videos = {video.pop("filename"): video for video in self._config.pop("video")}
-        print(self.videos)
 
     @property
     def default_rating(self) -> bool | str:

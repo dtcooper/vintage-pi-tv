@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 from pathlib import Path
@@ -6,20 +7,22 @@ import random
 import signal
 import sys
 import threading
-from time import monotonic
+from time import monotonic as tick
 
 import mpv
 import numpy
 import numpy.typing
 import pygame
-import pygame.freetype
+from pygame import freetype
+from pygame.freetype import STYLE_DEFAULT, STYLE_OBLIQUE
 
 from .config import Config
+from .constants import BLACK, TRANSPARENT, WHITE
 from .utils import FPSClock
 from .videos import Video, VideosDB
 
 
-pygame.freetype.init()
+freetype.init()
 
 
 logger = logging.getLogger(__name__)
@@ -55,6 +58,10 @@ class Player:
                 "script_opts": "visualizer-name=avectorscope,visualizer-height=12",
             })
 
+        if self._config.aspect_mode == "zoom":
+            logger.debug("Setting panscan to 1.0 for zoom")
+            kwargs["panscan"] = "1.0"
+
         logger.debug(f"Initializing MPV with arguments: {kwargs}")
         try:
             self.mpv = mpv.MPV(log_handler=mpv_log, loglevel="status", force_window="immediate", **kwargs)
@@ -74,12 +81,30 @@ class Player:
                     "Error initializing mpv. Are you sure 'mpv_options' are set properly? Exiting.", exc_info=True
                 )
             sys.exit(1)
-        logger.info("MPV initialized")
 
         # Since we're primarily operating in fullscreen mode (except in development) window size should not be changed.
         # And if it does change, user is shit out of luck
-        self.width: int = self.mpv.osd_width
-        self.height: int = self.mpv.osd_height
+        width: int = self.mpv.osd_width
+        height: int = self.mpv.osd_height
+
+        margins = self._config.overscan_margins
+        for margin, dimension in (("left", width), ("top", height), ("right", width), ("bottom", height)):
+            if (pixels := margins[margin]) > 0:
+                amount = pixels / dimension
+                logger.debug(f"Set {margin} margin to {amount:0.5f} ({pixels}px)")
+                setattr(self.mpv, f"video_margin_ratio_{margin}", amount)
+
+        self.margin_left = margins["left"]
+        self.margin_top = margins["top"]
+        self.width: int = max(width - margins["left"] - margins["right"], 1)
+        self.height: int = max(height - margins["top"] - margins["bottom"], 1)
+        if self._config.aspect_mode == "stretch":
+            aspect = self.width / self.height
+            logger.debug(f"Set aspect ratio to {aspect} for stretch")
+            self.mpv.video_aspect_override = str(aspect)
+
+        logger.info(f"MPV initialized (screen: {width}x{height}, with margins: {self.width}x{self.height})")
+
         self.size: tuple[int, int] = (self.width, self.height)
         self.shape: tuple[int, int, int] = (self.width, self.height, 4)
         self.status_overlay_array: numpy.typing.ArrayLike = numpy.zeros(self.shape, dtype=numpy.uint8)
@@ -89,7 +114,7 @@ class Player:
         self.font_cache: dict[int, pygame.font.Font] = {}
         self.font_scale: float = min(self.width * 9 / 16, self.height) / 720
         self.pixel_scale: float = min(self.width * 9 / 16, self.height) / 360
-        self.font: pygame.freetype.Font = pygame.freetype.Font(Path(__file__).parent / "undefined-medium.ttf")
+        self.font: freetype.Font = freetype.Font(Path(__file__).parent / "undefined-medium.ttf")
 
         self._generate_no_videos_overlay()
 
@@ -97,24 +122,21 @@ class Player:
         self._no_videos_overlay_shown: bool = False
         self._no_videos_overlay_array: numpy.typing.ArrayLike = numpy.zeros(self.shape, dtype=numpy.uint8)
         no_videos_overlay = pygame.image.frombuffer(self._no_videos_overlay_array, self.size, "BGRA")
-        no_videos_overlay.fill("black")
-        top, top_rect = self.render_text("No video files detected!", 56)
-        bottom, bottom_rect = self.render_text(
-            "Insert USB with videos or place some on boot drive.", 30, style=pygame.freetype.STYLE_OBLIQUE
-        )
+        no_videos_overlay.fill(BLACK)
+        top, top_rect = self.render_text("No video files detected!", 58)
+        bottom, bottom_rect = self.render_text("Waiting. Please insert USB drive with videos.", 34, style=STYLE_OBLIQUE)
         surf = pygame.Surface(
-            (max(top_rect.width, bottom_rect.width), top_rect.height + bottom_rect.height + self.pixel_scale * 20)
+            (max(top_rect.width, bottom_rect.width), top_rect.height + bottom_rect.height + self.pixel_scale * 20),
         )
-        surf.fill("black")
         rect = surf.get_rect()
         surf.blit(top, top.get_rect(top=0, centerx=rect.centerx))
         surf.blit(bottom, bottom.get_rect(bottom=rect.bottom, centerx=rect.centerx))
         no_videos_overlay.blit(surf, surf.get_rect(center=no_videos_overlay.get_rect().center))
 
     def render_text(
-        self, text, size, color=(0xFF, 0xFF, 0xFF, 0xFF), style=pygame.freetype.STYLE_DEFAULT
+        self, text, size, color=WHITE, bgcolor=TRANSPARENT, style=STYLE_DEFAULT
     ) -> tuple[pygame.Surface, pygame.Rect]:
-        return self.font.render(text, fgcolor=color, size=size * self.font_scale, style=style)
+        return self.font.render(text, fgcolor=color, bgcolor=bgcolor, size=size * self.font_scale, style=style)
 
     def kill_entire_app(self):
         if not self.killed:
@@ -124,7 +146,17 @@ class Player:
             os.kill(pid, signal.SIGINT)
 
     def update_overlay(self, overlay, num):
-        self.mpv.overlay_add(num, 0, 0, f"&{overlay.ctypes.data}", 0, "bgra", self.width, self.height, self.width * 4)
+        self.mpv.overlay_add(
+            num,
+            self.margin_left,
+            self.margin_top,
+            f"&{overlay.ctypes.data}",
+            0,
+            "bgra",
+            self.width,
+            self.height,
+            self.width * 4,
+        )
 
     def remove_overlay(self, num):
         self.mpv.overlay_remove(num)
@@ -162,6 +194,7 @@ class Player:
         pass
 
     def _no_videos_overlay(self, show: bool = True):
+        # Highest possible overlay
         if show and not self._no_videos_overlay_shown:
             self.update_overlay(self._no_videos_overlay_array, 63)
             self._no_videos_overlay_shown = True
@@ -171,23 +204,41 @@ class Player:
 
     def player_thread(self):
         self._static_event.set()
-        end_static = monotonic() + self._config.static_time
+        end_static = tick() + self._config.static_time
         end_osd = -1
         clock = FPSClock()
         video: Video | None = None
 
         while True:
-            now = monotonic()
+            now = tick()
 
             if now > end_static:
-                self._static_event.clear()
                 if video is None:
-                    # video = self._videos_db.get_random_video()
-
+                    video = self._videos_db.get_random_video()
                     if video is None:
-                        self._no_videos_overlay(show=True)
+                        self._static_event.clear()
                     else:
-                        self._no_videos_overlay(show=False)
+                        # video = self._videos_db.get_random_video()
+                        self._static_event.set()
+                        self.mpv.loadfile(str(video.path))
+                        try:
+                            self.mpv.wait_until_playing(timeout=10)
+                        except TimeoutError:
+                            self._static_event.clear()
+                            logger.warning(f"Video {video} didn't work! Disabling it.")
+                        else:
+                            self._static_event.clear()
+                            duration = self.mpv.duration
+                            place = random.uniform(0, self.mpv.duration)
+                            logger.debug(
+                                f"Playing {video.path} and Seeking to {datetime.timedelta(seconds=place)} /"
+                                f" {datetime.timedelta(seconds=duration)}"
+                            )
+                            self.mpv.seek(place)
+
+                self._no_videos_overlay(show=video is None)
+            else:
+                self._no_videos_overlay(show=False)
 
             if now > end_osd:
                 self._status_event.clear()
