@@ -72,6 +72,7 @@ class Player:
     def __init__(self, config: Config, videos_db: VideosDB, mpv: MPV):
         self.mpv = mpv
         self.static = Static(mpv=mpv)
+        self.static.start()
         self._generate_no_videos_overlay()
         self.state = PlayerState.STATIC
 
@@ -92,8 +93,8 @@ class Player:
         self._no_videos_overlay = overlay
         overlay.update()
 
-        # timer = threading.Timer(2, overlay.clear)
-        # timer.start()
+        timer = threading.Timer(2, overlay.clear)
+        timer.start()
 
     def osd_thread(self):
         pass

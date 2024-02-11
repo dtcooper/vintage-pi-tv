@@ -5,6 +5,7 @@ from typing import Literal
 
 import mpv
 import numpy
+import numpy.typing
 import pygame
 import pygame.freetype
 
