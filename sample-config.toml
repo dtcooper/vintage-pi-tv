@@ -112,7 +112,7 @@ enabled = false
 #volume-up = 0x80
 
 [[video]]
-filename = "colorbars.mkv"  # Required. Should match filename exactly, omitting the directory completely
+filename = "color-bars.mkv"  # Required. Should match filename exactly, omitting the directory completely
 name = "Color Bars"  # Custom name for file, if omitted/empty will be based on filename
 # Optional keys below
 enabled = true  # If false, any file with this name will be ignored

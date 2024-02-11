@@ -116,7 +116,7 @@ EOF
         ffmpeg -y \
             -f lavfi -i smptebars=duration=30:size=1280x720:rate=30 \
             -f lavfi -i "sine=frequency=1000:sample_rate=48000:duration=30" \
-            "/mnt/${EXFAT_VIDEOS_DIR}/colorbars.mkv"
+            "/mnt/${EXFAT_VIDEOS_DIR}/color-bars.mkv"
         mount -o remount,rw "$FWLOC"
         sync
         mv -v "${FWLOC}/${CONFIG_SRC}" "/mnt/${CONFIG_DEST}"
