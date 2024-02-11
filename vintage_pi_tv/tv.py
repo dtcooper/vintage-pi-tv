@@ -7,6 +7,7 @@ import time
 from .config import Config
 from .constants import DEFAULT_CONFIG_PATHS
 from .keyboard import KEYBOARD_AVAILABLE, Keyboard
+from .mpv_wrapper import MPV
 from .player import Player
 from .utils import (
     get_vintage_pi_tv_version,
@@ -60,7 +61,6 @@ class VintagePiTV:
         config_file: str | Path | None = None,
         config_wait: int = 0,
         extra_search_dirs: list | tuple = (),
-        uvicorn_reload_parent_pid: int | None = None,
     ):
         init_logger()
         logger.info(f"Starting Vintage Pi TV version: {get_vintage_pi_tv_version()}")
@@ -86,10 +86,11 @@ class VintagePiTV:
             logger.warning("Can't enable IR remote if keyboard is disabled!")
             self.config.ir_remote["enabled"] = False
 
+        self.mpv: MPV = MPV(config=self.config)
         self.videos: VideosDB = VideosDB(config=self.config)
-        self.player: Player = Player(
-            config=self.config, videos_db=self.videos, queue=self.event_queue, reload_pid=uvicorn_reload_parent_pid
-        )
+        self.player: Player = Player(config=self.config, videos_db=self.videos, mpv=self.mpv)
+        self.mpv.done_loading()
+        logger.debug("Done initializing objects")
 
     def test_event_queue_consumer_thread(self):
         while item := self.event_queue.get():
@@ -97,29 +98,26 @@ class VintagePiTV:
 
     def startup(self):
         threads = [
-            {"target": self.player.player_thread},
-            {"target": self.player.osd_thread},
-            {"name": "watch", "target": self.videos.watch_thread, "kwargs": {"recursive": False}, "daemon": False},
-            {
-                "name": "watch_recursive",
-                "target": self.videos.watch_thread,
-                "kwargs": {"recursive": True},
-                "daemon": False,
-            },
-            {"target": self.videos.rebuild_channels_thread},
-            {"name": "test", "target": self.test_event_queue_consumer_thread},
+            # self.player.player_thread,
+            # self.player.osd_thread,
+            self.player.static.static_thread,
+            (self.videos.watch_thread, {"name": "watch", "kwargs": {"recursive": False}, "daemon": False}),
+            (self.videos.watch_thread, {"name": "watch_recursive", "kwargs": {"recursive": True}, "daemon": False}),
+            self.videos.rebuild_channels_thread,
+            (self.test_event_queue_consumer_thread, {"name": "keyboard_test"}),
         ]
         if self.keyboard:
-            threads.append({"name": "keyboard", "target": self.keyboard.keyboard_thread})
-        if self.config.static_time > 0:
-            threads.append({"name": "static", "target": self.player.run_static_thread})
+            threads.append(self.keyboard.keyboard_thread)
+        # if self.config.static_time > 0:
+        #     threads.append(self.player.run_static_thread)
 
-        for kwargs in threads:
-            kwargs.setdefault("daemon", True)
-            kwargs.setdefault("name", kwargs["target"].__name__.removesuffix("_thread"))
-            kwargs["target"] = retry_thread_wrapper(kwargs["target"])
-            logger.info(f"Spawning {kwargs['name']} thread")
-            thread = threading.Thread(**kwargs)
+        for thread in threads:
+            target, kwargs = thread if isinstance(thread, tuple) else (thread, {})
+            daemon = kwargs.pop("daemon", True)
+            name = kwargs.pop("name", target.__name__.removesuffix("_thread"))
+            target = retry_thread_wrapper(target)
+            logger.info(f"Spawning {name} thread")
+            thread = threading.Thread(target=target, name=name, daemon=daemon, **kwargs)
             thread.start()
 
         threads = list(threading.enumerate())

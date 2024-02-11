@@ -61,7 +61,7 @@ config_schema = Schema(
             str, Use(lambda s: s.strip().lower()), Or("letterbox", "stretch", "zoom")
         ),
         Optional("static-time", default=3.5): Or(
-            And(Or(False, 0, 0.0), Use(lambda _: -1.)), And(Use(float), lambda f: f > 0.0)
+            And(Or(False, 0, 0.0), Use(lambda _: -1.0)), And(Use(float), lambda f: f > 0.0)
         ),
         Optional("enable-audio-visualization", default=True): Use(bool),
         Optional("ratings", default=DEFAULT_RATINGS): Or(
@@ -76,8 +76,8 @@ config_schema = Schema(
                 len,
             ),
         ),
-        Optional("overscan-margins", default={"left": 0, "top": 0, "right": 0, "bottom": 0}): Or(
-            Schema({direction: And(Use(int), lambda i: i >= 0) for direction in ("left", "top", "right", "bottom")}),
+        Optional("overscan-margins", default={"top": 0, "right": 0, "bottom": 0, "left": 0}): Or(
+            Schema({direction: And(Use(int), lambda i: i >= 0) for direction in ("top", "right", "bottom", "left")}),
         ),
         "search-dirs": Schema(
             And(

@@ -71,7 +71,7 @@ class FPSClock:
     def __init__(self):
         self.last_tick = None
 
-    def tick(self, fps: int = 60):
+    def tick(self, fps: int = 60) -> None:
         if self.last_tick is not None:
             sleep_secs = (1.0 / fps) - (time.monotonic() - self.last_tick)
         else:
@@ -124,6 +124,7 @@ def retry_thread_wrapper(func):
 
     def wrapped(*args, **kwargs):
         thread_name = threading.current_thread().name
+        logger.debug(f"Thread {thread_name} spawned")
         while True:
             try:
                 func(*args, **kwargs)

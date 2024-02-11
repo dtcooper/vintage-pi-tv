@@ -5,6 +5,10 @@ TRANSPARENT = (0x00, 0x00, 0x00, 0x00)
 BLACK = (0x00, 0x00, 0x00, 0xFF)
 BLACK_SEETHRU = (0x00, 0x00, 0x00, 0x44)
 
+STATIC_LAYER = 0  # Lowest
+NO_FILES_LAYER = 62  # Second topmost
+LOADING_LAYER = 63  # Topmost
+
 DEFAULT_CONFIG_PATHS = (
     "/media/VintagePiTV/config.toml",
     "/boot/firmware/vintage-pi-tv-config.toml",

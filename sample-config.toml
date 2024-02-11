@@ -50,7 +50,7 @@ valid-file-extensions = "defaults"
 # valid-file-extensions = [ "mp4", "mkv", "mov", "avi" ]
 
 # Margin of monitor in pixels, for overscan purposes
-overscan-margins = { left = 0, top = 0, right = 0, bottom = 0 }
+overscan-margins = { top = 0, right = 0, bottom = 0, left = 0 }
 
 ### MPV options ###
 [mpv-options]

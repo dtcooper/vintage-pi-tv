@@ -59,7 +59,6 @@ def run(args=None):
 
     uvicorn_kwargs = {"host": args.host, "port": args.port}
     if args.reload:
-        env["uvicorn_reload_parent_pid"] = os.getpid()
         uvicorn_kwargs.update({"reload": True, "reload_includes": ["*.py", "*.toml"]})
 
     os.environ[ENV_ARGS_VAR_NAME] = json.dumps(env, sort_keys=True, separators=(",", ":"))
