@@ -85,18 +85,26 @@ class VideosDB:
         for exclude_dir in self._exclude_dirs:
             # If the path is a subdirectory of an exclude dir
             if path.is_relative_to(exclude_dir):
-                for search_dir in self._search_dirs + self._search_dirs_recursive:
-                    # There is path is a subdirectory of a search dir and that search dir is a subdirectory of the
-                    # exclude dir. In this case, we explicitly DO NOT ignore this file.
-                    if path.is_relative_to(search_dir) and search_dir.is_relative_to(exclude_dir):
+                for search_dir in self._search_dirs:
+                    if path.parent == search_dir and search_dir.relative_to(exclude_dir):
                         logger.trace(
                             f"Path {path} would have been filtered by exclude dir {exclude_dir}, but search dir"
-                            f" {search_dir} exists after it"
+                            f" {search_dir} exists higher in the directory tree (after it)"
                         )
                         break
                 else:
-                    logger.trace(f"Path {path} was filtered by exclude dir: {exclude_dir}")
-                    return False
+                    for search_dir in self._search_dirs_recursive:
+                        # There is path is a subdirectory of a search dir and that search dir is a subdirectory of the
+                        # exclude dir. In this case, we explicitly DO NOT ignore this file.
+                        if path.is_relative_to(search_dir) and search_dir.is_relative_to(exclude_dir):
+                            logger.trace(
+                                f"Path {path} would have been filtered by exclude dir {exclude_dir}, but recursive"
+                                f" search dir {search_dir} exists higher in the directory tree (after it)"
+                            )
+                            break
+                    else:
+                        logger.trace(f"Path {path} was filtered by exclude dir: {exclude_dir}")
+                        return False
 
         logger.trace(f"Path {path} is a valid video path")
         return True
@@ -194,7 +202,7 @@ class VideosDB:
             self._rebuild_event.clear()
             self._rebuild_channels()
 
-    def _watch_thread_helper(self, search_dirs, recursive):
+    def _watch_thread_helper(self, search_dirs: list[Path], recursive: bool):
         for changes in watchfiles.watch(
             *search_dirs,
             stop_event=self.watch_stop_event,
@@ -205,12 +213,12 @@ class VideosDB:
                 logger.debug(f"Detected file change ({change.name}): {path}")
             self._rebuild_event.set()
 
-    def watch_thread(self, recursive):
+    def watch_thread(self, recursive: bool):
         search_dirs = self._search_dirs_recursive if recursive else self._search_dirs
         if search_dirs:
             self._watch_thread_helper(search_dirs, recursive)
         else:
-            logger.info(f"No need to start watch-dirs thread for {recursive=}")
+            logger.debug(f"No need to start watch-dirs thread for {recursive=}")
 
     def __init__(self, config: Config):
         self.config: Config = config

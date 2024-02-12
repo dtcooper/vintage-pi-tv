@@ -29,7 +29,7 @@ class Config:
     valid_file_extensions: set[str]
     videos: list[dict]
 
-    def __init__(self, path: None | Path, extra_search_dirs: tuple | list = ()):
+    def __init__(self, path: None | Path, extra_search_dirs: tuple | list = (), log_level_override: None | str = None):
         if path is None:
             toml = {"log-level": "debug"}
         else:
@@ -38,6 +38,8 @@ class Config:
 
         # Add in extras
         toml.setdefault("search-dirs", []).extend(extra_search_dirs)
+        if log_level_override is not None:
+            toml["log-level"] = log_level_override
 
         try:
             self._config = {k.replace("-", "_"): v for k, v in config_schema.validate(toml).items()}

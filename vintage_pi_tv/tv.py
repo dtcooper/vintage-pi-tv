@@ -25,7 +25,11 @@ logger = logging.getLogger(__name__)
 
 class VintagePiTV:
     def init_config(
-        self, config_file: str | Path | None = None, config_wait: int = 0, extra_search_dirs: list | tuple = ()
+        self,
+        config_file: str | Path | None = None,
+        config_wait: int = 0,
+        extra_search_dirs: list | tuple = (),
+        log_level_override: None | str = None,
     ):
         if config_file is not None:
             config_file_tries = (config_file,)
@@ -41,7 +45,9 @@ class VintagePiTV:
             for i in range(config_wait + 1):
                 if config_file_try.exists():
                     logger.info(f"Using config file: {config_file_try}")
-                    self.config = Config(path=config_file_try, extra_search_dirs=extra_search_dirs)
+                    self.config = Config(
+                        path=config_file_try, extra_search_dirs=extra_search_dirs, log_level_override=log_level_override
+                    )
                     break
                 else:
                     if i < config_wait:
@@ -61,11 +67,12 @@ class VintagePiTV:
         config_file: str | Path | None = None,
         config_wait: int = 0,
         extra_search_dirs: list | tuple = (),
+        log_level_override: None | str = None,
     ):
         init_logger()
         logger.info(f"Starting Vintage Pi TV version: {get_vintage_pi_tv_version()}")
 
-        self.init_config(config_file, config_wait, extra_search_dirs)
+        self.init_config(config_file, config_wait, extra_search_dirs, log_level_override)
 
         set_log_level(self.config.log_level)
         logger.debug(f"Changed log level to {self.config.log_level}")
@@ -98,13 +105,13 @@ class VintagePiTV:
 
     def startup(self):
         threads = [
-            # self.player.player_thread,
             # self.player.osd_thread,
             self.player.static.static_thread,
             (self.videos.watch_thread, {"name": "watch", "kwargs": {"recursive": False}, "daemon": False}),
             (self.videos.watch_thread, {"name": "watch_recursive", "kwargs": {"recursive": True}, "daemon": False}),
             self.videos.rebuild_channels_thread,
             (self.test_event_queue_consumer_thread, {"name": "keyboard_test"}),
+            self.player.player_thread,
         ]
         if self.keyboard:
             threads.append(self.keyboard.keyboard_thread)
@@ -123,8 +130,7 @@ class VintagePiTV:
         threads = list(threading.enumerate())
         logger.debug(f"{len(threads)} threads are running {', '.join(t.name for t in threads)}")
 
-        for level in ("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "TRACE"):
-            logger.log(getattr(logging, level), f"Test {level} message")
+        logger.info("Loading complete!")
 
     def shutdown(self):
         # Using a threading.Event for watchfiles prevents weird "FATAL: exception not rethrown" log messages

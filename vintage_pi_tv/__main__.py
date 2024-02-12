@@ -31,6 +31,13 @@ def run(args=None):
         type=int,
     )
     parser.add_argument(
+        "-l",
+        "--log-level",
+        help="Override log level",
+        dest="log_level_override",
+        choices=("critical", "error", "warning", "info", "debug", "trace"),
+    )
+    parser.add_argument(
         "--host", default="0.0.0.0", help="Bind webserver to host [default: 0.0.0.0]", metavar="<ip-address>"
     )
     parser.add_argument(

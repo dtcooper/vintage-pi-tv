@@ -7,7 +7,7 @@ import mpv
 import numpy
 import numpy.typing
 import pygame
-import pygame.freetype
+from pygame import freetype
 
 from .config import Config
 from .constants import TRANSPARENT, WHITE
@@ -67,7 +67,7 @@ class Overlay:
         )
 
     def clear(self):
-        self._mpv._player.overlay_remove(self._num)
+        self._mpv.clear_overlay(self._num)
 
 
 class MPV:
@@ -136,12 +136,14 @@ class MPV:
         self._font_scale: float = min(self.width * 9 / 16, self.height) / 720
         self.pixel_scale: float = min(self.width * 9 / 16, self.height) / 360
 
-        pygame.freetype.init()
-        self._font: pygame.freetype.Font = pygame.freetype.Font(Path(__file__).parent / "undefined-medium.ttf")
+        freetype.init()
+        self._font: freetype.Font = freetype.Font(Path(__file__).parent / "undefined-medium.ttf")
 
         self._done_overlay = self.create_overlay(63)
         self._done_overlay.surf.fill("black")
-        text, rect = self.render_text("Loading...", 100)
+        text, rect = self.render_text(
+            "Vintage Pi TV Loading...", 64, style=freetype.STYLE_OBLIQUE | freetype.STYLE_STRONG
+        )
         rect.center = self._done_overlay.surf.get_rect().center
         self._done_overlay.surf.blit(text, rect)
         self._done_overlay.update()
@@ -171,7 +173,6 @@ class MPV:
     ) -> tuple[pygame.Surface, pygame.Rect]:
         surf, rect = self._font.render(text, fgcolor=color, bgcolor=bgcolor, size=size * self._font_scale, style=style)
         top, right, bottom, left = self._resolve_padding(padding)
-        print(f"{text}: {top=}, {right=}, {bottom=}, {left=}")
         if all(p == 0 for p in (top, left, bottom, left)):
             return surf, rect
 
@@ -192,7 +193,6 @@ class MPV:
         width = max(text[1].width for text in texts)
         height = sum(text[1].height for text in texts)
         top, right, bottom, left = self._resolve_padding(padding)
-        print(f"MULTIPLE: {top=}, {right=}, {bottom=}, {left=}")
 
         padding_between = padding_between * self.pixel_scale
         surf = pygame.Surface(
@@ -220,6 +220,13 @@ class MPV:
     ) -> Overlay:
         return Overlay(self, num, array, add_pygame_surface)
 
+    def clear_overlay(self, num: int):
+        return self._player.overlay_remove(num)
+
     def done_loading(self):
         self._done_overlay.clear()
-        self._done_overlay = None
+        del self._done_overlay
+
+    @property
+    def core_idle(self) -> bool:
+        return self._player.core_idle
