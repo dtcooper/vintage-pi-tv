@@ -108,7 +108,7 @@ class Keyboard:
 
     def _process_key(self, key, hold=False):
         if self.blocked:
-            logger.debug(f"Blocked keypress {key} by player request")
+            logger.warning(f"Blocked keypress {key} by player request")
         else:
             action = self._keys_to_actions.get(key)
             if action is not None and (not hold or action in self.ALLOW_HOLD_ACTIONS):

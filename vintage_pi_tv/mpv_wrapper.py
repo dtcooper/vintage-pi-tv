@@ -290,6 +290,6 @@ class MPV:
             @self._player.on_key_press(key)
             def _():
                 if self.docker_keyboard_blocked:
-                    logger.critical(f"Blocked keypress {key} by player request in Docker mode")
+                    logger.warning(f"Blocked keypress {key} by player request in Docker mode")
                 else:
                     self._event_queue.put({"event": "keypress", "action": action, "hold": False})
