@@ -16,6 +16,9 @@ search-dirs = [
 #   - zoom -- Zoom into video so it fits, losing the top or bottom of videos that don't match your screen's aspect ratio
 aspect-mode = "letterbox"
 
+# Save place in file while browsing channels (doesn't persist on restart)
+save-place-while-browsing = true
+
 # Amount of static to play between videos. Set to 0 or false to disable
 static-time = 3.5
 static-time-between-channels = 0.5

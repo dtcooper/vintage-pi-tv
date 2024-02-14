@@ -1,6 +1,8 @@
+from collections import defaultdict
 from contextlib import contextmanager
 import enum
 import logging
+from pathlib import Path
 import queue
 import random
 import threading
@@ -19,6 +21,7 @@ from .constants import (
     OSD_LAYER,
     OSD_PROGRESS_BAR_LAYER,
     OSD_VOLUME_LAYER,
+    RED,
     STATIC_LAYER,
     TRANSPARENT,
     WHITE,
@@ -101,13 +104,13 @@ class OSD:
         self._osd_overlay = mpv.create_overlay(OSD_LAYER)
         self._progress_bar_overlay = mpv.create_overlay(OSD_PROGRESS_BAR_LAYER)
         self._volume_overlay = mpv.create_overlay(OSD_VOLUME_LAYER)
+        # TODO: SHOW PAUSED OSD!
         self._last_osd_value = None
         self._last_progress_bar_value = None
         self._last_volume_value = None
 
     def _show_osd(self, state):
         channel, name = cache_try = (str(state["video"].channel + 1), state["video"].name)
-        name = "asdjbasjkdbasdk" * 100
         if len(name) > 58:
             name = f"{name[:57]}\u2026"
         if cache_try != self._last_osd_value:
@@ -156,8 +159,25 @@ class OSD:
             self._progress_bar_overlay.update()
             self._last_progress_bar_value = cache_try
 
-    def _show_volume(self, state):
-        pass
+    def _show_volume(self):
+        volume, mute = self._mpv.volume
+        if mute:
+            volume_str = "mute"
+            color = RED
+        else:
+            volume = round(volume)
+            volume_str = f"{volume: 3d}%"
+            color = WHITE if volume > 0 else RED
+
+        if volume_str != self._last_volume_value:
+            surf, vol_rect = self._mpv.render_text(
+                f"Vol: {volume_str}", 40, padding=8, color=color, bgcolor=BLACK_SEETHRU
+            )
+            vol_rect.topright = (self._mpv.width - self._mpv.scale_pixels(15) - 1, self._mpv.scale_pixels(15))
+            self._volume_overlay.surf.blit(surf, vol_rect)
+
+            self._volume_overlay.update()
+            self._last_volume_value = volume_str
 
     def _clear_osd(self):
         self._last_osd_value = None
@@ -183,7 +203,7 @@ class OSD:
             state = self._state_getter()
 
             now = tick()
-            show_volume = self._show_until > now
+            show_volume = self._show_volume_until > now
             show_progress_bar = self._show_progress_bar_until > now
             show_osd = show_volume or show_progress_bar or self._show_until > now
             if state["video"] and show_osd:
@@ -194,7 +214,7 @@ class OSD:
                     self._clear_progress_bar()
 
                 if show_volume:
-                    self._show_volume(state)
+                    self._show_volume()
                 else:
                     self._clear_volume()
             else:
@@ -240,8 +260,10 @@ class Player:
         self._keyboard: None | Keyboard = keyboard
         self.state: dict[str, Video | PlayerState | float]
         self._state_updates_queue: queue.Queue = state_updates_queue
-        self._reset_state()
+        if self._config.save_place_while_browsing:
+            self._places: defaultdict[Path, float] = defaultdict(float)
 
+        self._reset_state()
         self.osd: OSD = OSD(mpv=mpv, state_getter=self._state_getter)
         self.static: Static = Static(config=config, mpv=mpv)
         self._generate_no_videos_overlay()
@@ -287,6 +309,12 @@ class Player:
 
     def _publish_state(self):
         state = self.state
+        if (
+            self._config.save_place_while_browsing
+            and state["video"] is not None
+            and state["state"] in (PlayerState.PLAYING, PlayerState.PAUSED)
+        ):
+            self._places[state["video"].path] = state["position"]
         self._state_updates_queue.put({
             **state,
             "video": state["video"] and state["video"].serialize(),
@@ -301,6 +329,7 @@ class Player:
         logger.debug(f"Got key press event: {event}")
         match event["action"]:
             case "random":
+                self._update_state(video=None, state=PlayerState.LOADING)
                 self._mpv.stop()
             case "pause":
                 if self.state["state"] == PlayerState.PAUSED:
@@ -308,6 +337,7 @@ class Player:
                 elif self.state["state"] == PlayerState.PLAYING:
                     self._mpv.pause()
             case "up" | "down":
+                self._update_state(video=None, state=PlayerState.LOADING)
                 add = 1 if event["action"] == "up" else -1
                 next_video = self._videos_db.get_video_for_channel(video.channel + add)
                 self._mpv.stop()
@@ -332,13 +362,13 @@ class Player:
             self._reset_state()
             static_time = None
 
+            self.static.start()  # May as well show a tiny bit of static during loading, even if it's disabled
             if next_video is not None and self._config.static_time_between_channels > 0.0:
                 static_time = self._config.static_time_between_channels
             elif next_video is None and self._config.static_time > 0.0:
                 static_time = self._config.static_time
             if static_time is not None:
                 with _block_keyboard(self):
-                    self.static.start()
                     high_precision_sleep(static_time)
 
             video = self._videos_db.get_random_video() if next_video is None else next_video
@@ -346,7 +376,11 @@ class Player:
 
             if video is not None:
                 logger.info(f"Playing {video.path}")
-                self._mpv.play(video)
+
+                pre_seek = None
+                if self._config.save_place_while_browsing:
+                    pre_seek = self._places[video.path]
+                self._mpv.play(video, pre_seek=pre_seek)
 
                 try:
                     while True:
@@ -367,6 +401,11 @@ class Player:
                                     elif not event["value"] and self.state["state"] == PlayerState.PAUSED:
                                         self._update_state(state=PlayerState.PLAYING)
                                 case "end-file":
+                                    if (
+                                        self.state["state"] == PlayerState.PLAYING
+                                        and self._config.save_place_while_browsing
+                                    ):
+                                        self._places[video.path] = 0.0  # Reset place to zero
                                     if event["reason"] == "error":
                                         logger.warning(f"Error with video {video.path}. Disabling it.")
                                         self._videos_db.mark_bad_video(video)

@@ -63,10 +63,11 @@ config_schema = Schema(
         Optional("static-time", default=3.5): Or(
             And(Or(False, 0, 0.0), Use(lambda _: -1.0)), And(Use(float), lambda f: f > 0.0)
         ),
+        Optional("save-place-while-browsing", default=True): bool,
         Optional("static-time-between-channels", default=0.5): Or(
             And(Or(False, 0, 0.0), Use(lambda _: -1.0)), And(Use(float), lambda f: f > 0.0)
         ),
-        Optional("enable-audio-visualization", default=True): Use(bool),
+        Optional("enable-audio-visualization", default=True): bool,
         Optional("ratings", default=DEFAULT_RATINGS): Or(
             False,
             And(

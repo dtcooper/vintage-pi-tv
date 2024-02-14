@@ -270,8 +270,13 @@ class MPV:
         self._done_overlay.clear()
         del self._done_overlay
 
-    def play(self, video: Video):
-        self._player.loadfile(str(video.path))
+    def play(self, video: Video, pre_seek: None | float):
+        if pre_seek is not None:
+            print(f"PRE SEEK: {pre_seek}")
+            self._player.loadfile(str(video.path), start=pre_seek)
+        else:
+            self._player.loadfile(str(video.path))
+        self.resume()
 
     def stop(self):
         self._player.stop()
@@ -284,6 +289,11 @@ class MPV:
 
     def seek(self, amount: float):
         self._player.seek(amount)
+
+    @property
+    def volume(self) -> tuple[float, bool]:
+        # TODO cache this, don't poll player
+        return (self._player.volume, self._player.mute)
 
     if is_docker():
 

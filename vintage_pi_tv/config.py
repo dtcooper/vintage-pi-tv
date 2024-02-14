@@ -25,6 +25,7 @@ class Config:
     overscan_margins: dict[str, int]
     ratings: list[dict[str, str]]
     search_dirs: list[dict[str, Path | bool]]
+    save_place_while_browsing: bool
     static_time: float
     static_time_between_channels: float
     valid_file_extensions: set[str]
