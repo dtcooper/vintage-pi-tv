@@ -8,7 +8,7 @@ import mpv
 import numpy
 import numpy.typing
 import pygame
-from pygame import freetype
+import pygame.freetype
 
 from .config import Config
 from .constants import DOCKER_DEV_KEYBOARD_KEYS, TRANSPARENT, WHITE
@@ -54,8 +54,9 @@ class Overlay:
             self.rect = self.surf.get_rect()
         self._mpv = mpv
         self._num = num
+        self._shown = False
 
-    def update(self):
+    def update(self):  # NOT THREADSAFE, should only be called from one thread because of self._show
         self._mpv._player.overlay_add(
             self._num,
             self._mpv._margin_left,
@@ -67,9 +68,12 @@ class Overlay:
             self._mpv.height,
             self._mpv.width * 4,
         )
+        self._shown = True
 
     def clear(self):
-        self._mpv.clear_overlay(self._num)
+        if self._shown:
+            self._mpv.clear_overlay(self._num)
+            self._shown = False
 
 
 class MPV:
@@ -133,7 +137,7 @@ class MPV:
             self._event_queue.put({"event": "paused", "value": value})
 
         if is_docker() and config.keyboard["enabled"]:
-            self.docker_keyboard_blocked: bool = False  # Only modify in player thread
+            self.docker_keyboard_blocked: bool = True  # Only modify in player thread
             for action, key in DOCKER_DEV_KEYBOARD_KEYS.items():
                 self._enable_docker_key_binding(key, action)
 
@@ -164,14 +168,16 @@ class MPV:
         self._font_scale: float = min(self.width * 9 / 16, self.height) / 720
         self._pixel_scale: float = min(self.width * 9 / 16, self.height) / 360
 
-        freetype.init()
-        self._font: freetype.Font = freetype.Font(Path(__file__).parent / "undefined-medium.ttf")
+        pygame.freetype.init()
+        font_root = Path(__file__).parent / "fonts"
+        self._fonts: dict[pygame.freetype.Font] = {
+            name: pygame.freetype.Font(font_root / f"space-mono-{name}.ttf")
+            for name in ("regular", "italic", "bold", "bold-italic")
+        }
 
         self._done_overlay = self.create_overlay(63)
         self._done_overlay.surf.fill("black")
-        text, rect = self.render_text(
-            "Vintage Pi TV Loading...", 64, style=freetype.STYLE_OBLIQUE | freetype.STYLE_STRONG
-        )
+        text, rect = self.render_text("Vintage Pi TV Loading\u2026", 64, style="bold-italic")
         rect.center = self._done_overlay.surf.get_rect().center
         self._done_overlay.surf.blit(text, rect)
         self._done_overlay.update()
@@ -202,17 +208,13 @@ class MPV:
         size: int,
         color=WHITE,
         bgcolor=TRANSPARENT,
-        style=pygame.freetype.STYLE_DEFAULT,
+        style: Literal["regular", "bold", "italic", "bold-italic"] = "regular",
         padding: int | tuple[int, int] | tuple[int, int, int, int] = 0,
     ) -> tuple[pygame.Surface, pygame.Rect]:
         top, right, bottom, left = self._resolve_padding(padding)
         has_padding = any(p != 0 for p in (top, left, bottom, left))
-        surf, rect = self._font.render(
-            text,
-            fgcolor=color,
-            bgcolor=TRANSPARENT if has_padding else bgcolor,
-            size=size * self._font_scale,
-            style=style,
+        surf, rect = self._fonts[style].render(
+            text, fgcolor=color, bgcolor=TRANSPARENT if has_padding else bgcolor, size=size * self._font_scale
         )
         if not has_padding:
             return surf, rect
@@ -275,15 +277,16 @@ class MPV:
         self._player.stop()
 
     def pause(self):
-        self._player.paused = True
+        self._player.pause = True
 
     def resume(self):
-        self._player.paused = False
+        self._player.pause = False
 
     def seek(self, amount: float):
         self._player.seek(amount)
 
     if is_docker():
+
         def _enable_docker_key_binding(self, key, action):
             logger.debug(f"Enabling Mpv key {key} in Docker mode")
 

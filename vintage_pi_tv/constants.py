@@ -5,11 +5,16 @@ TRANSPARENT = (0x00, 0x00, 0x00, 0x00)
 BLACK = (0x00, 0x00, 0x00, 0xFF)
 BLACK_SEETHRU = (0x00, 0x00, 0x00, 0x55)
 YELLOW = (0xFF, 0xEE, 0x00, 0xFF)
+BLUE = (0x3A, 0xBF, 0xF8, 0xFF)
 
 OSD_LAYER = 0
-STATIC_LAYER = 1
+OSD_PROGRESS_BAR_LAYER = 1
+OSD_VOLUME_LAYER = 2
+STATIC_LAYER = 10  # Absove
 NO_FILES_LAYER = 62  # Second topmost
 LOADING_LAYER = 63  # Topmost
+
+DEFAULT_PORT = 6672
 
 DEFAULT_CONFIG_PATHS = (
     "/media/VintagePiTV/config.toml",
@@ -19,54 +24,53 @@ DEFAULT_CONFIG_PATHS = (
 
 # Should match example-config.toml
 DEFAULT_KEYBOARD_KEYS = {
-    "back": "KEY_DELETE",
     "down": "KEY_DOWN",
-    "enter": "KEY_ENTER",
-    "home": "KEY_H",
     "left": "KEY_LEFT",
-    "menu": "KEY_M",
     "mute": "KEY_0",
-    "pause-resume": "KEY_P",
+    "osd": "KEY_M",
+    "pause": "KEY_ENTER",
     "power": "KEY_ESC",
+    "random": "KEY_R",
+    "rewind": "KEY_DELETE",
     "right": "KEY_RIGHT",
     "up": "KEY_UP",
     "volume-down": "KEY_MINUS",
     "volume-up": "KEY_EQUAL",
 }
 
+# Should match example-config.toml
+DEFAULT_IR_SCANCODES = {
+    "down": 0xD2,
+    "left": 0x99,
+    "mute": False,
+    "osd": 0x9D,
+    "pause": 0xCE,
+    "power": False,  # Would be 0x9C
+    "random": 0xCB,
+    "rewind": 0x90,
+    "right": 0xC1,
+    "up": 0xCA,
+    "volume-down": 0x81,
+    "volume-up": 0x80,
+}
+
+
 DOCKER_DEV_KEYBOARD_KEYS = {
     # These match mpv keys, NOT ones defined by evdev in example-config.toml, use: $ mpv --input-keylist
-    "back": "DEL",
     "down": "DOWN",
-    "enter": "ENTER",
-    "home": "h",
     "left": "LEFT",
-    "menu": "m",
     "mute": "0",
-    "pause-resume": "p",
+    "osd": "m",
+    "pause": "p",
     "power": "ESC",
+    "random": "ENTER",
+    "rewind": "BS",
     "right": "RIGHT",
     "up": "UP",
     "volume-down": "-",
     "volume-up": "=",
 }
 
-# Should match example-config.toml
-DEFAULT_IR_SCANCODES = {
-    "back": 0x90,
-    "down": 0xD2,
-    "enter": 0xCE,
-    "home": 0xCB,
-    "left": 0x99,
-    "menu": 0x9D,
-    "mute": False,
-    "pause-resume": False,
-    "power": False,  # Would be 0x9C
-    "right": 0xC1,
-    "up": 0xCA,
-    "volume-down": 0x81,
-    "volume-up": 0x80,
-}
 
 DEFAULT_RATINGS = [
     {"rating": "G", "description": "General"},

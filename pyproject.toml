@@ -8,6 +8,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
+janus = "^1.0.0"
 mpv = "^1.0.5"
 numpy = "^1.26.4"
 pygame-ce = "^2.4.0"
@@ -16,6 +17,7 @@ starlette = "^0.37.0"
 tomlkit = "^0.12.3"
 uvicorn = "^0.27.0.post1"
 watchfiles = "^0.21.0"
+websockets = "^12.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.1.1"

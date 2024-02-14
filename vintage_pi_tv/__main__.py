@@ -5,7 +5,7 @@ from pathlib import Path
 
 import uvicorn
 
-from vintage_pi_tv.constants import DEFAULT_CONFIG_PATHS, ENV_ARGS_VAR_NAME
+from vintage_pi_tv.constants import DEFAULT_CONFIG_PATHS, DEFAULT_PORT, ENV_ARGS_VAR_NAME
 from vintage_pi_tv.utils import is_docker
 
 
@@ -41,7 +41,11 @@ def run(args=None):
         "--host", default="0.0.0.0", help="Bind webserver to host [default: 0.0.0.0]", metavar="<ip-address>"
     )
     parser.add_argument(
-        "--port", default=6672, help="Bind webserver to port [default: 6672]", metavar="<port>", type=int
+        "--port",
+        default=DEFAULT_PORT,
+        help=f"Bind webserver to port [default: {DEFAULT_PORT}]",
+        metavar="<port>",
+        type=int,
     )
     parser.add_argument("-r", "--reload", action="store_true", help="Enable auto-reload when Python files change")
     parser.add_argument(

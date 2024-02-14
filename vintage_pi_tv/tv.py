@@ -24,6 +24,55 @@ logger = logging.getLogger(__name__)
 
 
 class VintagePiTV:
+    def __init__(
+        self,
+        state_updates_queue: queue.Queue,
+        config_file: str | Path | None = None,
+        config_wait: int = 0,
+        extra_search_dirs: list | tuple = (),
+        log_level_override: None | str = None,
+    ):
+        init_logger()
+        logger.info(f"Starting Vintage Pi TV version: {get_vintage_pi_tv_version()}")
+
+        self.init_config(config_file, config_wait, extra_search_dirs, log_level_override)
+
+        set_log_level(self.config.log_level)
+        logger.debug(f"Changed log level to {self.config.log_level}")
+
+        logger.info("Loaded config")
+        logger.debug(f"Running in mode: {is_docker()=}, {is_raspberry_pi()=}")
+
+        event_queue: queue.Queue = queue.Queue()
+        self.keyboard: Keyboard | None = None
+        if self.config.keyboard["enabled"]:
+            if KEYBOARD_AVAILABLE:
+                logger.info("Enabling keyboard")
+                self.keyboard = Keyboard(config=self.config, event_queue=event_queue)
+            elif is_docker():
+                logger.info("Enabling keyboard in Docker mode")
+            else:
+                logger.warning("Can't enable keyboard since it's not available on this platform")
+                self.config.keyboard["enabled"] = False
+
+        if (not self.config.keyboard["enabled"] or is_docker()) and self.config.ir_remote["enabled"]:
+            logger.warning("Can't enable IR remote if keyboard is disabled (or in Docker dev mode)!")
+            self.config.ir_remote["enabled"] = False
+
+        self.mpv: MPV = MPV(config=self.config, event_queue=event_queue)
+        self.videos: VideosDB = VideosDB(config=self.config)
+        self.player: Player = Player(
+            config=self.config,
+            videos_db=self.videos,
+            mpv=self.mpv,
+            keyboard=self.keyboard,
+            event_queue=event_queue,
+            state_updates_queue=state_updates_queue,
+        )
+
+        self.mpv.done_loading()
+        logger.debug("Done initializing objects")
+
     def init_config(
         self,
         config_file: str | Path | None = None,
@@ -61,49 +110,6 @@ class VintagePiTV:
             else:
                 logger.warning("Using a default config as was none specified")
             self.config = Config(path=None, extra_search_dirs=extra_search_dirs, log_level_override=log_level_override)
-
-    def __init__(
-        self,
-        config_file: str | Path | None = None,
-        config_wait: int = 0,
-        extra_search_dirs: list | tuple = (),
-        log_level_override: None | str = None,
-    ):
-        init_logger()
-        logger.info(f"Starting Vintage Pi TV version: {get_vintage_pi_tv_version()}")
-
-        self.init_config(config_file, config_wait, extra_search_dirs, log_level_override)
-
-        set_log_level(self.config.log_level)
-        logger.debug(f"Changed log level to {self.config.log_level}")
-
-        logger.info("Loaded config")
-        logger.debug(f"Running in mode: {is_docker()=}, {is_raspberry_pi()=}")
-
-        event_queue: queue.Queue = queue.Queue()
-        self.keyboard: Keyboard | None = None
-        if self.config.keyboard["enabled"]:
-            if KEYBOARD_AVAILABLE:
-                logger.info("Enabling keyboard")
-                self.keyboard = Keyboard(config=self.config, event_queue=event_queue)
-            elif is_docker():
-                logger.info("Enabling keyboard in Docker mode")
-            else:
-                logger.warning("Can't enable keyboard since it's not available on this platform")
-                self.config.keyboard["enabled"] = False
-
-        if (not self.config.keyboard["enabled"] or is_docker()) and self.config.ir_remote["enabled"]:
-            logger.warning("Can't enable IR remote if keyboard is disabled (or in Docker dev mode)!")
-            self.config.ir_remote["enabled"] = False
-
-        self.mpv: MPV = MPV(config=self.config, event_queue=event_queue)
-        self.videos: VideosDB = VideosDB(config=self.config)
-        self.player: Player = Player(
-            config=self.config, videos_db=self.videos, mpv=self.mpv, keyboard=self.keyboard, event_queue=event_queue
-        )
-
-        self.mpv.done_loading()
-        logger.debug("Done initializing objects")
 
     def startup(self):
         threads = [

@@ -54,6 +54,17 @@ def listdir_recursive(dirname):
     return (os.path.join(dp, f) for dp, _, fn in os.walk(dirname) for f in fn)
 
 
+def format_seconds(secs):
+    secs = round(secs or 0.0)
+    hours = secs // 3600
+    minutes = (secs // 60) % 60
+    seconds = secs % 60
+
+    if hours > 0:
+        return f"{hours}:{minutes:02d}:{seconds:02d}"
+    return f"{minutes}:{seconds:02d}"
+
+
 def high_precision_sleep(duration):
     start_time = time.perf_counter()
     while True:
@@ -78,7 +89,7 @@ class FPSClock:
             sleep_secs = 1.0 / fps
 
         if sleep_secs > 0:
-            time.sleep(sleep_secs)
+            high_precision_sleep(sleep_secs)
 
         self.last_tick = time.monotonic()
 

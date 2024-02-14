@@ -48,9 +48,9 @@ class Keyboard:
         if not KEYBOARD_AVAILABLE:
             raise Exception("No keyboard is available on this platform! Should not have gotten here.")
 
-        self._event_queue: queue.Queu = event_queue
+        self._event_queue: queue.Queue = event_queue
         self._config: Config = config
-        self.blocked: bool = False  # Only to be modified by player thread
+        self.blocked: bool = True  # Only to be modified by player thread
 
         self._keys_to_actions: dict[str, str] = {
             value: key for key, value in self._config.keyboard.items() if value and key in DEFAULT_KEYBOARD_KEYS.keys()

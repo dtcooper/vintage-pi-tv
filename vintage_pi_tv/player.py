@@ -4,18 +4,29 @@ import logging
 import queue
 import random
 import threading
-import time
 from time import monotonic as tick
 
 import numpy
 import numpy.typing
-from pygame import freetype
+import pygame
 
 from .config import Config
-from .constants import BLACK, BLACK_SEETHRU, NO_FILES_LAYER, OSD_LAYER, STATIC_LAYER, TRANSPARENT, YELLOW
+from .constants import (
+    BLACK,
+    BLACK_SEETHRU,
+    BLUE,
+    NO_FILES_LAYER,
+    OSD_LAYER,
+    OSD_PROGRESS_BAR_LAYER,
+    OSD_VOLUME_LAYER,
+    STATIC_LAYER,
+    TRANSPARENT,
+    WHITE,
+    YELLOW,
+)
 from .keyboard import Keyboard
 from .mpv_wrapper import MPV, Overlay
-from .utils import FPSClock, is_docker
+from .utils import FPSClock, format_seconds, high_precision_sleep, is_docker
 from .videos import Video, VideosDB
 
 
@@ -82,49 +93,115 @@ class OSD:
     def __init__(self, mpv: MPV, state_getter):
         self._state_getter = state_getter
         self._mpv: MPV = mpv
-        self._show_until: float = -1.0
-        self._show_volume_until: float = -1.0
-        self._overlay = mpv.create_overlay(OSD_LAYER)
+        import math  # XXX
+
+        self._show_until: float = math.inf
+        self._show_volume_until: float = math.inf
+        self._show_progress_bar_until: float = math.inf
+        self._osd_overlay = mpv.create_overlay(OSD_LAYER)
+        self._progress_bar_overlay = mpv.create_overlay(OSD_PROGRESS_BAR_LAYER)
+        self._volume_overlay = mpv.create_overlay(OSD_VOLUME_LAYER)
+        self._last_osd_value = None
+        self._last_progress_bar_value = None
+        self._last_volume_value = None
+
+    def _show_osd(self, state):
+        channel, name = cache_try = (str(state["video"].channel + 1), state["video"].name)
+        name = "asdjbasjkdbasdk" * 100
+        if len(name) > 58:
+            name = f"{name[:57]}\u2026"
+        if cache_try != self._last_osd_value:
+            self._osd_overlay.surf.fill(TRANSPARENT)
+            surf, chan_rect = self._mpv.render_text(channel, 120, bgcolor=BLACK_SEETHRU, padding=10, style="bold")
+            chan_rect.topleft = self._mpv.scale_pixels(15, 15)
+            self._osd_overlay.surf.blit(surf, chan_rect)
+
+            surf, name_rect = self._mpv.render_text(
+                name,
+                32,
+                color=YELLOW,
+                bgcolor=BLACK_SEETHRU,
+                padding=8,
+                style="italic",
+            )
+            name_rect.topleft = chan_rect.bottomleft
+            self._osd_overlay.surf.blit(surf, name_rect)
+
+            self._osd_overlay.update()
+            self._last_osd_value = cache_try
+
+    def _show_progress_bar(self, state):
+        position, duration = cache_try = (round(state["position"] or 0), round(state["duration"] or 0))
+        if cache_try != self._last_progress_bar_value:
+            self._progress_bar_overlay.surf.fill(TRANSPARENT)
+            surf, pos_rect = self._mpv.render_text(format_seconds(position), 25, padding=5, bgcolor=BLACK_SEETHRU)
+            pos_rect.bottomleft = (self._mpv.scale_pixels(20), self._mpv.height - 1 - self._mpv.scale_pixels(20))
+            self._progress_bar_overlay.surf.blit(surf, pos_rect)
+            surf, dur_rect = self._mpv.render_text(format_seconds(duration), 25, padding=5, bgcolor=BLACK_SEETHRU)
+            dur_rect.bottomright = (self._mpv.width - 1 - self._mpv.scale_pixels(20), pos_rect.bottom)
+            self._progress_bar_overlay.surf.blit(surf, dur_rect)
+            bar_rect = pygame.Rect(
+                0,
+                0,
+                dur_rect.left - pos_rect.right - self._mpv.scale_pixels(20) - 1,
+                dur_rect.height - self._mpv.scale_pixels(10),
+            )
+            bar_rect.centery = dur_rect.centery
+            bar_rect.left = pos_rect.right + self._mpv.scale_pixels(10)
+            pygame.draw.rect(self._progress_bar_overlay.surf, WHITE, bar_rect)
+            if duration > 0.0:
+                bar_rect.width = position / duration * bar_rect.width
+                pygame.draw.rect(self._progress_bar_overlay.surf, BLUE, bar_rect)
+
+            self._progress_bar_overlay.update()
+            self._last_progress_bar_value = cache_try
+
+    def _show_volume(self, state):
+        pass
+
+    def _clear_osd(self):
+        self._last_osd_value = None
+        self._osd_overlay.clear()
+
+    def _clear_progress_bar(self):
+        self._last_progress_bar_value = None
+        self._progress_bar_overlay.clear()
+
+    def _clear_volume(self):
+        self._last_volume_value = None
+        self._volume_overlay.clear()
 
     def osd_thread(self):
-        self._overlay.clear()
+        self._clear_osd()
+        self._clear_progress_bar()
+        self._clear_volume()
         clock = FPSClock()
-        shown = True
 
         while True:
             # show = tick() <= self._show_until
             # show_volume = tick() <= self._show_volume_until
             state = self._state_getter()
 
-            show = True
-            show_volume = True
-            if state["video"] and (show or show_volume):
+            now = tick()
+            show_volume = self._show_until > now
+            show_progress_bar = self._show_progress_bar_until > now
+            show_osd = show_volume or show_progress_bar or self._show_until > now
+            if state["video"] and show_osd:
+                self._show_osd(state)
+                if show_progress_bar:
+                    self._show_progress_bar(state)
+                else:
+                    self._clear_progress_bar()
 
-                self._overlay.surf.fill(TRANSPARENT)
-                surf, chan_rect = self._mpv.render_text(
-                    str(state["video"].channel + 1), 72, bgcolor=BLACK_SEETHRU, padding=10, style=freetype.STYLE_WIDE
-                )
-                chan_rect.topleft = self._mpv.scale_pixels(15, 15)
-                self._overlay.surf.blit(surf, chan_rect)
-
-                surf, name_rect = self._mpv.render_text(
-                    state["video"].name,
-                    32,
-                    color=YELLOW,
-                    bgcolor=BLACK_SEETHRU,
-                    padding=8,
-                    style=freetype.STYLE_OBLIQUE,
-                )
-                name_rect.topleft = chan_rect.bottomleft
-                self._overlay.surf.blit(surf, name_rect)
-
-                self._overlay.update()
-                shown = True
+                if show_volume:
+                    self._show_volume(state)
+                else:
+                    self._clear_volume()
             else:
-                if shown:
-                    self._overlay.clear()
-                    shown = False
-            clock.tick(18)
+                self._clear_osd()
+                self._clear_progress_bar()
+                self._clear_volume()
+            clock.tick(24)
 
 
 @contextmanager
@@ -147,7 +224,13 @@ def _block_keyboard(self: "Player"):
 
 class Player:
     def __init__(
-        self, config: Config, videos_db: VideosDB, mpv: MPV, keyboard: None | Keyboard, event_queue: queue.Queue
+        self,
+        config: Config,
+        videos_db: VideosDB,
+        mpv: MPV,
+        keyboard: None | Keyboard,
+        event_queue: queue.Queue,
+        state_updates_queue: queue.Queue,
     ):
         self._mpv: MPV = mpv
         self._config: Config = config
@@ -156,6 +239,7 @@ class Player:
         self._event_queue: queue.Queue = event_queue
         self._keyboard: None | Keyboard = keyboard
         self.state: dict[str, Video | PlayerState | float]
+        self._state_updates_queue: queue.Queue = state_updates_queue
         self._reset_state()
 
         self.osd: OSD = OSD(mpv=mpv, state_getter=self._state_getter)
@@ -172,7 +256,7 @@ class Player:
         text, rect = self._mpv.render_multiple_lines(
             (
                 {"text": "No video files detected!", "size": 58},
-                {"text": "Waiting. Please insert USB drive with videos.", "size": 36, "style": freetype.STYLE_OBLIQUE},
+                {"text": "Waiting. Please insert USB drive with videos.", "size": 36, "style": "italic"},
             ),
             bgcolor=BLACK,
             padding=10,
@@ -195,18 +279,54 @@ class Player:
         self.state = {**self.state, **kwargs}
         if len(self.state) != self._num_state_keys:
             raise Exception("State should only contain 4 keys! Something went wrong!")
-        # logger.critical(f"{self.state = }")
+        self._publish_state()
 
     def _reset_state(self):
         self.state = {"duration": 0.0, "position": 0.0, "state": PlayerState.LOADING, "video": None}
+        self._publish_state()
+
+    def _publish_state(self):
+        state = self.state
+        self._state_updates_queue.put({
+            **state,
+            "video": state["video"] and state["video"].serialize(),
+        })
 
     def _event_queue_iter(self):
         while True:
             yield self._event_queue.get()
 
+    def _handle_keypress(self, video: Video, event: dict) -> None | Video:
+        next_video: None | Video = None
+        logger.debug(f"Got key press event: {event}")
+        match event["action"]:
+            case "random":
+                self._mpv.stop()
+            case "pause":
+                if self.state["state"] == PlayerState.PAUSED:
+                    self._mpv.resume()
+                elif self.state["state"] == PlayerState.PLAYING:
+                    self._mpv.pause()
+            case "up" | "down":
+                add = 1 if event["action"] == "up" else -1
+                next_video = self._videos_db.get_video_for_channel(video.channel + add)
+                self._mpv.stop()
+            case "right" | "left":
+                multiplier = 1 if event["action"] == "right" else -1
+                self._mpv.seek(multiplier * 30.0)
+            case _:
+                logger.critical(f"Uknown keypress: {event['action']}")
+        return next_video
+
     def player_thread(self):
         video: None | Video = None
         next_video: None | Video = None
+
+        # Unblock keyboard
+        if self._keyboard is not None:
+            self._keyboard.blocked = False
+        elif self._config.keyboard["enabled"] and is_docker():
+            self._mpv.docker_keyboard_blocked = False
 
         while True:
             self._reset_state()
@@ -219,7 +339,7 @@ class Player:
             if static_time is not None:
                 with _block_keyboard(self):
                     self.static.start()
-                    time.sleep(self._config.static_time_between_channels)
+                    high_precision_sleep(static_time)
 
             video = self._videos_db.get_random_video() if next_video is None else next_video
             next_video = None
@@ -252,19 +372,7 @@ class Player:
                                         self._videos_db.mark_bad_video(video)
                                     raise BreakVideoPlayLoop
                                 case "keypress":
-                                    match event["action"]:
-                                        case "enter":
-                                            self._mpv.stop()
-                                        case "up" | "down":
-                                            add = 1 if event["action"] == "up" else -1
-                                            next_video = self._videos_db.get_video_for_channel(video.channel + add)
-                                            self._mpv.stop()
-                                        case "right" | "left":
-                                            multiplier = 1 if event["action"] == "right" else -1
-                                            self._mpv.seek(multiplier * 30.0)
-                                        case _:
-                                            logger.critical(f"Uknown keypress: {event['action']}")
-
+                                    next_video = self._handle_keypress(video, event)
                                 case _:
                                     logger.critical(f"Unknown event: {event}")
                 except BreakVideoPlayLoop:

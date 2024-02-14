@@ -44,6 +44,9 @@ class Video:
     def display_channel(self) -> int:
         return self.channel + 1
 
+    def serialize(self):
+        return {"path": str(self.path), "channel": self.channel + 1, "rating": self.rating, "name": self.name}
+
     def __repr__(self):
         return f"Video(name={self.name!r}, path={self.path!r}, channel={self.channel})"
 
