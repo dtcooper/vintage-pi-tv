@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import enum
 import logging
 import queue
@@ -12,8 +13,9 @@ from pygame import freetype
 
 from .config import Config
 from .constants import BLACK, BLACK_SEETHRU, NO_FILES_LAYER, OSD_LAYER, STATIC_LAYER, TRANSPARENT, YELLOW
+from .keyboard import Keyboard
 from .mpv_wrapper import MPV, Overlay
-from .utils import FPSClock
+from .utils import FPSClock, is_docker
 from .videos import Video, VideosDB
 
 
@@ -100,7 +102,7 @@ class OSD:
 
                 self._overlay.surf.fill(TRANSPARENT)
                 surf, chan_rect = self._mpv.render_text(
-                    str(state["video"].channel), 72, bgcolor=BLACK_SEETHRU, padding=10, style=freetype.STYLE_WIDE
+                    str(state["video"].channel + 1), 72, bgcolor=BLACK_SEETHRU, padding=10, style=freetype.STYLE_WIDE
                 )
                 chan_rect.topleft = self._mpv.scale_pixels(15, 15)
                 self._overlay.surf.blit(surf, chan_rect)
@@ -125,24 +127,44 @@ class OSD:
             clock.tick(18)
 
 
+@contextmanager
+def _block_keyboard(self: "Player"):
+    if self._keyboard is not None:
+        self._keyboard.blocked = True
+        try:
+            yield
+        finally:
+            self._keyboard.blocked = False
+    elif self._config.keyboard["enabled"] and is_docker():
+        self._mpv.docker_keyboard_blocked = True
+        try:
+            yield
+        finally:
+            self._mpv.docker_keyboard_blocked = False
+    else:
+        yield
+
+
 class Player:
-    def __init__(self, config: Config, videos_db: VideosDB, mpv: MPV, event_queue: queue.Queue):
+    def __init__(
+        self, config: Config, videos_db: VideosDB, mpv: MPV, keyboard: None | Keyboard, event_queue: queue.Queue
+    ):
         self._mpv: MPV = mpv
         self._config: Config = config
         self._videos_db: VideosDB = videos_db
         self._shared_data_lock: threading.Lock = threading.Lock()
         self._event_queue: queue.Queue = event_queue
+        self._keyboard: None | Keyboard = keyboard
         self.state: dict[str, Video | PlayerState | float]
         self._reset_state()
 
         self.osd: OSD = OSD(mpv=mpv, state_getter=self._state_getter)
         self.static: Static = Static(config=config, mpv=mpv)
-        self.static.start()
         self._generate_no_videos_overlay()
 
         self._num_state_keys = len(self.state)
 
-    def _state_getter(self):
+    def _state_getter(self) -> dict:
         return self.state
 
     def _generate_no_videos_overlay(self):
@@ -187,13 +209,17 @@ class Player:
         next_video: None | Video = None
 
         while True:
-            self._reset_state()  # Reset state
+            self._reset_state()
+            static_time = None
+
             if next_video is not None and self._config.static_time_between_channels > 0.0:
-                self.static.start()
-                time.sleep(self._config.static_time_between_channels)
+                static_time = self._config.static_time_between_channels
             elif next_video is None and self._config.static_time > 0.0:
-                self.static.start()
-                time.sleep(self._config.static_time)
+                static_time = self._config.static_time
+            if static_time is not None:
+                with _block_keyboard(self):
+                    self.static.start()
+                    time.sleep(self._config.static_time_between_channels)
 
             video = self._videos_db.get_random_video() if next_video is None else next_video
             next_video = None
@@ -221,7 +247,9 @@ class Player:
                                     elif not event["value"] and self.state["state"] == PlayerState.PAUSED:
                                         self._update_state(state=PlayerState.PLAYING)
                                 case "end-file":
-                                    logger.critical(f"end-file: {event}")
+                                    if event["reason"] == "error":
+                                        logger.warning(f"Error with video {video.path}. Disabling it.")
+                                        self._videos_db.mark_bad_video(video)
                                     raise BreakVideoPlayLoop
                                 case "keypress":
                                     match event["action"]:
@@ -244,7 +272,8 @@ class Player:
 
             else:
                 self._update_state(video=None, position=0.0, duration=0.0, state=PlayerState.NEEDS_FILES)
-                self.static.stop()
-                self._no_videos_overlay.update()
-                self._videos_db.has_videos_event.wait()
-                self._no_videos_overlay.clear()
+                with _block_keyboard(self):
+                    self.static.stop()
+                    self._no_videos_overlay.update()
+                    self._videos_db.has_videos_event.wait()
+                    self._no_videos_overlay.clear()

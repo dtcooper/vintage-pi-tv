@@ -34,6 +34,23 @@ DEFAULT_KEYBOARD_KEYS = {
     "volume-up": "KEY_EQUAL",
 }
 
+DOCKER_DEV_KEYBOARD_KEYS = {
+    # These match mpv keys, NOT ones defined by evdev in example-config.toml, use: $ mpv --input-keylist
+    "back": "DEL",
+    "down": "DOWN",
+    "enter": "ENTER",
+    "home": "h",
+    "left": "LEFT",
+    "menu": "m",
+    "mute": "0",
+    "pause-resume": "p",
+    "power": "ESC",
+    "right": "RIGHT",
+    "up": "UP",
+    "volume-down": "-",
+    "volume-up": "=",
+}
+
 # Should match example-config.toml
 DEFAULT_IR_SCANCODES = {
     "back": 0x90,

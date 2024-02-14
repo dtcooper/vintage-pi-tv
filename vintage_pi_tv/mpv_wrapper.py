@@ -11,15 +11,15 @@ import pygame
 from pygame import freetype
 
 from .config import Config
-from .constants import TRANSPARENT, WHITE
-from .utils import TRACE
+from .constants import DOCKER_DEV_KEYBOARD_KEYS, TRANSPARENT, WHITE
+from .utils import TRACE, is_docker
 from .videos import Video
 
 
 logger = logging.getLogger(__name__)
 
 
-mpv_log_level_mapping = {
+MPV_LOG_LEVEL_MAPPING = {
     "fatal": logging.CRITICAL,
     "error": logging.ERROR,
     "warn": logging.WARNING,
@@ -29,7 +29,7 @@ mpv_log_level_mapping = {
     "debug": TRACE,
 }
 
-log_level_mpv_mapping = {
+LOG_LEVEL_MPV_MAPPING = {
     "CRITICAL": "fatal",
     "ERROR": "error",
     "WARNING": "warn",
@@ -40,7 +40,7 @@ log_level_mpv_mapping = {
 
 
 def mpv_log(level, prefix, text):
-    logger.log(mpv_log_level_mapping.get(level, logging.INFO), f"[mpv/{prefix}] {text.rstrip()}")
+    logger.log(MPV_LOG_LEVEL_MAPPING.get(level, logging.INFO), f"[mpv/{prefix}] {text.rstrip()}")
 
 
 class Overlay:
@@ -86,11 +86,14 @@ class MPV:
             logger.debug("Setting panscan to 1.0 for zoom")
             kwargs["panscan"] = "1.0"
 
+        if config.keyboard["enabled"] and is_docker():
+            kwargs["input_vo_keyboard"] = True
+
         logger.debug(f"Initializing MPV with arguments: {kwargs}")
         try:
             self._player: mpv.MPV = mpv.MPV(
                 log_handler=mpv_log,
-                loglevel=log_level_mpv_mapping[config.log_level],
+                loglevel=LOG_LEVEL_MPV_MAPPING[config.log_level],
                 force_window="immediate",
                 **kwargs,
             )
@@ -128,6 +131,11 @@ class MPV:
         @self._player.property_observer("core-idle")
         def _(_, value):
             self._event_queue.put({"event": "paused", "value": value})
+
+        if is_docker() and config.keyboard["enabled"]:
+            self.docker_keyboard_blocked: bool = False  # Only modify in player thread
+            for action, key in DOCKER_DEV_KEYBOARD_KEYS.items():
+                self._enable_docker_key_binding(key, action)
 
         # Since we're primarily operating in fullscreen mode (except in development) window size should not be changed.
         # And if it does change, user is shit out of luck
@@ -274,3 +282,14 @@ class MPV:
 
     def seek(self, amount: float):
         self._player.seek(amount)
+
+    if is_docker():
+        def _enable_docker_key_binding(self, key, action):
+            logger.debug(f"Enabling Mpv key {key} in Docker mode")
+
+            @self._player.on_key_press(key)
+            def _():
+                if self.docker_keyboard_blocked:
+                    logger.critical(f"Blocked keypress {key} by player request in Docker mode")
+                else:
+                    self._event_queue.put({"event": "keypress", "action": action, "hold": False})

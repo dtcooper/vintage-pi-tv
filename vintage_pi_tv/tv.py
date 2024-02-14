@@ -60,7 +60,7 @@ class VintagePiTV:
                 logger.warning(f"Using a default config, none found at: {', '.join(map(str, config_file_tries))}")
             else:
                 logger.warning("Using a default config as was none specified")
-            self.config = Config(path=None, extra_search_dirs=extra_search_dirs)
+            self.config = Config(path=None, extra_search_dirs=extra_search_dirs, log_level_override=log_level_override)
 
     def __init__(
         self,
@@ -81,22 +81,26 @@ class VintagePiTV:
         logger.debug(f"Running in mode: {is_docker()=}, {is_raspberry_pi()=}")
 
         event_queue: queue.Queue = queue.Queue()
-
         self.keyboard: Keyboard | None = None
-        if KEYBOARD_AVAILABLE:
-            if self.config.keyboard["enabled"]:
+        if self.config.keyboard["enabled"]:
+            if KEYBOARD_AVAILABLE:
+                logger.info("Enabling keyboard")
                 self.keyboard = Keyboard(config=self.config, event_queue=event_queue)
-        elif self.config.keyboard["enabled"]:
-            logger.warning("Can't enable keyboard since it's not available on this platform")
-            self.config.keyboard["enabled"] = False
+            elif is_docker():
+                logger.info("Enabling keyboard in Docker mode")
+            else:
+                logger.warning("Can't enable keyboard since it's not available on this platform")
+                self.config.keyboard["enabled"] = False
 
-        if not self.config.keyboard["enabled"] and self.config.ir_remote["enabled"]:
-            logger.warning("Can't enable IR remote if keyboard is disabled!")
+        if (not self.config.keyboard["enabled"] or is_docker()) and self.config.ir_remote["enabled"]:
+            logger.warning("Can't enable IR remote if keyboard is disabled (or in Docker dev mode)!")
             self.config.ir_remote["enabled"] = False
 
         self.mpv: MPV = MPV(config=self.config, event_queue=event_queue)
         self.videos: VideosDB = VideosDB(config=self.config)
-        self.player: Player = Player(config=self.config, videos_db=self.videos, mpv=self.mpv, event_queue=event_queue)
+        self.player: Player = Player(
+            config=self.config, videos_db=self.videos, mpv=self.mpv, keyboard=self.keyboard, event_queue=event_queue
+        )
 
         self.mpv.done_loading()
         logger.debug("Done initializing objects")
@@ -112,8 +116,6 @@ class VintagePiTV:
         ]
         if self.keyboard:
             threads.append(self.keyboard.keyboard_thread)
-        # if self.config.static_time > 0:
-        #     threads.append(self.player.run_static_thread)
 
         for thread in threads:
             target, kwargs = thread if isinstance(thread, tuple) else (thread, {})

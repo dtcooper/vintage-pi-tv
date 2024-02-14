@@ -48,10 +48,11 @@ class Keyboard:
         if not KEYBOARD_AVAILABLE:
             raise Exception("No keyboard is available on this platform! Should not have gotten here.")
 
-        self._event_queue = event_queue
-        self._config = config
+        self._event_queue: queue.Queu = event_queue
+        self._config: Config = config
+        self.blocked: bool = False  # Only to be modified by player thread
 
-        self._keys_to_actions = {
+        self._keys_to_actions: dict[str, str] = {
             value: key for key, value in self._config.keyboard.items() if value and key in DEFAULT_KEYBOARD_KEYS.keys()
         }
 
@@ -106,9 +107,12 @@ class Keyboard:
             self._config.ir_remote["enabled"] = False
 
     def _process_key(self, key, hold=False):
-        action = self._keys_to_actions.get(key)
-        if action is not None and (not hold or action in self.ALLOW_HOLD_ACTIONS):
-            self._event_queue.put({"event": "keypress", "action": action, "hold": hold})
+        if self.blocked:
+            logger.debug(f"Blocked keypress {key} by player request")
+        else:
+            action = self._keys_to_actions.get(key)
+            if action is not None and (not hold or action in self.ALLOW_HOLD_ACTIONS):
+                self._event_queue.put({"event": "keypress", "action": action, "hold": hold})
 
     def keyboard_thread(self):
         # Listening for key events on Linux is a fucking mess.
