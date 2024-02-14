@@ -49,7 +49,24 @@ class Video:
 
 
 class VideosDB:
+    def __init__(self, config: Config):
+        self.config: Config = config
+        self._search_dirs: list[Path] = []
+        self._search_dirs_recursive: list[Path] = []
+        self._exclude_dirs: list[Path] = []
+        self._wants_channel_rebuild: bool = True
+        self._rebuild_event: threading.Event = threading.Event()
+        self._channel_lock: threading.Lock = threading.Lock()
+        self.watch_stop_event = threading.Event()
+        self.has_videos_event = threading.Event()
+
+        self._init_dirs()
+        self._rebuild_channels()
+
+        logger.info("Videos DB fully initialized")
+
     def _init_dirs(self):
+        self._bad_video_paths = set()
         self._search_dirs = list()
         self._search_dirs_recursive = list()
         self._exclude_dirs = list()
@@ -80,6 +97,10 @@ class VideosDB:
     def _is_valid_video_path(self, path: Path):
         # Ends with a valid extension
         if not path.name.strip().lower().endswith(self.config.valid_file_extensions):
+            return False
+
+        if path in self._bad_video_paths:
+            logger.trace(f"Video at {path} was marked bad. Filtering.")
             return False
 
         for exclude_dir in self._exclude_dirs:
@@ -175,6 +196,10 @@ class VideosDB:
         with self._channel_lock:
             self._videos = {"objects": videos, "channels": {v.path: i for i, v in enumerate(videos)}}
             logger.info(f"Generated {len(self.videos)} channels, ignored {ignored_files} files")
+            if videos:
+                self.has_videos_event.set()
+            else:
+                self.has_videos_event.clear()
 
     @property
     def videos(self) -> list[Video]:
@@ -182,19 +207,24 @@ class VideosDB:
 
     @property
     def channels(self) -> dict[Path, int]:
-        return self._videos["channel"]
+        return self._videos["channels"]
 
     def get_random_video(self) -> Video:
-        video = random.choice(self.videos)
-        logger.debug(f"Randomly chose video {video.path}")
+        with self._channel_lock:  # Prevents self.videos from being modified while working here
+            if self.videos:
+                video = random.choice(self.videos)
+                logger.debug(f"Randomly chose video {video.path}")
+            else:
+                video = None
+
         return video
 
     def get_video_for_channel(self, channel: int) -> Video:
         with self._channel_lock:  # Prevents self.videos from being modified while working here
-            if len(self.channels) == 0:
+            num_channels = len(self.channels)
+            if num_channels == 0:
                 return None
-            channel = channel % len(self.channels)
-            return self.video[channel]
+            return self.videos[channel % num_channels]
 
     def rebuild_channels_thread(self):
         while True:
@@ -220,17 +250,6 @@ class VideosDB:
         else:
             logger.debug(f"No need to start watch-dirs thread for {recursive=}")
 
-    def __init__(self, config: Config):
-        self.config: Config = config
-        self._search_dirs: list[Path] = []
-        self._search_dirs_recursive: list[Path] = []
-        self._exclude_dirs: list[Path] = []
-        self._wants_channel_rebuild: bool = True
-        self._rebuild_event: threading.Event = threading.Event()
-        self._channel_lock: threading.Lock = threading.Lock()
-        self.watch_stop_event = threading.Event()
-
-        self._init_dirs()
-        self._rebuild_channels()
-
-        logger.info("Videos DB fully initialized")
+    def mark_bad_video(self, video: Video) -> None:
+        self._bad_video_paths.add(video.path)
+        self._rebuild_event.set()

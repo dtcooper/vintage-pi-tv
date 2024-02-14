@@ -66,7 +66,9 @@ def run(args=None):
 
     uvicorn_kwargs = {"host": args.host, "port": args.port}
     if args.reload:
-        uvicorn_kwargs.update({"reload": True, "reload_includes": ["*.py", "*.toml"]})
+        uvicorn_kwargs.update(
+            {"reload": True, "reload_includes": ["*.py", "*.toml"], "reload_dirs": [Path(__file__).resolve().parent]}
+        )
 
     os.environ[ENV_ARGS_VAR_NAME] = json.dumps(env, sort_keys=True, separators=(",", ":"))
     os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"

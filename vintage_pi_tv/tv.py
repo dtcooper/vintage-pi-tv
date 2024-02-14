@@ -80,11 +80,12 @@ class VintagePiTV:
         logger.info("Loaded config")
         logger.debug(f"Running in mode: {is_docker()=}, {is_raspberry_pi()=}")
 
-        self.event_queue = queue.Queue()
+        event_queue: queue.Queue = queue.Queue()
+
         self.keyboard: Keyboard | None = None
         if KEYBOARD_AVAILABLE:
             if self.config.keyboard["enabled"]:
-                self.keyboard = Keyboard(config=self.config, queue=self.event_queue)
+                self.keyboard = Keyboard(config=self.config, event_queue=event_queue)
         elif self.config.keyboard["enabled"]:
             logger.warning("Can't enable keyboard since it's not available on this platform")
             self.config.keyboard["enabled"] = False
@@ -93,15 +94,12 @@ class VintagePiTV:
             logger.warning("Can't enable IR remote if keyboard is disabled!")
             self.config.ir_remote["enabled"] = False
 
-        self.mpv: MPV = MPV(config=self.config)
+        self.mpv: MPV = MPV(config=self.config, event_queue=event_queue)
         self.videos: VideosDB = VideosDB(config=self.config)
-        self.player: Player = Player(config=self.config, videos_db=self.videos, mpv=self.mpv)
+        self.player: Player = Player(config=self.config, videos_db=self.videos, mpv=self.mpv, event_queue=event_queue)
+
         self.mpv.done_loading()
         logger.debug("Done initializing objects")
-
-    def test_event_queue_consumer_thread(self):
-        while item := self.event_queue.get():
-            logger.info(f"XXX --- Got keypress: {item}")
 
     def startup(self):
         threads = [
@@ -110,7 +108,6 @@ class VintagePiTV:
             (self.videos.watch_thread, {"name": "watch", "kwargs": {"recursive": False}, "daemon": False}),
             (self.videos.watch_thread, {"name": "watch_recursive", "kwargs": {"recursive": True}, "daemon": False}),
             self.videos.rebuild_channels_thread,
-            (self.test_event_queue_consumer_thread, {"name": "keyboard_test"}),
             self.player.player_thread,
         ]
         if self.keyboard:

@@ -1,8 +1,9 @@
 import enum
 import logging
+import queue
 import random
 import threading
-from time import monotonic as tick
+import time
 
 import numpy
 import numpy.typing
@@ -19,16 +20,14 @@ logger = logging.getLogger(__name__)
 
 
 class PlayerState(enum.StrEnum):
-    STATIC = "static"
+    LOADING = "loading"
     NEEDS_FILES = "needs-files"
     PLAYING = "playing"
-
-
-class PlayState(enum.StrEnum):
-    NOT_PLAYING = "not-playing"
-    LOADING = "loading"
-    PLAYING = "playing"
     PAUSED = "paused"
+
+
+class BreakVideoPlayLoop(Exception):
+    pass
 
 
 class Static:
@@ -36,11 +35,12 @@ class Static:
     NUM_NO_REPEATS = 7
 
     def __init__(self, config: Config, mpv: MPV):
-        self._enabled = config.static_time > 0
-        self._mpv = mpv
-        if self._enabled:
+        self.enabled = config.static_time > 0.0
+        if self.enabled > 0:
             self._event: threading.Event = threading.Event()
             self._overlays: list[Overlay] = []
+            self._mpv: MPV = mpv
+            self._config: Config = config
             logger.debug(f"Generating {self.NUM_OVERLAYS} random static overlays ({mpv.width}x{mpv.height})")
             for _ in range(self.NUM_OVERLAYS):
                 array = numpy.random.randint(0, 0xFF + 1, mpv.shape, dtype=numpy.uint8)
@@ -70,22 +70,32 @@ class Static:
             self._mpv.clear_overlay(STATIC_LAYER)
 
     def start(self):
-        if self._enabled:
+        if self.enabled:
             self._event.set()
 
     def stop(self):
-        if self._enabled and self._event.is_set():  # Not threadsafe but only Player.player_thread is calling
+        if self.enabled:
             self._event.clear()
+
+    def sleep(self, short: bool = False):
+        if self.enabled:
+            time.sleep(self._config.static_time / 5 if short else self._config.static_time)
 
 
 class Player:
-    def __init__(self, config: Config, videos_db: VideosDB, mpv: MPV):
-        self._mpv = mpv
-        self._config = config
-        self._videos_db = videos_db
-        self.static = Static(config=config, mpv=mpv)
+    def __init__(self, config: Config, videos_db: VideosDB, mpv: MPV, event_queue: queue.Queue):
+        self._mpv: MPV = mpv
+        self._config: Config = config
+        self._videos_db: VideosDB = videos_db
+        self._shared_data_lock: threading.Lock = threading.Lock()
+        self._event_queue: queue.Queue = event_queue
+        self.static: Static = Static(config=config, mpv=mpv)
         self.static.start()
         self._generate_no_videos_overlay()
+        self._reset_state()
+        self._num_state_keys = len(self.state)
+
+        self.state: dict[str, Video | PlayerState | float]
 
     def _generate_no_videos_overlay(self):
         self._no_videos_overlay: Overlay = self._mpv.create_overlay(NO_FILES_LAYER)
@@ -111,71 +121,79 @@ class Player:
             self._no_videos_overlay.clear()
             self._no_videos_overlay_shown = False
 
-    def player_thread(self):
-        clock = FPSClock()
-        timeout = tick() + self._config.static_time
-        video: None | Video = None
-        state = PlayerState.STATIC
-        play_state = PlayState.NOT_PLAYING
+    def _update_state(self, **kwargs):
+        self.state = {**self.state, **kwargs}
+        if len(self.state) != self._num_state_keys:
+            raise Exception("State should only contain 4 keys! Something went wrong!")
+        # logger.critical(f"{self.state = }")
 
-        position = duration = 0.0
+    def _reset_state(self):
+        self.state = {"duration": 0.0, "position": 0.0, "state": PlayerState.LOADING, "video": None}
 
-        def play_next():
-            nonlocal video, state, play_state, timeout, position, duration
-            position = duration = 0.0
-            video = self._videos_db.get_random_video()
-            if video is None:
-                self.static.stop()
-                logger.trace("Warning: No videos found!")
-                state = PlayerState.NEEDS_FILES
-                play_state = PlayState.NOT_PLAYING
-            else:
-                self._no_videos_text(show=False)
-                state = PlayerState.PLAYING
-                play_state = PlayState.LOADING
-                logger.info(f"Playing {video.path}")
-                self._mpv._player.loadfile(str(video.path))
-                timeout = tick() + 10  # 10 seconds to load
-
-        i = 0
+    def _event_queue_iter(self):
         while True:
-            match state:
-                case PlayerState.STATIC:
-                    if tick() > timeout:
-                        self.static.stop()
-                        play_next()
+            yield self._event_queue.get()
 
-                case PlayerState.NEEDS_FILES:
-                    self._no_videos_text(show=True)
-                    play_next()
+    def player_thread(self):
+        video: None | Video = None
+        next_video: None | Video = None
 
-                case PlayerState.PLAYING:
-                    if play_state == PlayState.LOADING:
-                        if not self._mpv.core_idle:
-                            self.static.stop()
-                            logger.debug("core-idle now false")
-                            play_state = PlayState.PLAYING
-                            self._mpv._player.seek(self._mpv._player.duration - 15.0)
-                        elif tick() > timeout:
-                            logger.info(f"Failed to start {video.path} in time. Marking as failed.")
-                            # XXX TODO
+        while True:
+            self._reset_state()  # Reset state
+            if self._config.static_time > 0:
+                self.static.start()
+                self.static.sleep(short=next_video is not None)
 
-                    else:
-                        if self._mpv.core_idle:
-                            position = duration = 0.0
-                            self.static.start()
-                            state = PlayerState.STATIC
-                            play_state = PlayState.NOT_PLAYING
-                            timeout = tick() + self._config.static_time
-                        else:
-                            position = self._mpv._player.time_pos
-                            duration = self._mpv._player.duration
+            video = self._videos_db.get_random_video() if next_video is None else next_video
+            next_video = None
 
-            logger.critical(
-                f"core-idle={self._mpv.core_idle} path={video.path.stem if video else 'none'} {position=} {duration=}"
-            )
+            if video is not None:
+                logger.info(f"Playing {video.path}")
+                self._mpv.play(video)
 
-            clock.tick(12)
-            if (i := i + 1) > 12:
-                pass  # Broadcast stats
-                i = 0
+                try:
+                    while True:
+                        for event in self._event_queue_iter():
+                            match event["event"]:
+                                case "file-loaded":
+                                    self._update_state(
+                                        video=video, position=0.0, duration=0.0, state=PlayerState.PLAYING
+                                    )
+                                    self.static.stop()
+                                case "position":
+                                    self._update_state(position=event["value"])
+                                case "duration":
+                                    self._update_state(duration=event["value"])
+                                case "paused":
+                                    if event["value"] and self.state["state"] == PlayerState.PLAYING:
+                                        self._update_state(state=PlayerState.PAUSED)
+                                    elif not event["value"] and self.state["state"] == PlayerState.PAUSED:
+                                        self._update_state(state=PlayerState.PLAYING)
+                                case "end-file":
+                                    logger.critical(f"end-file: {event}")
+                                    raise BreakVideoPlayLoop
+                                case "keypress":
+                                    match event["action"]:
+                                        case "enter":
+                                            self._mpv.stop()
+                                        case "up" | "down":
+                                            add = 1 if event["action"] == "up" else -1
+                                            next_video = self._videos_db.get_video_for_channel(video.channel + add)
+                                            self._mpv.stop()
+                                        case "right" | "left":
+                                            multiplier = 1 if event["action"] == "right" else -1
+                                            self._mpv.seek(multiplier * 30.0)
+                                        case _:
+                                            logger.critical(f"Uknown keypress: {event['action']}")
+
+                                case _:
+                                    logger.critical(f"Unknown event: {event}")
+                except BreakVideoPlayLoop:
+                    pass
+
+            else:
+                self._update_state(video=None, position=0.0, duration=0.0, state=PlayerState.NEEDS_FILES)
+                self.static.stop()
+                self._no_videos_overlay.update()
+                self._videos_db.has_videos_event.wait()
+                self._no_videos_overlay.clear()

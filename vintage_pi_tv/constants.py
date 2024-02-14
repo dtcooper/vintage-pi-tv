@@ -24,6 +24,7 @@ DEFAULT_KEYBOARD_KEYS = {
     "left": "KEY_LEFT",
     "menu": "KEY_M",
     "mute": "KEY_0",
+    "pause-resume": "KEY_P",
     "power": "KEY_ESC",
     "right": "KEY_RIGHT",
     "up": "KEY_UP",
@@ -40,6 +41,7 @@ DEFAULT_IR_SCANCODES = {
     "left": 0x99,
     "menu": 0x9D,
     "mute": False,
+    "pause-resume": False,
     "power": False,  # Would be 0x9C
     "right": 0xC1,
     "up": 0xCA,

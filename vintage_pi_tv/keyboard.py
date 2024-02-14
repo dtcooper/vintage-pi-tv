@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 
 import tomlkit
 
-from .constants import DEFAULT_IR_SCANCODES
+from .constants import DEFAULT_IR_SCANCODES, DEFAULT_KEYBOARD_KEYS
 
 
 if TYPE_CHECKING:
@@ -42,13 +42,31 @@ def is_valid_key(s):
 
 
 class Keyboard:
+    ALLOW_HOLD_ACTIONS = {"volume-up", "volume-down", "right", "left"}
+
+    def __init__(self, config: Config, event_queue: queue.Queue):
+        if not KEYBOARD_AVAILABLE:
+            raise Exception("No keyboard is available on this platform! Should not have gotten here.")
+
+        self._event_queue = event_queue
+        self._config = config
+
+        self._keys_to_actions = {
+            value: key for key, value in self._config.keyboard.items() if value and key in DEFAULT_KEYBOARD_KEYS.keys()
+        }
+
+        if self._config.ir_remote["enabled"]:
+            self._enable_ir_remote()
+        else:
+            logger.info("IR remote disabled")
+
     def _enable_ir_remote(self):
         scancodes = tomlkit.table()
 
         for key in DEFAULT_IR_SCANCODES.keys():
-            value = self.config.ir_remote[key]
+            value = self._config.ir_remote[key]
             if not isinstance(value, bool):
-                if keyboard_key := self.config.keyboard[key]:
+                if keyboard_key := self._config.keyboard[key]:
                     item = tomlkit.item(keyboard_key)
                     item.comment(key)
                     scancodes.add(f"0x{value:02X}", item)
@@ -63,8 +81,8 @@ class Keyboard:
             toml["protocols"].append(
                 tomlkit.item({
                     "name": "Vintage Pi TV Remote",
-                    "protocol": self.config.ir_remote["protocol"],
-                    "variant": self.config.ir_remote["variant"],
+                    "protocol": self._config.ir_remote["protocol"],
+                    "variant": self._config.ir_remote["variant"],
                     "scancodes": scancodes,
                 })
             )
@@ -85,7 +103,12 @@ class Keyboard:
 
         else:
             logger.warning("No scancodes provided for IR remote. Disabling")
-            self.config.ir_remote["enabled"] = False
+            self._config.ir_remote["enabled"] = False
+
+    def _process_key(self, key, hold=False):
+        action = self._keys_to_actions.get(key)
+        if action is not None and (not hold or action in self.ALLOW_HOLD_ACTIONS):
+            self._event_queue.put({"event": "keypress", "action": action, "hold": hold})
 
     def keyboard_thread(self):
         # Listening for key events on Linux is a fucking mess.
@@ -131,10 +154,15 @@ class Keyboard:
                             try:
                                 for event in device.read():
                                     if event.type == EV_KEY:
-                                        if event.value == KEY_EVENT_DOWN:
-                                            self.queue.put(("KEYPRESS", "DOWN", KEY[event.code]))
-                                        elif event.value == KEY_EVENT_HOLD:
-                                            self.queue.put(("KEYPRESS", "HOLD", KEY[event.code]))
+                                        if event.value in (KEY_EVENT_DOWN, KEY_EVENT_HOLD):
+                                            key_or_keys = KEY[event.code]
+                                            hold = event.value == KEY_EVENT_HOLD
+                                            if isinstance(key_or_keys, str):
+                                                self._process_key(key_or_keys, hold=hold)
+                                            else:
+                                                for key in key_or_keys:
+                                                    self._process_key(key, hold=hold)
+
                             except OSError as e:
                                 if e.errno != errno.ENODEV:
                                     raise
@@ -145,15 +173,3 @@ class Keyboard:
             except Exception:
                 logger.exception("Something went wrong while monitoring keyboard events. Trying again.")
                 time.sleep(0.5)
-
-    def __init__(self, queue: queue.Queue, config: Config):
-        if not KEYBOARD_AVAILABLE:
-            raise Exception("No keyboard is available on this platform! Should not have gotten here.")
-
-        self.queue = queue
-        self.config = config
-
-        if self.config.ir_remote["enabled"]:
-            self._enable_ir_remote()
-        else:
-            logger.info("IR remote disabled")

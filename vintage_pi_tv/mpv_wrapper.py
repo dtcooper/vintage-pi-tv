@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+import queue
 import sys
 from typing import Literal
 
@@ -12,6 +13,7 @@ from pygame import freetype
 from .config import Config
 from .constants import TRANSPARENT, WHITE
 from .utils import TRACE
+from .videos import Video
 
 
 logger = logging.getLogger(__name__)
@@ -71,7 +73,7 @@ class Overlay:
 
 
 class MPV:
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, event_queue: queue.Queue):
         # Prep arguents for MPV
         kwargs = {k.replace("-", "_"): v for k, v in config.mpv_options.items() if not isinstance(v, bool) or v}
         if config.enable_audio_visualization:
@@ -108,6 +110,24 @@ class MPV:
                     "Error initializing mpv. Are you sure 'mpv_options' are set properly? Exiting.", exc_info=True
                 )
             sys.exit(1)
+
+        self._event_queue: queue.Queue = event_queue
+
+        @self._player.event_callback("file-loaded", "end-file")
+        def _(event: mpv.MpvEvent):
+            self._event_queue.put(event.as_dict(mpv.strict_decoder))
+
+        @self._player.property_observer("time-pos")
+        def _(_, value):
+            self._event_queue.put({"event": "position", "value": value or 0.0})
+
+        @self._player.property_observer("duration")
+        def _(_, value):
+            self._event_queue.put({"event": "duration", "value": value or 0.0})
+
+        @self._player.property_observer("core-idle")
+        def _(_, value):
+            self._event_queue.put({"event": "paused", "value": value})
 
         # Since we're primarily operating in fullscreen mode (except in development) window size should not be changed.
         # And if it does change, user is shit out of luck
@@ -227,6 +247,17 @@ class MPV:
         self._done_overlay.clear()
         del self._done_overlay
 
-    @property
-    def core_idle(self) -> bool:
-        return self._player.core_idle
+    def play(self, video: Video):
+        self._player.loadfile(str(video.path))
+
+    def stop(self):
+        self._player.stop()
+
+    def pause(self):
+        self._player.paused = True
+
+    def resume(self):
+        self._player.paused = False
+
+    def seek(self, amount: float):
+        self._player.seek(amount)
