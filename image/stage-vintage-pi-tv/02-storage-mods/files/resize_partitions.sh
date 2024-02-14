@@ -176,7 +176,7 @@ sync
 
 main
 
-figlet -f smslant -- '-All done!-'
+figlet -f smslant -- '- All done! -'
 
 echo 'Rebooting in 5 seconds...'
 sleep 5
