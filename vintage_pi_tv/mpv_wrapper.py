@@ -154,7 +154,7 @@ class MPV:
         self.size: tuple[int, int] = (self.width, self.height)
         self.shape: tuple[int, int, int] = (self.width, self.height, 4)
         self._font_scale: float = min(self.width * 9 / 16, self.height) / 720
-        self.pixel_scale: float = min(self.width * 9 / 16, self.height) / 360
+        self._pixel_scale: float = min(self.width * 9 / 16, self.height) / 360
 
         freetype.init()
         self._font: freetype.Font = freetype.Font(Path(__file__).parent / "undefined-medium.ttf")
@@ -168,6 +168,12 @@ class MPV:
         self._done_overlay.surf.blit(text, rect)
         self._done_overlay.update()
 
+    def scale_pixels(self, *n: list[int | float]):
+        if len(n) == 1:
+            return n[0] * self._pixel_scale
+        else:
+            return [i * self._pixel_scale for i in n]
+
     def _resolve_padding(
         self, padding: int | tuple[int, int] | tuple[int, int, int, int]
     ) -> None | tuple[int, int, int, int]:
@@ -180,7 +186,7 @@ class MPV:
         if all(p == 0 for p in padding):
             return (0, 0, 0, 0)
 
-        return tuple(map(lambda p: p * self.pixel_scale, padding))
+        return self.scale_pixels(*padding)
 
     def render_text(
         self,
@@ -191,14 +197,21 @@ class MPV:
         style=pygame.freetype.STYLE_DEFAULT,
         padding: int | tuple[int, int] | tuple[int, int, int, int] = 0,
     ) -> tuple[pygame.Surface, pygame.Rect]:
-        surf, rect = self._font.render(text, fgcolor=color, bgcolor=bgcolor, size=size * self._font_scale, style=style)
         top, right, bottom, left = self._resolve_padding(padding)
-        if all(p == 0 for p in (top, left, bottom, left)):
+        has_padding = any(p != 0 for p in (top, left, bottom, left))
+        surf, rect = self._font.render(
+            text,
+            fgcolor=color,
+            bgcolor=TRANSPARENT if has_padding else bgcolor,
+            size=size * self._font_scale,
+            style=style,
+        )
+        if not has_padding:
             return surf, rect
 
         new_surf = pygame.Surface((rect.width + left + right, rect.height + top + bottom), pygame.SRCALPHA)
         new_surf.fill(bgcolor)
-        new_surf.blit(surf, (top, left))
+        new_surf.blit(surf, (left, top))
         return new_surf, new_surf.get_rect()
 
     def render_multiple_lines(
@@ -214,7 +227,7 @@ class MPV:
         height = sum(text[1].height for text in texts)
         top, right, bottom, left = self._resolve_padding(padding)
 
-        padding_between = padding_between * self.pixel_scale
+        padding_between = self.scale_pixels(padding_between)
         surf = pygame.Surface(
             (width + left + right, height + top + bottom + padding_between * (len(texts) - 1)), pygame.SRCALPHA
         )

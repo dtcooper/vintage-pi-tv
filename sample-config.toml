@@ -18,6 +18,7 @@ aspect-mode = "letterbox"
 
 # Amount of static to play between videos. Set to 0 or false to disable
 static-time = 3.5
+static-time-between-channels = 0.5
 
 # Channel mode, one of
 #   - random -- Channel ordering determined by random shuffling

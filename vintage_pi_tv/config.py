@@ -26,6 +26,7 @@ class Config:
     ratings: list[dict[str, str]]
     search_dirs: list[dict[str, Path | bool]]
     static_time: float
+    static_time_between_channels: float
     valid_file_extensions: set[str]
     videos: list[dict]
 

@@ -103,11 +103,11 @@ class VintagePiTV:
 
     def startup(self):
         threads = [
-            # self.player.osd_thread,
-            self.player.static.static_thread,
             (self.videos.watch_thread, {"name": "watch", "kwargs": {"recursive": False}, "daemon": False}),
             (self.videos.watch_thread, {"name": "watch_recursive", "kwargs": {"recursive": True}, "daemon": False}),
             self.videos.rebuild_channels_thread,
+            self.player.osd.osd_thread,
+            self.player.static.static_thread,
             self.player.player_thread,
         ]
         if self.keyboard:
