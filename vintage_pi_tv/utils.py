@@ -2,11 +2,15 @@ from functools import cache, wraps
 import logging
 import os
 from pathlib import Path
+import signal
 import subprocess
+import sys
 import threading
 import time
 
 from uvicorn.logging import TRACE_LOG_LEVEL as TRACE, ColourizedFormatter
+
+from .constants import ENV_RELOAD_PID_NAME
 
 
 logger = logging.getLogger(__name__)
@@ -65,19 +69,6 @@ def format_seconds(secs):
     return f"{minutes}:{seconds:02d}"
 
 
-def high_precision_sleep(duration):
-    start_time = time.perf_counter()
-    while True:
-        elapsed_time = time.perf_counter() - start_time
-        remaining_time = duration - elapsed_time
-        if remaining_time <= 0:
-            break
-        if remaining_time > 0.02:  # Sleep for 5ms if remaining time is greater
-            time.sleep(max(remaining_time / 2, 0.0001))  # Sleep for the remaining time or minimum sleep interval
-        else:
-            pass
-
-
 class FPSClock:
     def __init__(self):
         self.last_tick = None
@@ -89,8 +80,7 @@ class FPSClock:
             sleep_secs = 1.0 / fps
 
         if sleep_secs > 0:
-            high_precision_sleep(sleep_secs)
-
+            time.sleep(sleep_secs)
         self.last_tick = time.monotonic()
 
 
@@ -130,7 +120,7 @@ def get_vintage_pi_tv_version():
     return "unknown"
 
 
-def retry_thread_wrapper(func):
+def retry_thread_wrapper(func, exc_cleanup_func=None):
     wraps(func)
 
     def wrapped(*args, **kwargs):
@@ -141,9 +131,27 @@ def retry_thread_wrapper(func):
                 func(*args, **kwargs)
             except Exception:
                 logger.exception(f"Thread {thread_name} threw an exception. Restarting soon.")
-                time.sleep(0.25)
+                time.sleep(0.125)
+                if exc_cleanup_func is not None:
+                    logger.debug(f"Calling exception cleanup for thread {thread_name}")
+                    exc_cleanup_func()
+                time.sleep(0.125)
             else:
                 logger.warning(f"Thread {thread_name} returned cleanly. Not restarting.")
                 break
 
     return wrapped
+
+
+def exit(status: int = 0, reason: str = "unspecified"):
+    logger.critical(f"Exiting with status code: {status} (Reason: {reason})")
+    reload_pid = os.environ.get(ENV_RELOAD_PID_NAME)
+    if reload_pid is not None and reload_pid.isdigit():
+        logger.debug(f"Sending SIGINT to uvicorn reload PID {reload_pid} ")
+        os.kill(int(reload_pid), signal.SIGINT)
+    if threading.current_thread() != threading.main_thread():
+        logger.debug("Exiting from non-main thread")
+        os._exit(status)
+    else:
+        logger.debug("Exiting from main thread")
+        sys.exit(status)

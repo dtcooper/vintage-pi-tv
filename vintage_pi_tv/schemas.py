@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from schema import And, Optional, Or, Schema, SchemaError, Use
+from schema import And, Optional, Or, Regex, Schema, SchemaError, Use
 
 from .constants import (
     DEFAULT_DEV_MPV_OPTIONS,
@@ -16,7 +16,7 @@ from .utils import is_docker, is_raspberry_pi
 
 NON_EMPTY_STRING = And(str, len)
 NON_EMPTY_PATH = And(str, len, Use(lambda path: Path(path).expanduser().resolve()))
-MPV_OPTION = Or(And(bool, Use(lambda val: "yes" if val else "no")), NON_EMPTY_STRING)
+MPV_OPTION = Or(And(bool, Use(lambda val: "yes" if val else "no")), And(Use(str), len))
 
 
 if is_docker():
@@ -63,7 +63,10 @@ config_schema = Schema(
         Optional("static-time", default=3.5): Or(
             And(Or(False, 0, 0.0), Use(lambda _: -1.0)), And(Use(float), lambda f: f > 0.0)
         ),
+        Optional("show-fps", default=False): bool,
+        Optional("channel-osd-always-on", default=False): bool,
         Optional("save-place-while-browsing", default=True): bool,
+        Optional("start-muted", default=False): bool,
         Optional("static-time-between-channels", default=0.5): Or(
             And(Or(False, 0, 0.0), Use(lambda _: -1.0)), And(Use(float), lambda f: f > 0.0)
         ),
@@ -73,8 +76,9 @@ config_schema = Schema(
             And(
                 [
                     Schema({
-                        "rating": And(Use(str), len, Use(lambda s: s.strip().upper())),
+                        "rating": And(Use(str), Use(lambda s: s.strip().upper()), len),
                         "description": NON_EMPTY_STRING,
+                        Optional("color", default="#FFFFFF"): Regex(r"^#[a-fA-F0-9]{6}$"),
                     })
                 ],
                 len,

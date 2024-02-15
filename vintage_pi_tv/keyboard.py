@@ -112,7 +112,7 @@ class Keyboard:
         else:
             action = self._keys_to_actions.get(key)
             if action is not None and (not hold or action in self.ALLOW_HOLD_ACTIONS):
-                self._event_queue.put({"event": "keypress", "action": action, "hold": hold})
+                self._event_queue.put({"event": "keypress", "action": action})
 
     def keyboard_thread(self):
         # Listening for key events on Linux is a fucking mess.

@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 class VintagePiTV:
     def __init__(
         self,
-        state_updates_queue: queue.Queue,
+        websocket_updates_queue: queue.Queue,
         config_file: str | Path | None = None,
         config_wait: int = 0,
         extra_search_dirs: list | tuple = (),
@@ -67,7 +67,7 @@ class VintagePiTV:
             mpv=self.mpv,
             keyboard=self.keyboard,
             event_queue=event_queue,
-            state_updates_queue=state_updates_queue,
+            websocket_updates_queue=websocket_updates_queue,
         )
 
         self.mpv.done_loading()
@@ -118,7 +118,7 @@ class VintagePiTV:
             self.videos.rebuild_channels_thread,
             self.player.osd.osd_thread,
             self.player.static.static_thread,
-            self.player.player_thread,
+            (self.player.player_thread, {"exc_cleanup_func": self.player.player_thread_cleanup}),
         ]
         if self.keyboard:
             threads.append(self.keyboard.keyboard_thread)
@@ -126,8 +126,9 @@ class VintagePiTV:
         for thread in threads:
             target, kwargs = thread if isinstance(thread, tuple) else (thread, {})
             daemon = kwargs.pop("daemon", True)
+            cleanup = kwargs.pop("exc_cleanup_func", None)
             name = kwargs.pop("name", target.__name__.removesuffix("_thread"))
-            target = retry_thread_wrapper(target)
+            target = retry_thread_wrapper(target, exc_cleanup_func=cleanup)
             logger.info(f"Spawning {name} thread")
             thread = threading.Thread(target=target, name=name, daemon=daemon, **kwargs)
             thread.start()

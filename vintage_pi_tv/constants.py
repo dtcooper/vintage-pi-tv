@@ -1,4 +1,5 @@
 ENV_ARGS_VAR_NAME = "__VINTAGE_PI_TV_ARGS"
+ENV_RELOAD_PID_NAME = "__VINTAGE_PI_TV_RELOAD_PID"
 
 WHITE = (0xFF, 0xFF, 0xFF, 0xFF)
 TRANSPARENT = (0x00, 0x00, 0x00, 0x00)
@@ -29,10 +30,11 @@ DEFAULT_KEYBOARD_KEYS = {
     "left": "KEY_LEFT",
     "mute": "KEY_0",
     "osd": "KEY_M",
-    "pause": "KEY_ENTER",
+    "pause": "KEY_P",
     "power": "KEY_ESC",
-    "random": "KEY_R",
-    "rewind": "KEY_DELETE",
+    "random": "KEY_ENTER",
+    "ratings": "KEY_R",
+    "rewind": "KEY_BACKSPACE",
     "right": "KEY_RIGHT",
     "up": "KEY_UP",
     "volume-down": "KEY_MINUS",
@@ -46,8 +48,9 @@ DEFAULT_IR_SCANCODES = {
     "mute": False,
     "osd": 0x9D,
     "pause": 0xCE,
-    "power": False,  # Would be 0x9C
+    "power": False,
     "random": 0xCB,
+    "ratings": False,  # Would be 0x9C
     "rewind": 0x90,
     "right": 0xC1,
     "up": 0xCA,
@@ -65,6 +68,7 @@ DOCKER_DEV_KEYBOARD_KEYS = {
     "pause": "p",
     "power": "ESC",
     "random": "ENTER",
+    "ratings": "r",
     "rewind": "BS",
     "right": "RIGHT",
     "up": "UP",
@@ -74,10 +78,10 @@ DOCKER_DEV_KEYBOARD_KEYS = {
 
 
 DEFAULT_RATINGS = [
-    {"rating": "G", "description": "General"},
-    {"rating": "PG", "description": "Parental Guidance"},
-    {"rating": "R", "description": "Restricted"},
-    {"rating": "X", "description": "Adult"},
+    {"rating": "X", "description": "Adult", "color": "#F87272"},  # The first will be the rating set on startup
+    {"rating": "R", "description": "Restricted", "color": "#FFEE00"},
+    {"rating": "PG", "description": "Parental Guidance", "color": "#FFFFFF"},
+    {"rating": "G", "description": "General", "color": "#36D399"},  # The last will be the default rating of videos
 ]
 
 # For Raspberry Pi

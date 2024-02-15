@@ -5,7 +5,7 @@ from pathlib import Path
 
 import uvicorn
 
-from vintage_pi_tv.constants import DEFAULT_CONFIG_PATHS, DEFAULT_PORT, ENV_ARGS_VAR_NAME
+from vintage_pi_tv.constants import DEFAULT_CONFIG_PATHS, DEFAULT_PORT, ENV_ARGS_VAR_NAME, ENV_RELOAD_PID_NAME
 from vintage_pi_tv.utils import is_docker
 
 
@@ -73,6 +73,7 @@ def run(args=None):
         uvicorn_kwargs.update(
             {"reload": True, "reload_includes": ["*.py", "*.toml"], "reload_dirs": [Path(__file__).resolve().parent]}
         )
+        os.environ[ENV_RELOAD_PID_NAME] = str(os.getpid())
 
     os.environ[ENV_ARGS_VAR_NAME] = json.dumps(env, sort_keys=True, separators=(",", ":"))
     os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"

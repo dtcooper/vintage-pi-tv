@@ -1,7 +1,6 @@
 import logging
 from pathlib import Path
 import queue
-import sys
 from typing import Literal
 
 import mpv
@@ -12,7 +11,7 @@ import pygame.freetype
 
 from .config import Config
 from .constants import DOCKER_DEV_KEYBOARD_KEYS, TRANSPARENT, WHITE
-from .utils import TRACE, is_docker
+from .utils import TRACE, exit, is_docker
 from .videos import Video
 
 
@@ -54,7 +53,7 @@ class Overlay:
             self.rect = self.surf.get_rect()
         self._mpv = mpv
         self._num = num
-        self._shown = False
+        self.shown = False
 
     def update(self):  # NOT THREADSAFE, should only be called from one thread because of self._show
         self._mpv._player.overlay_add(
@@ -68,12 +67,12 @@ class Overlay:
             self._mpv.height,
             self._mpv.width * 4,
         )
-        self._shown = True
+        self.shown = True
 
     def clear(self):
-        if self._shown:
+        if self.shown:
             self._mpv.clear_overlay(self._num)
-            self._shown = False
+            self.shown = False
 
 
 class MPV:
@@ -116,7 +115,7 @@ class MPV:
                 logger.critical(
                     "Error initializing mpv. Are you sure 'mpv_options' are set properly? Exiting.", exc_info=True
                 )
-            sys.exit(1)
+            exit(1, "mpv failed to initialize")
 
         self._event_queue: queue.Queue = event_queue
 
@@ -135,6 +134,16 @@ class MPV:
         @self._player.property_observer("core-idle")
         def _(_, value):
             self._event_queue.put({"event": "paused", "value": value})
+
+        if config.show_fps:
+
+            @self._player.property_observer("estimated-vf-fps")
+            def _(_, value):
+                self._event_queue.put({"event": "fps-actual", "value": value or 0.0})
+
+            @self._player.property_observer("container-fps")
+            def _(_, value):
+                self._event_queue.put({"event": "fps-video", "value": value or 0.0})
 
         if is_docker() and config.keyboard["enabled"]:
             self.docker_keyboard_blocked: bool = True  # Only modify in player thread
@@ -181,6 +190,11 @@ class MPV:
         rect.center = self._done_overlay.surf.get_rect().center
         self._done_overlay.surf.blit(text, rect)
         self._done_overlay.update()
+        self._volume_cache: bool = 100
+        self._mute_cache: bool = False
+
+        if config.start_muted:
+            self.toggle_mute()
 
     def scale_pixels(self, *n: list[int | float]):
         if len(n) == 1:
@@ -224,7 +238,7 @@ class MPV:
         new_surf.blit(surf, (left, top))
         return new_surf, new_surf.get_rect()
 
-    def render_multiple_lines(
+    def render_multiple_lines_of_text(
         self,
         kwargs_to_render,
         align: Literal["left", "center", "right"] = "center",
@@ -287,13 +301,27 @@ class MPV:
     def resume(self):
         self._player.pause = False
 
-    def seek(self, amount: float):
-        self._player.seek(amount)
+    def seek(self, amount: float, absolute: bool = False):
+        self._player.seek(amount, reference="absolute" if absolute else "relative")
+
+    def change_volume(self, amount: int):
+        self.set_volume(self._volume_cache + amount)
+
+    def set_volume(self, value: int):
+        if self._mute_cache:
+            self.toggle_mute()
+        volume = max(0, min(100, value))
+        self._volume_cache = self._player.volume = volume
+
+    def toggle_mute(self):
+        new_value = not self._mute_cache
+        self._player.mute = new_value
+        self._mute_cache = new_value
 
     @property
     def volume(self) -> tuple[float, bool]:
         # TODO cache this, don't poll player
-        return (self._player.volume, self._player.mute)
+        return (self._volume_cache, self._mute_cache)
 
     if is_docker():
 

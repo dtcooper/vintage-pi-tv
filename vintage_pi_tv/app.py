@@ -45,14 +45,14 @@ if env_args := os.environ.get(ENV_ARGS_VAR_NAME):
         logger.critical(f"Error decoding JSON from environment variable {ENV_ARGS_VAR_NAME}: {env_args}")
 
 
-state_updates_queue: janus.Queue[dict] = janus.Queue()
-tv = VintagePiTV(state_updates_queue=state_updates_queue.sync_q, **kwargs)
+websocket_updates_queue: janus.Queue[dict] = janus.Queue()
+tv = VintagePiTV(websocket_updates_queue=websocket_updates_queue.sync_q, **kwargs)
 background_tasks = set()
 
 
 async def websocket_publisher():
     while True:
-        state = await state_updates_queue.async_q.get()
+        state = await websocket_updates_queue.async_q.get()
         for websocket in websockets:
             try:
                 await websocket.send_json(state)

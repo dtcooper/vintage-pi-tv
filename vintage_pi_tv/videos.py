@@ -2,13 +2,13 @@ import logging
 import os
 from pathlib import Path
 import random
-import sys
 import threading
+from typing import Literal
 
 import watchfiles
 
 from .config import Config
-from .utils import listdir_recursive
+from .utils import exit, listdir_recursive
 
 
 logger = logging.getLogger(__name__)
@@ -20,17 +20,21 @@ class Video:
         videos_db: "VideosDB",
         path: Path,
         name: str | None,
-        rating: bool | str,
+        rating: str | Literal[False],
         subtitles: bool | Path,
     ):
         self._videos_db = videos_db
 
-        self.path = path
-        self.name = name or self.get_automatic_video_name()
-        self.rating = rating
+        self.path: Path = path
+        self.name: str = name or self.get_automatic_video_name()
+        self.rating: str | Literal[False] = rating or self._videos_db.config.default_rating
+        self.rating_dict: None | dict
         if not self.rating or self.rating not in self._videos_db.config.ratings_dict:
-            self.rating = self._videos_db.config.default_rating
-        self.subtitles = subtitles
+            self.rating_dict = None
+        else:
+            self.rating_dict = self._videos_db.config.ratings_dict[self.rating]
+
+        self.subtitles: bool | Path = subtitles
 
     @staticmethod
     def get_automatic_video_name(path: Path) -> str:
@@ -41,10 +45,13 @@ class Video:
         return self._videos_db.channels.get(self.path, -1)
 
     @property
-    def display_channel(self) -> int:
-        return self.channel + 1
+    def display_channel(self) -> str:
+        return str(self.channel + 1)
 
-    def serialize(self):
+    def is_viewable_based_on_rating(self, rating):
+        return self.rating_dict["num"] >= self._videos_db.config.ratings_dict[rating]["num"]
+
+    def serialize(self) -> dict:
         return {"path": str(self.path), "channel": self.channel + 1, "rating": self.rating, "name": self.name}
 
     def __repr__(self):
@@ -90,7 +97,7 @@ class VideosDB:
 
         if not self._search_dirs and not self._search_dirs_recursive:
             logger.critical("No search-dirs are actually valid directories.")
-            sys.exit(1)
+            exit(1, "Videos DB failed to initialize (no search dirs)")
 
         logger.info(
             f"Added {len(self._search_dirs) + len(self._search_dirs_recursive)} search dirs,"
@@ -212,22 +219,50 @@ class VideosDB:
     def channels(self) -> dict[Path, int]:
         return self._videos["channels"]
 
-    def get_random_video(self) -> Video:
+    def videos_for_rating(self, min_rating: Literal[False] | str):
+        if min_rating:
+            return [v for v in self.videos if v.is_viewable_based_on_rating(min_rating)]
+        else:
+            return self.videos
+
+    def get_random_video(self, current_rating: Literal[False] | str = False) -> Video:
         with self._channel_lock:  # Prevents self.videos from being modified while working here
-            if self.videos:
-                video = random.choice(self.videos)
+            videos = self.videos_for_rating(current_rating)
+            if not videos:
+                logger.warning(f"No videos found rating {current_rating}. Using all videos to get a random video.")
+                videos = self.videos
+            if videos:
+                video = random.choice(videos)
                 logger.debug(f"Randomly chose video {video.path}")
             else:
+                logger.warning(f"No videos found{f' for rating {current_rating}' if current_rating else ''}")
                 video = None
 
         return video
 
-    def get_video_for_channel(self, channel: int) -> Video:
+    def get_video_for_channel_change(
+        self, video: Video, current_rating: Literal[False] | str = False, direction: int = 1
+    ) -> Video:
         with self._channel_lock:  # Prevents self.videos from being modified while working here
-            num_channels = len(self.channels)
+            current_channel = max(video.channel, 0)  # In case channel is -1
+            num_channels = len(self.videos)
             if num_channels == 0:
+                logger.warning(
+                    f"No {'next' if direction == 1 else 'previous'} channel"
+                    f" found{f' for rating {current_rating}' if current_rating else ''}"
+                )
                 return None
-            return self.videos[channel % num_channels]
+
+            for i in range(1, num_channels + 1):
+                next_channel_index = (current_channel + direction * i) % num_channels
+                next_video = self.videos[next_channel_index]
+                if next_video.is_viewable_based_on_rating(current_rating):
+                    return next_video
+            else:
+                logger.warning(
+                    f"No {'next' if direction == 1 else 'previous'} channel"
+                    f" found{f' for rating {current_rating}' if current_rating else ''}"
+                )
 
     def rebuild_channels_thread(self):
         while True:

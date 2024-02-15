@@ -19,9 +19,18 @@ aspect-mode = "letterbox"
 # Save place in file while browsing channels (doesn't persist on restart)
 save-place-while-browsing = true
 
+# Start with volume off
+start-muted = false
+
 # Amount of static to play between videos. Set to 0 or false to disable
 static-time = 3.5
 static-time-between-channels = 0.5
+
+# Display framerate on the on-screen display (OSD)
+show-fps = false
+
+# The on-screen display (OSD) will always be on if this is set (shows channel only)
+channel-osd-always-on = false
 
 # Channel mode, one of
 #   - random -- Channel ordering determined by random shuffling
@@ -40,10 +49,10 @@ enable-audio-visualization = true
 
 # Ratings must be in order least restricted to most restricted, eg. G first, X last
 ratings = [
-    { rating = "G", description = "General" },  # First item will be the default
-    { rating = "PG", description = "Parental Guidance"},
-    { rating = "R", description = "Restricted" },
-    { rating = "X", description = "Adult" }
+    { rating = "X", description = "Adult", color = "#F87272" },  # The first will be the rating set on startup
+    { rating = "R", description = "Restricted", color = "#FFEE00" },
+    { rating = "PG", description = "Parental Guidance" },  # Color is #FFFFFF if unspecified
+    { rating = "G", description = "General", color = "#36D399" },  # The last will be the default rating of videos
 ]
 # Or disable ratings altogether
 #ratings = false
@@ -87,10 +96,11 @@ down = "KEY_DOWN"
 left = "KEY_LEFT"
 mute = "KEY_0"
 osd = "KEY_M"
-pause = "KEY_ENTER"
+pause = "KEY_P"
 power = "KEY_ESC"
-random = "KEY_R"
-rewind = "KEY_DELETE"
+random = "KEY_ENTER"
+ratings = "KEY_R"
+rewind = "KEY_BACKSPACE"
 right = "KEY_RIGHT"
 up = "KEY_UP"
 volume-down = "KEY_MINUS"
@@ -107,8 +117,9 @@ left = 0x99
 mute = false
 osd = 0x9D
 pause = 0xCE
-power = false  # Would be 0x9C
+power = false
 random = 0xCB
+ratings = false  # Power button is 0x9C but needs to be deactivated
 rewind = 0x90
 right = 0xC1
 up = 0xCA
