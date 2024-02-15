@@ -13,19 +13,19 @@ mpv = "^1.0.5"
 numpy = "^1.26.4"
 pygame-ce = "^2.4.0"
 schema = "^0.7.5"
-starlette = "^0.37.0"
+starlette = "^0.37.1"
 tomlkit = "^0.12.3"
-uvicorn = "^0.27.0.post1"
+uvicorn = "^0.27.1"
 watchfiles = "^0.21.0"
 websockets = "^12.0"
 
 [tool.poetry.group.dev.dependencies]
-black = "^24.1.1"
+black = "^24.2.0"
 flake8 = "^7.0.0"
 ipdb = "^0.13.13"
 ipython = "^8.21.0"
 isort = "^5.13.2"
-mkdocs-material = "^9.5.8"
+mkdocs-material = "^9.5.9"
 
 [tool.poetry.group.keyboard.dependencies]
 evdev = {version = "^1.6.1", platform = "linux"}
