@@ -27,6 +27,7 @@ class VintagePiTV:
     def __init__(
         self,
         websocket_updates_queue: queue.Queue,
+        event_queue: queue.Queue,
         config_file: str | Path | None = None,
         config_wait: int = 0,
         extra_search_dirs: list | tuple = (),
@@ -43,7 +44,6 @@ class VintagePiTV:
         logger.info("Loaded config")
         logger.debug(f"Running in mode: {is_docker()=}, {is_raspberry_pi()=}")
 
-        event_queue: queue.Queue = queue.Queue()
         self.keyboard: Keyboard | None = None
         if self.config.keyboard["enabled"]:
             if KEYBOARD_AVAILABLE:
@@ -70,6 +70,7 @@ class VintagePiTV:
             websocket_updates_queue=websocket_updates_queue,
         )
 
+        websocket_updates_queue.put({"type": "ratings", "data": self.config.ratings_dict})
         self.mpv.done_loading()
         logger.debug("Done initializing objects")
 
@@ -113,8 +114,8 @@ class VintagePiTV:
 
     def startup(self):
         threads = [
-            (self.videos.watch_thread, {"name": "watch", "kwargs": {"recursive": False}, "daemon": False}),
-            (self.videos.watch_thread, {"name": "watch_recursive", "kwargs": {"recursive": True}, "daemon": False}),
+            (self.videos.watch_dirs_thread, {"kwargs": {"recursive": False}, "daemon": False}),
+            (self.videos.watch_dirs_thread, {"name": "watch_dirs_rec", "kwargs": {"recursive": True}, "daemon": False}),
             self.videos.rebuild_channels_thread,
             self.player.osd.osd_thread,
             self.player.static.static_thread,

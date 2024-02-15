@@ -49,7 +49,7 @@ class Video:
         return str(self.channel + 1)
 
     def is_viewable_based_on_rating(self, rating):
-        return self.rating_dict["num"] >= self._videos_db.config.ratings_dict[rating]["num"]
+        return self.rating_dict["num"] <= self._videos_db.config.ratings_dict[rating]["num"]
 
     def serialize(self) -> dict:
         return {"path": str(self.path), "channel": self.channel + 1, "rating": self.rating, "name": self.name}
@@ -219,7 +219,7 @@ class VideosDB:
     def channels(self) -> dict[Path, int]:
         return self._videos["channels"]
 
-    def videos_for_rating(self, min_rating: Literal[False] | str):
+    def videos_for_rating(self, min_rating: Literal[False] | str) -> list[Video]:
         if min_rating:
             return [v for v in self.videos if v.is_viewable_based_on_rating(min_rating)]
         else:
@@ -228,9 +228,6 @@ class VideosDB:
     def get_random_video(self, current_rating: Literal[False] | str = False) -> Video:
         with self._channel_lock:  # Prevents self.videos from being modified while working here
             videos = self.videos_for_rating(current_rating)
-            if not videos:
-                logger.warning(f"No videos found rating {current_rating}. Using all videos to get a random video.")
-                videos = self.videos
             if videos:
                 video = random.choice(videos)
                 logger.debug(f"Randomly chose video {video.path}")
@@ -263,6 +260,14 @@ class VideosDB:
                     f"No {'next' if direction == 1 else 'previous'} channel"
                     f" found{f' for rating {current_rating}' if current_rating else ''}"
                 )
+                return None
+
+    def get_video_by_path(self, path: Path) -> Video:
+        with self._channel_lock:
+            channel = self.channels.get(path)
+            if channel is None:
+                return None
+            return self.videos[channel]
 
     def rebuild_channels_thread(self):
         while True:
@@ -281,7 +286,7 @@ class VideosDB:
                 logger.debug(f"Detected file change ({change.name}): {path}")
             self._rebuild_event.set()
 
-    def watch_thread(self, recursive: bool):
+    def watch_dirs_thread(self, recursive: bool):
         search_dirs = self._search_dirs_recursive if recursive else self._search_dirs
         if search_dirs:
             self._watch_thread_helper(search_dirs, recursive)

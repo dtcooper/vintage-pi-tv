@@ -5,15 +5,17 @@ import pygame
 
 from .config import Config
 from .constants import (
-    BLACK_SEETHRU,
     BLUE,
+    GREEN,
     OSD_LAYER,
+    OSD_NOTIFY_LAYER,
     OSD_PROGRESS_BAR_LAYER,
     OSD_VOLUME_LAYER,
     RED,
     TRANSPARENT,
     WHITE,
     YELLOW,
+    PlayerState,
 )
 from .mpv_wrapper import MPV, Overlay
 from .utils import FPSClock, format_seconds
@@ -38,10 +40,12 @@ class OSD:
         self._mpv: MPV = mpv
         self._show_until: float = -1.0
         self._show_volume_until: float = -1.0
-        self._show_progress_bar_until: float = -0.1
+        self._show_progress_bar_until: float = -1.0
+        self._show_notify_until: float = -1.0
         self._osd: Overlay = mpv.create_overlay(OSD_LAYER)
         self._progress_bar: Overlay = mpv.create_overlay(OSD_PROGRESS_BAR_LAYER)
         self._volume: Overlay = mpv.create_overlay(OSD_VOLUME_LAYER)
+        self._notify: Overlay = mpv.create_overlay(OSD_NOTIFY_LAYER)
 
     @cached_show_method
     def _show_osd(self, state, cache_value):
@@ -61,11 +65,11 @@ class OSD:
         if not self._osd.shown or cache_try != cache_value:
             self._osd.surf.fill(TRANSPARENT)
             text = [
-                {"text": channel, "size": 120, "bgcolor": BLACK_SEETHRU, "padding": 10, "style": "bold"},
-                {"text": name, "size": 32, "color": YELLOW, "bgcolor": BLACK_SEETHRU, "padding": 8, "style": "italic"},
+                {"text": channel, "size": 120, "padding": 10, "style": "bold"},
+                {"text": name, "size": 32, "color": YELLOW, "padding": 8, "style": "italic"},
             ]
             if self._config.show_fps:
-                text.append({"text": f"{fps} fps", "size": 24, "bgcolor": BLACK_SEETHRU, "padding": (5, 8)})
+                text.append({"text": f"{fps} fps", "size": 24, "padding": (5, 8)})
 
             surf, rect = self._mpv.render_multiple_lines_of_text(text, align="left")
             rect.topleft = self._mpv.scale_pixels(15, 15)
@@ -73,8 +77,8 @@ class OSD:
 
             if rating:
                 color = video.rating_dict["color"]
-                surf, rect = self._mpv.render_text(rating, 80, color=color, bgcolor=BLACK_SEETHRU, padding=9)
-                rect.topright = (self._mpv.width - self._mpv.scale_pixels(15) - 1, self._mpv.scale_pixels(15))
+                surf, rect = self._mpv.render_text(rating, 80, color=color, padding=9)
+                rect.topright = (self._osd.rect.right - self._mpv.scale_pixels(15), self._mpv.scale_pixels(15))
                 self._osd.surf.blit(surf, rect)
 
             self._osd.update()
@@ -82,14 +86,25 @@ class OSD:
 
     @cached_show_method
     def _show_progress_bar(self, state, cache_value):
-        position, duration = cache_try = (round(state["position"] or 0), round(state["duration"] or 0))
+        is_paused = state["state"] == PlayerState.PAUSED
+        show_paused = is_paused and (tick() % 2.2) < 1.6
+        position, duration, _, _ = cache_try = (
+            round(state["position"] or 0),
+            round(state["duration"] or 0),
+            is_paused,
+            show_paused,
+        )
         if not self._progress_bar.shown or cache_try != cache_value:
+            color = RED if is_paused else WHITE
             self._progress_bar.surf.fill(TRANSPARENT)
-            surf, pos_rect = self._mpv.render_text(format_seconds(position), 25, padding=5, bgcolor=BLACK_SEETHRU)
-            pos_rect.bottomleft = (self._mpv.scale_pixels(20), self._mpv.height - 1 - self._mpv.scale_pixels(20))
+            surf, pos_rect = self._mpv.render_text(format_seconds(position), 25, padding=5)
+            pos_rect.bottomleft = (
+                self._mpv.scale_pixels(20),
+                self._progress_bar.rect.bottom - self._mpv.scale_pixels(20),
+            )
             self._progress_bar.surf.blit(surf, pos_rect)
-            surf, dur_rect = self._mpv.render_text(format_seconds(duration), 25, padding=5, bgcolor=BLACK_SEETHRU)
-            dur_rect.bottomright = (self._mpv.width - 1 - self._mpv.scale_pixels(20), pos_rect.bottom)
+            surf, dur_rect = self._mpv.render_text(format_seconds(duration), 25, padding=5)
+            dur_rect.bottomright = (self._progress_bar.rect.right - self._mpv.scale_pixels(20), pos_rect.bottom)
             self._progress_bar.surf.blit(surf, dur_rect)
             bar_rect = pygame.Rect(
                 0,
@@ -99,10 +114,15 @@ class OSD:
             )
             bar_rect.centery = dur_rect.centery
             bar_rect.left = pos_rect.right + self._mpv.scale_pixels(10)
-            pygame.draw.rect(self._progress_bar.surf, WHITE, bar_rect)
+            pygame.draw.rect(self._progress_bar.surf, color, bar_rect)
             if duration > 0.0:
                 bar_rect.width = position / duration * bar_rect.width
                 pygame.draw.rect(self._progress_bar.surf, BLUE, bar_rect)
+            if show_paused:
+                surf, paused_rect = self._mpv.render_text("PAUSED!", 40, padding=8, color=color, style="bold-italic")
+                paused_rect.centerx = self._progress_bar.rect.centerx
+                paused_rect.bottom = bar_rect.top - self._mpv.scale_pixels(5)
+                self._progress_bar.surf.blit(surf, paused_rect)
 
             self._progress_bar.update()
         return cache_try
@@ -111,20 +131,23 @@ class OSD:
     def _show_volume(self, cache_value):
         volume, mute = self._mpv.volume
         if mute:
-            volume_str = cache_try = "mute"
+            volume_str = cache_try = "muted"
             color = RED
         else:
             volume = round(volume)
-            volume_str = cache_try = f"{volume: 3d}%"
-            color = WHITE if volume > 0 else RED
+            volume_str = cache_try = f"{volume}%"
+            if volume >= 100:
+                color = GREEN
+            elif 100 > volume > 0:
+                color = WHITE
+            else:
+                color = RED
 
         if not self._volume.shown or cache_try != cache_value:
             self._volume.surf.fill(TRANSPARENT)
-            surf, vol_rect = self._mpv.render_text(
-                f"Vol: {volume_str}", 44, padding=9, color=color, bgcolor=BLACK_SEETHRU
-            )
+            surf, vol_rect = self._mpv.render_text(f"Vol: {volume_str}", 44, padding=9, color=color)
             vol_rect.top = self._mpv.scale_pixels(15)
-            vol_rect.centerx = (self._mpv.width - 1) // 2
+            vol_rect.centerx = self._volume.rect.centerx
             self._volume.surf.blit(surf, vol_rect)
 
             self._volume.update()
@@ -133,8 +156,25 @@ class OSD:
     def show(self, duration=5.0, progress_bar=False, volume=False):
         until = tick() + duration
         self._show_until = until
-        self._show_progress_bar_until = until if progress_bar else -0.1
-        self._show_volume_until = until if volume else -1.0
+        if progress_bar:
+            self._show_progress_bar_until = until
+        if volume:
+            self._show_volume_until = until
+
+    def notify(self, text: str | list, duration: float = 10.0, **kwargs):
+        self._show_notify_until = tick() + duration
+        self._notify.surf.fill(TRANSPARENT)
+        kwargs = {"padding": 10, **kwargs}  # Sane defaults
+        if isinstance(text, str):
+            kwargs = {"size": 50, **kwargs}
+            text, surf = self._mpv.render_text(text, kwargs.pop("size", 50), **kwargs)
+        else:
+            kwargs = {"padding_between": 5, **kwargs}
+            text, surf = self._mpv.render_multiple_lines_of_text(text, **kwargs)
+
+        surf.center = self._notify.rect.center
+        self._notify.surf.blit(text, surf)
+        self._notify.update()
 
     def osd_thread(self):
         self._osd.clear()
@@ -143,15 +183,17 @@ class OSD:
         clock = FPSClock()
 
         while True:
-            # show = tick() <= self._show_until
-            # show_volume = tick() <= self._show_volume_until
             state = self._state_getter()
 
             now = tick()
-            _, mute = self._mpv.volume
-            show_volume = self._show_volume_until > now
-            show_progress_bar = self._show_progress_bar_until > now
-            show_osd = self._config.channel_osd_always_on or show_volume or show_progress_bar or self._show_until > now
+            is_paused = state["state"] == PlayerState.PAUSED
+            show_volume = self._show_volume_until >= now
+            show_progress_bar = is_paused or self._show_progress_bar_until >= now
+            show_osd = self._config.channel_osd_always_on or show_volume or show_progress_bar or self._show_until >= now
+
+            if now > self._show_notify_until:
+                self._notify.clear()
+
             if state["video"] and show_osd:
                 self._show_osd(state)
                 if show_progress_bar:
@@ -167,4 +209,5 @@ class OSD:
                 self._osd.clear()
                 self._progress_bar.clear()
                 self._volume.clear()
+
             clock.tick(24)

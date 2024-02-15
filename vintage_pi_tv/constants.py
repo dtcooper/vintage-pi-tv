@@ -1,3 +1,6 @@
+import enum
+
+
 ENV_ARGS_VAR_NAME = "__VINTAGE_PI_TV_ARGS"
 ENV_RELOAD_PID_NAME = "__VINTAGE_PI_TV_RELOAD_PID"
 
@@ -8,15 +11,25 @@ BLACK_SEETHRU = (0x00, 0x00, 0x00, 0x55)
 YELLOW = (0xFF, 0xEE, 0x00, 0xFF)
 BLUE = (0x3A, 0xBF, 0xF8, 0xFF)
 RED = (0xF8, 0x72, 0x72, 0xFF)
+GREEN = (0x36, 0xD3, 0x99, 0xFF)
 
 OSD_LAYER = 0
 OSD_PROGRESS_BAR_LAYER = 1
 OSD_VOLUME_LAYER = 2
-STATIC_LAYER = 10  # Absove
+OSD_NOTIFY_LAYER = 3
+STATIC_LAYER = 10  # Above OSD
 NO_FILES_LAYER = 62  # Second topmost
 LOADING_LAYER = 63  # Topmost
 
 DEFAULT_PORT = 6672
+
+
+class PlayerState(enum.StrEnum):
+    LOADING = "loading"
+    NEEDS_FILES = "needs-files"
+    PLAYING = "playing"
+    PAUSED = "paused"
+
 
 DEFAULT_CONFIG_PATHS = (
     "/media/VintagePiTV/config.toml",
@@ -78,10 +91,10 @@ DOCKER_DEV_KEYBOARD_KEYS = {
 
 
 DEFAULT_RATINGS = [
-    {"rating": "X", "description": "Adult", "color": "#F87272"},  # The first will be the rating set on startup
-    {"rating": "R", "description": "Restricted", "color": "#FFEE00"},
+    {"rating": "G", "description": "General", "color": "#36D399"},  # The first will be the default rating of videos
     {"rating": "PG", "description": "Parental Guidance", "color": "#FFFFFF"},
-    {"rating": "G", "description": "General", "color": "#36D399"},  # The last will be the default rating of videos
+    {"rating": "R", "description": "Restricted", "color": "#FFEE00"},
+    {"rating": "X", "description": "Adult", "color": "#F87272"},  # The last will be the rating set on startup
 ]
 
 # For Raspberry Pi

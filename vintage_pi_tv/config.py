@@ -24,6 +24,7 @@ class Config:
     log_level: Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]
     mpv_options: dict[str, str]
     overscan_margins: dict[str, int]
+    password: Literal[False] | str
     ratings: list[dict[str, str]]
     save_place_while_browsing: bool
     search_dirs: list[dict[str, Path | bool]]
@@ -67,11 +68,11 @@ class Config:
 
     @property
     def default_rating(self) -> bool | str:
-        return self.ratings[-1]["rating"] if self.ratings else False
+        return self.ratings[0]["rating"] if self.ratings else False
 
     @property
     def starting_rating(self) -> bool | str:
-        return self.ratings[0]["rating"] if self.ratings else False
+        return self.ratings[-1]["rating"] if self.ratings else False
 
     def __getattr__(self, key):
         try:

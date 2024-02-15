@@ -49,10 +49,10 @@ enable-audio-visualization = true
 
 # Ratings must be in order least restricted to most restricted, eg. G first, X last
 ratings = [
-    { rating = "X", description = "Adult", color = "#F87272" },  # The first will be the rating set on startup
-    { rating = "R", description = "Restricted", color = "#FFEE00" },
+    { rating = "G", description = "General", color = "#36D399" },  # The first will be the default rating of videos
     { rating = "PG", description = "Parental Guidance" },  # Color is #FFFFFF if unspecified
-    { rating = "G", description = "General", color = "#36D399" },  # The last will be the default rating of videos
+    { rating = "R", description = "Restricted", color = "#FFEE00" },
+    { rating = "X", description = "Adult", color = "#F87272" },  # The last will be the rating set on startup
 ]
 # Or disable ratings altogether
 #ratings = false
@@ -64,6 +64,10 @@ valid-file-extensions = "defaults"
 
 # Margin of monitor in pixels, for overscan purposes
 overscan-margins = { top = 0, right = 0, bottom = 0, left = 0 }
+
+# Password for web app. False to allow open access
+#web-password = "topsecret"
+web-password = false
 
 ### MPV options ###
 [mpv-options]

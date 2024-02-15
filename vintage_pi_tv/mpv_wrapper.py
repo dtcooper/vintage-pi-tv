@@ -10,7 +10,7 @@ import pygame
 import pygame.freetype
 
 from .config import Config
-from .constants import DOCKER_DEV_KEYBOARD_KEYS, TRANSPARENT, WHITE
+from .constants import BLACK_SEETHRU, DOCKER_DEV_KEYBOARD_KEYS, TRANSPARENT, WHITE
 from .utils import TRACE, exit, is_docker
 from .videos import Video
 
@@ -186,7 +186,7 @@ class MPV:
 
         self._done_overlay = self.create_overlay(63)
         self._done_overlay.surf.fill("black")
-        text, rect = self.render_text("Vintage Pi TV Loading\u2026", 64, style="bold-italic")
+        text, rect = self.render_text("Vintage Pi TV Loading...", 64, bgcolor=TRANSPARENT, style="bold-italic")
         rect.center = self._done_overlay.surf.get_rect().center
         self._done_overlay.surf.blit(text, rect)
         self._done_overlay.update()
@@ -221,7 +221,7 @@ class MPV:
         text: str,
         size: int,
         color=WHITE,
-        bgcolor=TRANSPARENT,
+        bgcolor=BLACK_SEETHRU,
         style: Literal["regular", "bold", "italic", "bold-italic"] = "regular",
         padding: int | tuple[int, int] | tuple[int, int, int, int] = 0,
     ) -> tuple[pygame.Surface, pygame.Rect]:
@@ -333,4 +333,4 @@ class MPV:
                 if self.docker_keyboard_blocked:
                     logger.warning(f"Blocked keypress {key} by player request in Docker mode")
                 else:
-                    self._event_queue.put({"event": "keypress", "action": action, "hold": False})
+                    self._event_queue.put({"event": "user-action", "action": action})

@@ -1,6 +1,5 @@
 from collections import defaultdict
 from contextlib import contextmanager
-import enum
 import logging
 from pathlib import Path
 import queue
@@ -12,7 +11,7 @@ import numpy
 import numpy.typing
 
 from .config import Config
-from .constants import BLACK, NO_FILES_LAYER, STATIC_LAYER
+from .constants import BLACK, NO_FILES_LAYER, RED, STATIC_LAYER, PlayerState
 from .keyboard import Keyboard
 from .mpv_wrapper import MPV, Overlay
 from .osd import OSD
@@ -21,13 +20,6 @@ from .videos import Video, VideosDB
 
 
 logger = logging.getLogger(__name__)
-
-
-class PlayerState(enum.StrEnum):
-    LOADING = "loading"
-    NEEDS_FILES = "needs-files"
-    PLAYING = "playing"
-    PAUSED = "paused"
 
 
 class BreakVideoPlayLoop(Exception):
@@ -125,22 +117,26 @@ class Player:
         self._generate_no_videos_overlay()
 
         self._num_state_keys = len(self.state)
+        self._websocket_updates_queue.put({"type": "current_rating", "data": self._current_rating})
 
     def _state_getter(self) -> dict:
         return self.state
 
     def _generate_no_videos_overlay(self):
         self._no_videos_overlay: Overlay = self._mpv.create_overlay(NO_FILES_LAYER)
+        self._no_videos_overlay.surf.fill(BLACK)
         text, rect = self._mpv.render_multiple_lines_of_text(
             (
-                {"text": "No video files detected!", "size": 58},
-                {"text": "Waiting. Please insert USB drive with videos.", "size": 36, "style": "italic"},
+                {"text": "No video files detected!", "size": 58, "color": RED, "bgcolor": BLACK, "style": "bold"},
+                {
+                    "text": "You may need to insert a USB drive containing videos...",
+                    "size": 28,
+                    "bgcolor": BLACK,
+                    "style": "bold-italic",
+                },
             ),
-            bgcolor=BLACK,
-            padding=10,
-            padding_between=25,
+            padding_between=20,
         )
-        self._no_videos_overlay.surf.fill(BLACK)
         rect.center = self._no_videos_overlay.rect.center
         self._no_videos_overlay.surf.blit(text, rect)
 
@@ -184,16 +180,20 @@ class Player:
             yield self._event_queue.get()
 
     def _clear_event_queue(self):
-        while not self._event_queue.empty():
-            event = self._event_queue.get()
-            logger.trace(f"Purged event while clearing event queue: {event}")
+        try:
+            while True:
+                purged_event = self._event_queue.get_nowait()
+                logger.trace(f"Purged event while clearing event queue: {purged_event}")
+        except queue.Empty:
+            pass
 
-    def _handle_event(self, video: Video, event: dict) -> None | Video:
+    def _handle_user_action(self, video: Video, event: dict) -> None | Video:
         next_video: None | Video = None
         logger.debug(f"Got key press event: {event}")
         match event["action"]:
             case "osd":
-                self.osd.show(progress_bar=True)
+                _, muted = self._mpv.volume
+                self.osd.show(progress_bar=True, volume=muted)
             case "random":
                 self._update_state(video=None, state=PlayerState.LOADING)
                 self._mpv.stop()
@@ -208,6 +208,8 @@ class Player:
                 next_video = self._videos_db.get_video_for_channel_change(
                     video=video, current_rating=self._current_rating, direction=direction
                 )
+                if next_video is None:
+                    self.osd.notify(f"No channel found for rating {self._current_rating}!", color=RED)
                 self._mpv.stop()
             case "right" | "left":
                 multiplier = 1 if event["action"] == "right" else -1
@@ -226,9 +228,9 @@ class Player:
             case "ratings":
                 if self._config.ratings:  # Ratings disabled
                     num = self._config.ratings_dict[self._current_rating]["num"]
-                    num = (num + 1) % len(self._config.ratings)
-                    self._current_rating = self._config.ratings[num]["rating"]
-                    logger.info(f"Current rating changed to {self._current_rating}")
+                    num = (num - 1) % len(self._config.ratings)
+                    rating_dict = self._config.ratings[num]
+                    self.set_rating(rating_dict["rating"])
             case _:
                 logger.critical(f"Unknown keypress: {event['action']}")
         return next_video
@@ -236,7 +238,10 @@ class Player:
     def set_rating(self, rating: str):
         if rating not in self._config.ratings_dict:
             self._current_rating = rating
-            self._websocket_updates_queue.push({"type": "rating", "data": rating})
+            rating_dict = self._config.ratings_dict[rating]
+            logger.info(f"Current rating changed to {self._current_rating} ({rating_dict['description']})")
+            self.osd.notify(f"Max rating: {self._current_rating}", color=rating_dict["color"])
+            self._websocket_updates_queue.push({"type": "current_rating", "data": rating})
         else:
             logger.warning(f"Won't set rating to {rating}, since it doesn't exist!")
 
@@ -263,8 +268,15 @@ class Player:
                 with _block_keyboard(self):
                     time.sleep(static_time)
 
-            video = self._videos_db.get_random_video(self._current_rating) if next_video is None else next_video
-            next_video = None
+            if next_video is None:
+                video = self._videos_db.get_random_video(current_rating=self._current_rating)
+                if video is None:
+                    video = self._videos_db.get_random_video()  # Select from entire set
+                    if video is not None:
+                        self.osd.notify(f"No video found for rating {self._current_rating}!", color=RED)
+            else:
+                video = next_video
+                next_video = None
 
             if video is not None:
                 logger.info(f"Playing {video.path}")
@@ -302,8 +314,10 @@ class Player:
                                         logger.warning(f"Error with video {video.path}. Disabling it.")
                                         self._videos_db.mark_bad_video(video)
                                     raise BreakVideoPlayLoop
-                                case "keypress":
-                                    next_video = self._handle_event(video, event)
+                                case "user-action":
+                                    next_video = self._handle_user_action(video, event)
+                                case "crash-player-thread":
+                                    raise Exception("Crashed player thread on purpose.")
                                 case _:
                                     logger.critical(f"Unknown event: {event}")
                 except BreakVideoPlayLoop:
