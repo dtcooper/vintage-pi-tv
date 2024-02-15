@@ -8,7 +8,7 @@ GITHUB_REF_TYPE="${GITHUB_REF_TYPE:-branch}"
 GITHUB_REF_NAME="${GITHUB_REF_NAME:-main}"
 GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-dtcooper/vintage-pi-tv}"
 
-install -vm 644 files/099_vintage_pi_tv_ir_keytable "${ROOTFS_DIR}/etc/sudoers.d/099_vintage_pi_tv_ir_keytable"
+install -vm 440 files/099_vintage_pi_tv_ir_keytable "${ROOTFS_DIR}/etc/sudoers.d/099_vintage_pi_tv_ir_keytable"
 
 if [ ! -d files/vintage-pi-tv ]; then
     echo 'WARNING: Vintage Pi TV repository not found at files/vintage-pi-tv so cloning fresh copy.'
