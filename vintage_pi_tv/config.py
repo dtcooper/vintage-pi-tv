@@ -35,7 +35,7 @@ class Config:
     valid_file_extensions: set[str]
     videos: list[dict]
 
-    def __init__(self, path: None | Path, extra_search_dirs: tuple | list = (), log_level_override: None | str = None):
+    def __init__(self, path: None | Path, extra_search_dirs: list[Path] = (), log_level_override: None | str = None):
         if path is None:
             toml = {}
         else:

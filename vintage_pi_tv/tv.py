@@ -5,7 +5,6 @@ import threading
 import time
 
 from .config import Config
-from .constants import DEFAULT_CONFIG_PATHS
 from .keyboard import KEYBOARD_AVAILABLE, Keyboard
 from .mpv_wrapper import MPV
 from .player import Player
@@ -14,6 +13,7 @@ from .utils import (
     init_logger,
     is_docker,
     is_raspberry_pi,
+    resolve_config_tries,
     retry_thread_wrapper,
     set_log_level,
 )
@@ -81,14 +81,7 @@ class VintagePiTV:
         extra_search_dirs: list | tuple = (),
         log_level_override: None | str = None,
     ):
-        if config_file is not None:
-            config_file_tries = (config_file,)
-        elif not is_docker():
-            config_file_tries = DEFAULT_CONFIG_PATHS
-        else:
-            config_file_tries = ()
-
-        config_file_tries = [Path(p).absolute() for p in config_file_tries]
+        config_file_tries = resolve_config_tries(config_file=config_file)
         self.config: Config = None
 
         for config_file_try in config_file_tries:

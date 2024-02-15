@@ -10,7 +10,7 @@ import time
 
 from uvicorn.logging import TRACE_LOG_LEVEL as TRACE, ColourizedFormatter
 
-from .constants import ENV_RELOAD_PID_NAME
+from .constants import DEFAULT_CONFIG_PATHS, ENV_RELOAD_PID_NAME
 
 
 logger = logging.getLogger(__name__)
@@ -155,3 +155,13 @@ def exit(status: int = 0, reason: str = "unspecified"):
     else:
         logger.debug("Exiting from main thread")
         sys.exit(status)
+
+
+def resolve_config_tries(config_file: None | Path = None) -> list[Path]:
+    if config_file is not None:
+        tries = [config_file]
+    elif not is_docker():
+        tries = DEFAULT_CONFIG_PATHS
+    else:
+        tries = []
+    return [Path(p).absolute() for p in tries]

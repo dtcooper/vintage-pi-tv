@@ -22,6 +22,7 @@ class Video:
         name: str | None,
         rating: str | Literal[False],
         subtitles: bool | Path,
+        from_config: bool = False,
     ):
         self._videos_db = videos_db
 
@@ -35,10 +36,15 @@ class Video:
             self.rating_dict = self._videos_db.config.ratings_dict[self.rating]
 
         self.subtitles: bool | Path = subtitles
+        self.from_config: bool = from_config  # Used in __main__:generate_videos_config
 
     @staticmethod
     def get_automatic_video_name(path: Path) -> str:
         return path.stem.strip().replace("-", " ").replace("_", " ").title()
+
+    @property
+    def filename(self) -> str:
+        return self.path.name.strip().lower()
 
     @property
     def channel(self) -> int:
@@ -52,7 +58,13 @@ class Video:
         return self.rating_dict["num"] <= self._videos_db.config.ratings_dict[rating]["num"]
 
     def serialize(self) -> dict:
-        return {"path": str(self.path), "channel": self.channel + 1, "rating": self.rating, "name": self.name}
+        return {
+            "path": str(self.path),
+            "channel": self.display_channel,
+            "rating": self.rating,
+            "name": self.name,
+            "filename": self.filename,
+        }
 
     def __repr__(self):
         return f"Video(name={self.name!r}, path={self.path!r}, channel={self.channel})"
@@ -201,7 +213,7 @@ class VideosDB:
                     raise Exception("Invalid 'channel-mode' (should never get here!)")
                 videos = videos_config + videos_non_config
 
-        videos = [Video(videos_db=self, **v) for (_, v) in videos]
+        videos = [Video(videos_db=self, from_config=from_config, **video) for from_config, video in videos]
         # Operation should be atomic, assign both at same time
         with self._channel_lock:
             self._videos = {"objects": videos, "channels": {v.path: i for i, v in enumerate(videos)}}
