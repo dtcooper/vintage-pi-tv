@@ -9,6 +9,7 @@ GITHUB_REF_NAME="${GITHUB_REF_NAME:-main}"
 GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-dtcooper/vintage-pi-tv}"
 
 install -vm 440 files/099_vintage_pi_tv_ir_keytable "${ROOTFS_DIR}/etc/sudoers.d/099_vintage_pi_tv_ir_keytable"
+install -vm 644 files/10-poweroff-by-any-user.rules "${ROOTFS_DIR}/etc/polkit-1/rules.d/"
 
 if [ ! -d files/vintage-pi-tv ]; then
     echo 'WARNING: Vintage Pi TV repository not found at files/vintage-pi-tv so cloning fresh copy.'
@@ -53,6 +54,7 @@ fi
 su - "${FIRST_USER_NAME}" -c "ln -vs /opt/vintage-pi-tv vintage-pi-tv"
 su - "${FIRST_USER_NAME}" -c "ln -vs /opt/vintage-pi-tv/LICENSE LICENSE"
 su - "${FIRST_USER_NAME}" -c "ln -vs /opt/vintage-pi-tv/README.md README.md"
+ln -s /usr/sbin/poweroff /usr/bin/poweroff
 EOF
 
 
