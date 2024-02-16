@@ -181,7 +181,7 @@ class MPV:
 
         pygame.freetype.init()
         self._fonts: dict[pygame.freetype.Font] = {
-            name: pygame.freetype.Font(DATA_DIR / f"space-mono-{name}.ttf")
+            name: pygame.freetype.Font(DATA_DIR / "fonts" / f"space-mono-{name}.ttf")
             for name in ("regular", "italic", "bold", "bold-italic")
         }
 
