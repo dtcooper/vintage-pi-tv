@@ -29,6 +29,12 @@ jobs:
         with:
           fetch-depth: 0
       -
+        name: Setup nodejs
+        if: github.ref_type == 'tag'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      -
         name: Prepare for build
         id: setup
         shell: bash
@@ -60,6 +66,13 @@ jobs:
           echo "timezone=${TIMEZONE_DEFAULT}" | tee -a "${GITHUB_OUTPUT}"
           echo "username=${FIRST_USER_NAME}" | tee -a "${GITHUB_OUTPUT}"
           echo "wpa-country=${WPA_COUNTRY}" | tee -a "${GITHUB_OUTPUT}"
+
+          if [ "${GITHUB_REF_TYPE}" = 'tag' ]; then
+            echo "Building web app for tagged release"
+            cd web
+            npm install
+            npm run build
+          fi
       -
         name: Build image
         uses: usimd/pi-gen-action@v1
@@ -77,7 +90,7 @@ jobs:
           pi-gen-release: ${{ steps.setup.outputs.pi-gen-release }}
           pi-gen-version: arm64
           release: bookworm
-          stage-list: 'stage0 stage1 stage2 ./image/stage-vintage-pi-tv'
+          stage-list: "stage0 stage1 stage2 ${{ (github.ref_type == 'tag') && '' || './image/stage-nodejs '}}./image/stage-vintage-pi-tv"
           timezone: ${{ steps.setup.outputs.timezone }}
           username: ${{ steps.setup.outputs.username }}
           verbose-output: true

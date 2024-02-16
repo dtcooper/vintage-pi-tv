@@ -53,7 +53,15 @@ fi
 su - "${FIRST_USER_NAME}" -c "ln -vs /opt/vintage-pi-tv vintage-pi-tv"
 su - "${FIRST_USER_NAME}" -c "ln -vs /opt/vintage-pi-tv/LICENSE LICENSE"
 su - "${FIRST_USER_NAME}" -c "ln -vs /opt/vintage-pi-tv/README.md README.md"
+EOF
 
+
+if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+    echo "Copying over pre-built web app for tagged release"
+    cp -vr "${REPO_DIR}/web/dist" "${ROOTFS_DIR}/opt/vintage-pi-tv/web/dist"
+else
+    on_chroot <<EOF
 su - "${FIRST_USER_NAME}" -c "cd /opt/vintage-pi-tv/web ; npm install"
 su - "${FIRST_USER_NAME}" -c "cd /opt/vintage-pi-tv/web ; npm run build"
 EOF
+fi
