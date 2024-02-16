@@ -53,4 +53,7 @@ fi
 su - "${FIRST_USER_NAME}" -c "ln -vs /opt/vintage-pi-tv vintage-pi-tv"
 su - "${FIRST_USER_NAME}" -c "ln -vs /opt/vintage-pi-tv/LICENSE LICENSE"
 su - "${FIRST_USER_NAME}" -c "ln -vs /opt/vintage-pi-tv/README.md README.md"
+
+su - "${FIRST_USER_NAME}" -c "cd /opt/vintage-pi-tv/web ; npm install"
+su - "${FIRST_USER_NAME}" -c "cd /opt/vintage-pi-tv/web ; npm run build"
 EOF
