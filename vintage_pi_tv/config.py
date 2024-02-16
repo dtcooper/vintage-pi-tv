@@ -34,6 +34,7 @@ class Config:
     start_muted: bool
     static_time_between_channels: float
     static_time: float
+    subtitles_default_on: bool
     valid_file_extensions: set[str]
     videos: list[dict]
 

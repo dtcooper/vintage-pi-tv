@@ -29,6 +29,9 @@ static-time-between-channels = 0.5
 # Display framerate on the on-screen display (OSD)
 show-fps = false
 
+# Always enable embedded subtitles for a file if this is set
+subtitles-default-on = false
+
 # The on-screen display (OSD) will always be on if this is set (shows channel only)
 channel-osd-always-on = false
 

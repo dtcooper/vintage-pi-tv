@@ -3,6 +3,7 @@ from pathlib import Path
 from schema import And, Optional, Or, Regex, Schema, SchemaError, Use
 
 from .constants import (
+    CHANNEL_MODES,
     DEFAULT_DEV_MPV_OPTIONS,
     DEFAULT_DOCKER_MPV_OPTIONS,
     DEFAULT_IR_SCANCODES,
@@ -51,7 +52,7 @@ config_schema = Schema(
         Optional("channel-mode", default="random"): And(
             str,
             Use(lambda s: s.strip().lower()),
-            Or("random", "alphabetical", "config-only", "config-first-random", "config-first-alphabetical"),
+            Or(*CHANNEL_MODES),
             error=(
                 "Invalid 'channel-mode'. Must be one of 'random', 'alphabetical', 'config-only', "
                 "'config-first-random', or 'config-first-alphabetical'"
@@ -74,6 +75,7 @@ config_schema = Schema(
         Optional("web-password", default=False): Or(False, NON_EMPTY_STRING),
         Optional("audio-visualization", default=True): bool,
         Optional("crt-filter", default=False): bool,
+        Optional("subtitles-default-on", default=False): bool,
         Optional("ratings", default=DEFAULT_RATINGS): Or(
             False,
             And(
@@ -147,7 +149,7 @@ config_schema = Schema(
             Optional("name", default=""): And(Use(lambda s: s or ""), str, Use(lambda s: s.strip())),
             Optional("rating", default=False): Or(False, And(str, Use(lambda s: s.strip().upper()))),
             # Don't resolve subtitle symlink, since it's relative to file if not absolute
-            Optional("subtitles", default=False): Or(
+            Optional("subtitles", default=None): Or(
                 bool, And(int, lambda i: i >= 1), And(str, len, Use(lambda path: Path(path).expanduser()))
             ),
         }],

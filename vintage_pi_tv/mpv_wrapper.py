@@ -304,14 +304,14 @@ class MPV:
         if pre_seek is not None and pre_seek > 0.0:
             kwargs["start"] = pre_seek
         if isinstance(video.subtitles, Path):
-            logger.debug(f"Disabling subtitle file {video.subtitles} for {video.path}")
+            logger.debug(f"Enabling subtitles via file {video.subtitles} for {video.path}")
             kwargs["sub_file"] = video.subtitles
         elif not video.subtitles:
             logger.debug(f"Disabling subtitles for {video.path}")
             kwargs["sid"] = "no"
         else:
-            kwargs["sid"] = int(video.subtitles)  # True goes to 1
-            logger.debug(f"Enabling subtitles sid={kwargs['sid']} for {video.path}")
+            kwargs["sid"] = video.subtitles
+            logger.debug(f"Enabling subtitles sid={video.subtitles} for {video.path}")
 
         self._player.loadfile(str(video.path), **kwargs)
         self.resume()

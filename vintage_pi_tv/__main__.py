@@ -25,7 +25,11 @@ def generate_videos_config(config_file: Path, extra_search_dirs):
     logging.disable(logging.CRITICAL)
 
     config_files = resolve_config_tries(config_file)
-    config_file = config_files[0] if config_files else None
+    config_file = None
+    for config_file_try in config_files:
+        if config_file_try.exists():
+            config_file = config_file_try
+            break
 
     config = Config(path=config_file, extra_search_dirs=extra_search_dirs, channel_mode="alphabetical")
     videos = VideosDB(config=config)

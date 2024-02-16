@@ -94,9 +94,11 @@ class VintagePiTV:
                     break
                 else:
                     if i < config_wait:
-                        logger.warning(f"Config file {config_file_try} not found! Sleeping for 1 second.")
+                        logger.info(f"Config file {config_file_try} not found! Waiting.. (Try {i + 1}/{config_wait})")
                         time.sleep(1)
-            if self.config is not None:
+            if self.config is None:
+                logger.warning(f"Config file {config_file_try} not found!")
+            else:
                 break
         else:
             if config_file_tries:

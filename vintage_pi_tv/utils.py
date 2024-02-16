@@ -165,3 +165,7 @@ def resolve_config_tries(config_file: None | Path = None) -> list[Path]:
     else:
         tries = []
     return [Path(p).absolute() for p in tries]
+
+
+def normalize_filename(path: Path):
+    return path.name.strip().lower()

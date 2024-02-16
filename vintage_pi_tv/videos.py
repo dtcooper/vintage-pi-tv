@@ -9,7 +9,14 @@ from typing import Literal
 import watchfiles
 
 from .config import Config
-from .utils import exit, listdir_recursive
+from .constants import (
+    CHANNEL_MODE_ALPHABETICAL,
+    CHANNEL_MODE_CONFIG_FIRST_ALPHABETICAL,
+    CHANNEL_MODE_CONFIG_FIRST_RANDOM,
+    CHANNEL_MODE_CONFIG_ONLY,
+    CHANNEL_MODE_RANDOM,
+)
+from .utils import exit, listdir_recursive, normalize_filename
 
 
 logger = logging.getLogger(__name__)
@@ -22,7 +29,7 @@ class Video:
         path: Path,
         name: str | None,
         rating: str | Literal[False],
-        subtitles: int | bool | Path,
+        subtitles: None | int | bool | Path,
         from_config: bool = False,
     ):
         self._videos_db = videos_db
@@ -36,7 +43,19 @@ class Video:
         else:
             self.rating_dict = self._videos_db.config.ratings_dict[self.rating]
 
-        self._subtitles: bool | Path = subtitles
+        self.subtitles: int | Path
+        if subtitles is None:  # Unset
+            self.subtitles = 1 if self._videos_db.config.subtitles_default_on else False
+        elif isinstance(subtitles, Path):  # Path, relative or absolute
+            if subtitles.is_absolute():
+                self.subtitles = subtitles
+            else:
+                self.subtitles = self.path.parent / subtitles
+        elif isinstance(subtitles, bool):  # bool
+            self.subtitles = 1 if subtitles else False
+        else:  # int (will be greater than 0 from schema)
+            self.subtitles = subtitles
+
         self.from_config: bool = from_config  # Used in __main__:generate_videos_config
 
     @staticmethod
@@ -45,7 +64,7 @@ class Video:
 
     @property
     def filename(self) -> str:
-        return self.path.name.strip().lower()
+        return normalize_filename(self.path)
 
     @property
     def channel(self) -> int:
@@ -54,16 +73,6 @@ class Video:
     @property
     def display_channel(self) -> str:
         return str(self.channel + 1)
-
-    @property
-    def subtitles(self) -> int | bool | Path:
-        if isinstance(self._subtitles, Path):
-            if self._subtitles.is_absolute():
-                return self._subtitles
-            else:
-                return self.path.parent / self._subtitles
-        else:
-            return self._subtitles
 
     def is_viewable_based_on_rating(self, rating):
         return self.rating_dict["num"] <= self._videos_db.config.ratings_dict[rating]["num"]
@@ -130,7 +139,7 @@ class VideosDB:
 
     def _is_valid_video_path(self, path: Path):
         # Ends with a valid extension
-        if not path.name.strip().lower().endswith(self.config.valid_file_extensions):
+        if not normalize_filename(path).endswith(self.config.valid_file_extensions):
             return False
 
         if path in self._bad_video_paths:
@@ -180,7 +189,7 @@ class VideosDB:
 
                     if path.is_file():
                         if self._is_valid_video_path(path):
-                            filename = path.name.strip().lower()
+                            filename = normalize_filename(path)
                             from_config = False
                             video = {"path": path, "name": "", "enabled": True, "subtitles": False, "rating": False}
                             config_metadata = self.config.videos.get(filename)
@@ -207,22 +216,20 @@ class VideosDB:
         logger.info(f"Sorting channels by mode: {self.config.channel_mode}")
 
         # Sort by channel mode
-        if self.config.channel_mode == "random":
+        if self.config.channel_mode == CHANNEL_MODE_RANDOM:
             random.shuffle(videos)
-        elif self.config.channel_mode == "alphabetical":
+        elif self.config.channel_mode == CHANNEL_MODE_ALPHABETICAL:
             videos.sort(key=channel_sort_key)
         else:
             videos_config = [v for v in videos if v[0]]
-            if self.config.channel_mode == "config-only":
+            if self.config.channel_mode == CHANNEL_MODE_CONFIG_ONLY:
                 videos = videos_config
             else:
                 videos_non_config = [v for v in videos if not v[0]]
-                if self.config.channel_mode == "config-first-random":
+                if self.config.channel_mode == CHANNEL_MODE_CONFIG_FIRST_RANDOM:
                     random.shuffle(videos_non_config)
-                elif self.config.channel_mode == "config-first-alphabetical":
+                elif self.config.channel_mode == CHANNEL_MODE_CONFIG_FIRST_ALPHABETICAL:
                     videos_non_config.sort(key=channel_sort_key)
-                else:
-                    raise Exception("Invalid 'channel-mode' (should never get here!)")
                 videos = videos_config + videos_non_config
 
         videos = [Video(videos_db=self, from_config=from_config, **video) for from_config, video in videos]

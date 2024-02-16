@@ -34,6 +34,19 @@ class PlayerState(enum.StrEnum):
 
 DATA_DIR = Path(__file__).absolute().parent / "data"
 
+CHANNEL_MODE_RANDOM = "random"
+CHANNEL_MODE_ALPHABETICAL = "alphabetical"
+CHANNEL_MODE_CONFIG_ONLY = "config-only"
+CHANNEL_MODE_CONFIG_FIRST_RANDOM = "config-first-random"
+CHANNEL_MODE_CONFIG_FIRST_ALPHABETICAL = "config-first-alphabetical"
+CHANNEL_MODES = (
+    CHANNEL_MODE_RANDOM,
+    CHANNEL_MODE_ALPHABETICAL,
+    CHANNEL_MODE_CONFIG_ONLY,
+    CHANNEL_MODE_CONFIG_FIRST_RANDOM,
+    CHANNEL_MODE_CONFIG_FIRST_ALPHABETICAL,
+)
+
 DEFAULT_CONFIG_PATHS = (
     "/media/VintagePiTV/config.toml",
     "/boot/firmware/vintage-pi-tv-config.toml",
