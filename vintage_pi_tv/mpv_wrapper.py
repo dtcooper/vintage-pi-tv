@@ -10,7 +10,7 @@ import pygame
 import pygame.freetype
 
 from .config import Config
-from .constants import BLACK_SEETHRU, DATA_DIR, DOCKER_DEV_KEYBOARD_KEYS, TRANSPARENT, WHITE
+from .constants import BLACK_SEETHRU, DOCKER_DEV_KEYBOARD_KEYS, TRANSPARENT, WHITE, DATA_DIR
 from .utils import TRACE, exit, is_docker
 from .videos import Video
 
@@ -180,9 +180,8 @@ class MPV:
         self._pixel_scale: float = min(self.width * 9 / 16, self.height) / 360
 
         pygame.freetype.init()
-        font_root = Path(__file__).parent / "fonts"
         self._fonts: dict[pygame.freetype.Font] = {
-            name: pygame.freetype.Font(font_root / f"space-mono-{name}.ttf")
+            name: pygame.freetype.Font(DATA_DIR / f"space-mono-{name}.ttf")
             for name in ("regular", "italic", "bold", "bold-italic")
         }
 

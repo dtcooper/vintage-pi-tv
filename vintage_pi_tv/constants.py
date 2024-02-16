@@ -1,4 +1,5 @@
 import enum
+from pathlib import Path
 
 
 ENV_ARGS_VAR_NAME = "__VINTAGE_PI_TV_ARGS"
@@ -30,6 +31,8 @@ class PlayerState(enum.StrEnum):
     PLAYING = "playing"
     PAUSED = "paused"
 
+
+DATA_DIR = Path(__file__).absolute().parent / "data"
 
 DEFAULT_CONFIG_PATHS = (
     "/media/VintagePiTV/config.toml",
