@@ -146,7 +146,8 @@ config_schema = Schema(
             Optional("enabled", default=True): bool,
             Optional("name", default=""): And(Use(lambda s: s or ""), str, Use(lambda s: s.strip())),
             Optional("rating", default=False): Or(False, And(str, Use(lambda s: s.strip().upper()))),
-            Optional("subtitles", default=False): Or(bool, NON_EMPTY_PATH),
+            # Don't resolve subtitle symlink, since it's relative to file if not absolute
+            Optional("subtitles", default=False): Or(bool, And(str, len, Use(lambda path: Path(path).expanduser()))),
         }],
     },
 )

@@ -99,7 +99,7 @@ async def shutdown():
 
 
 app = Starlette(
-    routes=[Route("/", index), WebSocketRoute("/", websocket_index)],
+    routes=[Route("/", index), WebSocketRoute("/ws", websocket_index)],
     debug=tv.config.log_level == "DEBUG",
     on_startup=[tv.startup, startup],
     on_shutdown=[tv.shutdown, shutdown],

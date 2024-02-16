@@ -36,7 +36,7 @@ class Video:
         else:
             self.rating_dict = self._videos_db.config.ratings_dict[self.rating]
 
-        self.subtitles: bool | Path = subtitles
+        self._subtitles: bool | Path = subtitles
         self.from_config: bool = from_config  # Used in __main__:generate_videos_config
 
     @staticmethod
@@ -54,6 +54,16 @@ class Video:
     @property
     def display_channel(self) -> str:
         return str(self.channel + 1)
+
+    @property
+    def subtitles(self) -> bool | Path:
+        if isinstance(self._subtitles, Path):
+            if self._subtitles.is_absolute():
+                return self._subtitles
+            else:
+                return self.path.parent / self._subtitles
+        else:
+            return self._subtitles
 
     def is_viewable_based_on_rating(self, rating):
         return self.rating_dict["num"] <= self._videos_db.config.ratings_dict[rating]["num"]

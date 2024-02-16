@@ -1,4 +1,6 @@
 import logging
+import os
+from pathlib import Path
 import queue
 from typing import Literal
 
@@ -93,12 +95,23 @@ class MPV:
         if config.keyboard["enabled"] and is_docker():
             kwargs["input_vo_keyboard"] = True
 
+        subtitle_font_path = Path("~").expanduser() / ".fonts" / "space-mono-regular.ttf"
+        if not subtitle_font_path.exists():
+            logger.info("Installing subtitle font")
+            subtitle_font_path.parent.mkdir(parents=True, exist_ok=True)
+            os.symlink(DATA_DIR / "fonts" / "space-mono-regular.ttf", subtitle_font_path)
+
         logger.debug(f"Initializing MPV with arguments: {kwargs}")
         try:
             self._player: mpv.MPV = mpv.MPV(
+                embeddedfonts="no",
+                force_window="immediate",
                 log_handler=mpv_log,
                 loglevel=LOG_LEVEL_MPV_MAPPING[config.log_level],
-                force_window="immediate",
+                sub_use_margins="no",
+                sub_font_size=50,
+                sub_pos=90,
+                sub_font="Space Mono",
                 **kwargs,
             )
         except Exception as e:
@@ -285,10 +298,15 @@ class MPV:
         del self._done_overlay
 
     def play(self, video: Video, pre_seek: None | float):
+        kwargs = {}
         if pre_seek is not None and pre_seek > 0.0:
-            self._player.loadfile(str(video.path), start=pre_seek)
-        else:
-            self._player.loadfile(str(video.path))
+            kwargs["start"] = pre_seek
+        if isinstance(video.subtitles, Path):
+            kwargs["sub_file"] = video.subtitles
+        elif not video.subtitles:
+            kwargs["sid"] = "no"
+
+        self._player.loadfile(str(video.path), **kwargs)
         self.resume()
 
     def stop(self):
