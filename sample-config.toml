@@ -140,8 +140,9 @@ name = "Color Bars"  # Custom name for file, if omitted/empty will be based on f
 # Optional keys below
 enabled = true  # If false, any file with this name will be ignored
 rating = "G"  # If false or invalid, will be assigned the default rating. Default is first rating in 'ratings' above.
-subtitles = false  # true to enable subtitles embedded into the video,
-                   # or an absolute or relaive path to subtitle file (usually <filename>.srt)
+subtitles = false  # true to enable subtitles embedded into the video (by default the first embedded subtitle track)
+                   # A number selects the ID of an embedded subtitle track
+                   # Or an absolute or relative path to subtitle file (usually <filename>.srt)
 
 ## Add more videos below you want to customize below
 

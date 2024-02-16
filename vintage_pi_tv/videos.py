@@ -22,7 +22,7 @@ class Video:
         path: Path,
         name: str | None,
         rating: str | Literal[False],
-        subtitles: bool | Path,
+        subtitles: int | bool | Path,
         from_config: bool = False,
     ):
         self._videos_db = videos_db
@@ -56,7 +56,7 @@ class Video:
         return str(self.channel + 1)
 
     @property
-    def subtitles(self) -> bool | Path:
+    def subtitles(self) -> int | bool | Path:
         if isinstance(self._subtitles, Path):
             if self._subtitles.is_absolute():
                 return self._subtitles

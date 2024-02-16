@@ -27,7 +27,7 @@ def generate_videos_config(config_file: Path, extra_search_dirs):
     config_files = resolve_config_tries(config_file)
     config_file = config_files[0] if config_files else None
 
-    config = Config(path=config_file, extra_search_dirs=extra_search_dirs)
+    config = Config(path=config_file, extra_search_dirs=extra_search_dirs, channel_mode="alphabetical")
     videos = VideosDB(config=config)
 
     toml = tomlkit.document()

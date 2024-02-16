@@ -342,6 +342,7 @@ class Player:
                                     if event["reason"] == "error":
                                         logger.warning(f"Error with video {video.path}. Disabling it.")
                                         self._videos_db.mark_bad_video(video)
+                                    logger.info(f"Ending playback of {video.path}")
                                     raise BreakVideoPlayLoop
                                 case "user-action":
                                     next_video = self._handle_user_action(video, event)

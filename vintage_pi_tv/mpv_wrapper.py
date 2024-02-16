@@ -40,7 +40,9 @@ LOG_LEVEL_MPV_MAPPING = {
 
 
 def mpv_log(level, prefix, text):
-    logger.log(MPV_LOG_LEVEL_MAPPING.get(level, logging.INFO), f"[mpv/{prefix}] {text.rstrip()}")
+    # Filter out ugly logs
+    if "Cannot load libcuda.so" not in text and "Could not dynamically load CUDA" not in text:
+        logger.log(MPV_LOG_LEVEL_MAPPING.get(level, logging.INFO), f"[mpv/{prefix}] {text.rstrip()}")
 
 
 class Overlay:
@@ -302,9 +304,14 @@ class MPV:
         if pre_seek is not None and pre_seek > 0.0:
             kwargs["start"] = pre_seek
         if isinstance(video.subtitles, Path):
+            logger.debug(f"Disabling subtitle file {video.subtitles} for {video.path}")
             kwargs["sub_file"] = video.subtitles
         elif not video.subtitles:
+            logger.debug(f"Disabling subtitles for {video.path}")
             kwargs["sid"] = "no"
+        else:
+            kwargs["sid"] = int(video.subtitles)  # True goes to 1
+            logger.debug(f"Enabling subtitles sid={kwargs['sid']} for {video.path}")
 
         self._player.loadfile(str(video.path), **kwargs)
         self.resume()
