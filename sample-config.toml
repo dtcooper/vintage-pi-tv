@@ -31,6 +31,8 @@ show-fps = false
 
 # The on-screen display (OSD) will always be on if this is set (shows channel only)
 channel-osd-always-on = false
+
+# Completely disable the OSD if this is set
 disable-osd = false
 
 # Apply a basic vintage CRT filter effect to videos (not applied to OSD)
