@@ -1,6 +1,7 @@
 import logging
 import os
 from pathlib import Path
+import queue
 import random
 import threading
 from typing import Literal
@@ -71,7 +72,7 @@ class Video:
 
 
 class VideosDB:
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, websocket_updates_queue: None | queue.Queue = None):
         self.config: Config = config
         self._search_dirs: list[Path] = []
         self._search_dirs_recursive: list[Path] = []
@@ -79,8 +80,9 @@ class VideosDB:
         self._wants_channel_rebuild: bool = True
         self._rebuild_event: threading.Event = threading.Event()
         self._channel_lock: threading.Lock = threading.Lock()
-        self.watch_stop_event = threading.Event()
-        self.has_videos_event = threading.Event()
+        self.watch_stop_event: threading.Event = threading.Event()
+        self.has_videos_event: threading.Event = threading.Event()
+        self._websocket_updates_queue: queue.Queue = websocket_updates_queue
 
         self._init_dirs()
         self._rebuild_channels()
@@ -217,6 +219,10 @@ class VideosDB:
         # Operation should be atomic, assign both at same time
         with self._channel_lock:
             self._videos = {"objects": videos, "channels": {v.path: i for i, v in enumerate(videos)}}
+            if self._websocket_updates_queue is not None:
+                self._websocket_updates_queue.put({"type": "videos_db", "data": [v.serialize() for v in self.videos]})
+            else:
+                logger.critical("No websocket queue! Something went wrong (or using --generate_videos_config).")
             logger.info(f"Generated {len(self.videos)} channels, ignored {ignored_files} files")
             if videos:
                 self.has_videos_event.set()

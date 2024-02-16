@@ -31,6 +31,10 @@ show-fps = false
 
 # The on-screen display (OSD) will always be on if this is set (shows channel only)
 channel-osd-always-on = false
+disable-osd = false
+
+# Apply a basic vintage CRT filter effect to videos (not applied to OSD)
+crt-filter = false
 
 # Channel mode, one of
 #   - random -- Channel ordering determined by random shuffling
@@ -45,7 +49,7 @@ channel-osd-always-on = false
 channel-mode = "config-first-alphabetical"
 
 # Sould we provide visualizations for audio files?
-enable-audio-visualization = true
+audio-visualization = true
 
 # Ratings must be in order least restricted to most restricted, eg. G first, X last
 ratings = [

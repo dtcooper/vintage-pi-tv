@@ -24,7 +24,7 @@ if sys.version_info < (3, 7):
 
 logger = logging.getLogger(__name__)
 
-REQUIRED_BROADCAST_DATA_KEYS_TO_START = ("state", "current_rating", "ratings")
+REQUIRED_BROADCAST_DATA_KEYS_TO_START = ("state", "current_rating", "ratings", "videos_db")
 broadcast_data = {}
 websockets: weakref.WeakSet[WebSocket] = weakref.WeakSet()
 websocket_updates_queue: janus.Queue[dict] = janus.Queue()
@@ -90,8 +90,7 @@ async def startup():
         await asyncio.sleep(0.05)
 
         if tick() > error_after:
-            logger.critical("Couldn't initialize web app, required data not found.")
-            exit(1)
+            exit(1, "Couldn't initialize web app, required data not found!", force=True)
 
 
 async def shutdown():

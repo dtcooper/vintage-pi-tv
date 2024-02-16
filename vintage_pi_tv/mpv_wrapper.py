@@ -10,7 +10,7 @@ import pygame
 import pygame.freetype
 
 from .config import Config
-from .constants import BLACK_SEETHRU, DOCKER_DEV_KEYBOARD_KEYS, TRANSPARENT, WHITE
+from .constants import BLACK_SEETHRU, DATA_DIR, DOCKER_DEV_KEYBOARD_KEYS, TRANSPARENT, WHITE
 from .utils import TRACE, exit, is_docker
 from .videos import Video
 
@@ -79,11 +79,13 @@ class MPV:
     def __init__(self, config: Config, event_queue: queue.Queue):
         # Prep arguents for MPV
         kwargs = {k.replace("-", "_"): v for k, v in config.mpv_options.items() if not isinstance(v, bool) or v}
-        if config.enable_audio_visualization:
+        if config.audio_visualization:
             kwargs.update({
-                "scripts": str(Path(__file__).parent / "visualizer.lua"),
+                "scripts": str(DATA_DIR / "visualizer.lua"),
                 "script_opts": "visualizer-name=avectorscope,visualizer-height=12",
             })
+        if config.crt_filter:
+            kwargs["glsl_shaders"] = str(DATA_DIR / "crt-filter.glsl")
 
         if config.aspect_mode == "zoom":
             logger.debug("Setting panscan to 1.0 for zoom")
@@ -131,7 +133,7 @@ class MPV:
         def _(_, value):
             self._event_queue.put({"event": "duration", "value": value or 0.0})
 
-        @self._player.property_observer("core-idle")
+        @self._player.property_observer("pause")
         def _(_, value):
             self._event_queue.put({"event": "paused", "value": value})
 
@@ -186,7 +188,7 @@ class MPV:
 
         self._done_overlay = self.create_overlay(63)
         self._done_overlay.surf.fill("black")
-        text, rect = self.render_text("Vintage Pi TV Loading...", 64, bgcolor=TRANSPARENT, style="bold-italic")
+        text, rect = self.render_text("Vintage Pi TV Loading...", 64, bgcolor=TRANSPARENT, font="bold-italic")
         rect.center = self._done_overlay.surf.get_rect().center
         self._done_overlay.surf.blit(text, rect)
         self._done_overlay.update()
@@ -222,12 +224,12 @@ class MPV:
         size: int,
         color=WHITE,
         bgcolor=BLACK_SEETHRU,
-        style: Literal["regular", "bold", "italic", "bold-italic"] = "regular",
+        font: Literal["regular", "bold", "italic", "bold-italic"] = "regular",
         padding: int | tuple[int, int] | tuple[int, int, int, int] = 0,
     ) -> tuple[pygame.Surface, pygame.Rect]:
         top, right, bottom, left = self._resolve_padding(padding)
         has_padding = any(p != 0 for p in (top, left, bottom, left))
-        surf, rect = self._fonts[style].render(
+        surf, rect = self._fonts[font].render(
             text, fgcolor=color, bgcolor=TRANSPARENT if has_padding else bgcolor, size=size * self._font_scale
         )
         if not has_padding:
@@ -285,8 +287,7 @@ class MPV:
         del self._done_overlay
 
     def play(self, video: Video, pre_seek: None | float):
-        if pre_seek is not None:
-            print(f"PRE SEEK: {pre_seek}")
+        if pre_seek is not None and pre_seek > 0.0:
             self._player.loadfile(str(video.path), start=pre_seek)
         else:
             self._player.loadfile(str(video.path))

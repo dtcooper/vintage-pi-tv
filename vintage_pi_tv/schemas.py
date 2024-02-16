@@ -65,13 +65,15 @@ config_schema = Schema(
         ),
         Optional("show-fps", default=False): bool,
         Optional("channel-osd-always-on", default=False): bool,
+        Optional("disable-osd", default=False): bool,
         Optional("save-place-while-browsing", default=True): bool,
         Optional("start-muted", default=False): bool,
         Optional("static-time-between-channels", default=0.5): Or(
             And(Or(False, 0, 0.0), Use(lambda _: -1.0)), And(Use(float), lambda f: f > 0.0)
         ),
         Optional("web-password", default=False): Or(False, NON_EMPTY_STRING),
-        Optional("enable-audio-visualization", default=True): bool,
+        Optional("audio-visualization", default=True): bool,
+        Optional("crt-filter", default=False): bool,
         Optional("ratings", default=DEFAULT_RATINGS): Or(
             False,
             And(

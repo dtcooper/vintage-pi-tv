@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 import queue
 import random
+import subprocess
 import threading
 import time
 
@@ -127,12 +128,12 @@ class Player:
         self._no_videos_overlay.surf.fill(BLACK)
         text, rect = self._mpv.render_multiple_lines_of_text(
             (
-                {"text": "No video files detected!", "size": 58, "color": RED, "bgcolor": BLACK, "style": "bold"},
+                {"text": "No video files detected!", "size": 58, "color": RED, "bgcolor": BLACK, "font": "bold"},
                 {
                     "text": "You may need to insert a USB drive containing videos...",
                     "size": 28,
                     "bgcolor": BLACK,
-                    "style": "bold-italic",
+                    "font": "bold-italic",
                 },
             ),
             padding_between=20,
@@ -231,17 +232,45 @@ class Player:
                     num = (num - 1) % len(self._config.ratings)
                     rating_dict = self._config.ratings[num]
                     self.set_rating(rating_dict["rating"])
+            case "power":
+                logger.warning("Attempting to power off machine")
+                try:
+                    subprocess.check_call(("poweroff",))
+                except subprocess.CalledProcessError:
+                    pass
+                exit(0, "Powered off machine")
             case _:
                 logger.critical(f"Unknown keypress: {event['action']}")
         return next_video
 
     def set_rating(self, rating: str):
-        if rating not in self._config.ratings_dict:
+        if rating in self._config.ratings_dict:
             self._current_rating = rating
             rating_dict = self._config.ratings_dict[rating]
-            logger.info(f"Current rating changed to {self._current_rating} ({rating_dict['description']})")
-            self.osd.notify(f"Max rating: {self._current_rating}", color=rating_dict["color"])
-            self._websocket_updates_queue.push({"type": "current_rating", "data": rating})
+            color = rating_dict["color"]
+            description = rating_dict["description"]
+            logger.info(f"Current rating changed to {self._current_rating} ({description})")
+            self.osd.notify(
+                [
+                    {
+                        "text": f"Max rating: {rating}",
+                        "size": 50,
+                        "padding": (10, 10, 5, 10),
+                        "color": color,
+                        "font": "bold",
+                    },
+                    {
+                        "text": rating_dict["description"],
+                        "size": 32,
+                        "padding": (5, 10, 10, 10),
+                        "color": color,
+                        "font": "italic",
+                    },
+                ],
+                padding_between=0,
+                align="right",
+            )
+            self._websocket_updates_queue.put({"type": "current_rating", "data": rating})
         else:
             logger.warning(f"Won't set rating to {rating}, since it doesn't exist!")
 

@@ -143,13 +143,13 @@ def retry_thread_wrapper(func, exc_cleanup_func=None):
     return wrapped
 
 
-def exit(status: int = 0, reason: str = "unspecified"):
+def exit(status: int = 0, reason: str = "unspecified", force: bool = False):
     logger.critical(f"Exiting with status code: {status} (Reason: {reason})")
     reload_pid = os.environ.get(ENV_RELOAD_PID_NAME)
     if reload_pid is not None and reload_pid.isdigit():
         logger.debug(f"Sending SIGINT to uvicorn reload PID {reload_pid} ")
         os.kill(int(reload_pid), signal.SIGINT)
-    if threading.current_thread() != threading.main_thread():
+    if force or threading.current_thread() != threading.main_thread():
         logger.debug("Exiting from non-main thread")
         os._exit(status)
     else:

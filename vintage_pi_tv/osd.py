@@ -42,7 +42,8 @@ class OSD:
         self._show_volume_until: float = -1.0
         self._show_progress_bar_until: float = -1.0
         self._show_notify_until: float = -1.0
-        self._osd: Overlay = mpv.create_overlay(OSD_LAYER)
+        if not self._config.disable_osd:
+            self._osd: Overlay = mpv.create_overlay(OSD_LAYER)
         self._progress_bar: Overlay = mpv.create_overlay(OSD_PROGRESS_BAR_LAYER)
         self._volume: Overlay = mpv.create_overlay(OSD_VOLUME_LAYER)
         self._notify: Overlay = mpv.create_overlay(OSD_NOTIFY_LAYER)
@@ -65,11 +66,11 @@ class OSD:
         if not self._osd.shown or cache_try != cache_value:
             self._osd.surf.fill(TRANSPARENT)
             text = [
-                {"text": channel, "size": 120, "padding": 10, "style": "bold"},
-                {"text": name, "size": 32, "color": YELLOW, "padding": 8, "style": "italic"},
+                {"text": channel, "size": 120, "padding": (10, 10, 6, 10), "font": "bold"},
+                {"text": name, "size": 32, "color": YELLOW, "padding": 8, "font": "italic"},
             ]
             if self._config.show_fps:
-                text.append({"text": f"{fps} fps", "size": 24, "padding": (5, 8)})
+                text.append({"text": f"{fps} fps", "size": 24, "padding": (5, 8, 8, 8)})
 
             surf, rect = self._mpv.render_multiple_lines_of_text(text, align="left")
             rect.topleft = self._mpv.scale_pixels(15, 15)
@@ -77,7 +78,8 @@ class OSD:
 
             if rating:
                 color = video.rating_dict["color"]
-                surf, rect = self._mpv.render_text(rating, 80, color=color, padding=9)
+                surf, rect = self._mpv.render_text(rating, 80, color=color, padding=15)
+                pygame.draw.rect(surf, color, rect, width=round(self._mpv.scale_pixels(4.5)))
                 rect.topright = (self._osd.rect.right - self._mpv.scale_pixels(15), self._mpv.scale_pixels(15))
                 self._osd.surf.blit(surf, rect)
 
@@ -119,7 +121,7 @@ class OSD:
                 bar_rect.width = position / duration * bar_rect.width
                 pygame.draw.rect(self._progress_bar.surf, BLUE, bar_rect)
             if show_paused:
-                surf, paused_rect = self._mpv.render_text("PAUSED!", 40, padding=8, color=color, style="bold-italic")
+                surf, paused_rect = self._mpv.render_text("PAUSED!", 40, padding=8, color=color, font="bold-italic")
                 paused_rect.centerx = self._progress_bar.rect.centerx
                 paused_rect.bottom = bar_rect.top - self._mpv.scale_pixels(5)
                 self._progress_bar.surf.blit(surf, paused_rect)
@@ -177,7 +179,8 @@ class OSD:
         self._notify.update()
 
     def osd_thread(self):
-        self._osd.clear()
+        if not self._config.disable_osd:
+            self._osd.clear()
         self._progress_bar.clear()
         self._volume.clear()
         clock = FPSClock()
@@ -195,7 +198,8 @@ class OSD:
                 self._notify.clear()
 
             if state["video"] and show_osd:
-                self._show_osd(state)
+                if not self._config.disable_osd:
+                    self._show_osd(state)
                 if show_progress_bar:
                     self._show_progress_bar(state)
                 else:
@@ -206,7 +210,8 @@ class OSD:
                 else:
                     self._volume.clear()
             else:
-                self._osd.clear()
+                if not self._config.disable_osd:
+                    self._osd.clear()
                 self._progress_bar.clear()
                 self._volume.clear()
 

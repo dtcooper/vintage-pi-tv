@@ -16,9 +16,11 @@ logger = logging.getLogger(__name__)
 
 class Config:
     aspect_mode: Literal["letterbox", "stretch", "zoom"]
+    audio_visualization: bool | str
     channel_mode: Literal["random", "alphabetical", "config-only", "config-first-random", "config-first-alphabetical"]
     channel_osd_always_on: bool
-    enable_audio_visualization: bool | str
+    crt_filter: bool
+    disable_osd: bool
     ir_remote: dict[str, Any]
     keyboard: dict[str, Any]
     log_level: Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]
@@ -57,12 +59,16 @@ class Config:
     def _validate(self) -> None:
         if self.valid_file_extensions == "defaults":
             valid_extensions = list(DEFAULT_VIDEO_FILE_EXTENSIONS)
-            if self.enable_audio_visualization:
+            if self.audio_visualization:
                 valid_extensions.extend(DEFAULT_AUDIO_FILE_EXTENSIONS)
         self.valid_file_extensions = tuple(f".{ext}".lower() for ext in valid_extensions)
         self.ratings_dict: dict[str, str] = {}
         if self.ratings:
             self.ratings_dict.update({rating["rating"]: {"num": n, **rating} for n, rating in enumerate(self.ratings)})
+
+        if self.disable_osd and self.channel_osd_always_on:
+            logger.warning("'disable-osd' and 'channel_osd_always_on' both are true. Preferring 'disable-osd'")
+            self.channel_osd_always_on = False
 
         self.videos = {video.pop("filename"): video for video in self._config.pop("video")}
 

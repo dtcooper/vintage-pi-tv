@@ -60,7 +60,7 @@ class VintagePiTV:
             self.config.ir_remote["enabled"] = False
 
         self.mpv: MPV = MPV(config=self.config, event_queue=event_queue)
-        self.videos: VideosDB = VideosDB(config=self.config)
+        self.videos: VideosDB = VideosDB(config=self.config, websocket_updates_queue=websocket_updates_queue)
         self.player: Player = Player(
             config=self.config,
             videos_db=self.videos,
@@ -70,7 +70,7 @@ class VintagePiTV:
             websocket_updates_queue=websocket_updates_queue,
         )
 
-        websocket_updates_queue.put({"type": "ratings", "data": self.config.ratings_dict})
+        websocket_updates_queue.put({"type": "ratings", "data": self.config.ratings})  # No good place for this
         self.mpv.done_loading()
         logger.debug("Done initializing objects")
 
