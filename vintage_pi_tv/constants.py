@@ -49,7 +49,7 @@ CHANNEL_MODES = (
 
 DEFAULT_CONFIG_PATHS = (
     "/media/VintagePiTV/config.toml",
-    "/boot/firmware/vintage-pi-tv-config.toml",
+    "/boot/firmware/vintage-pi-tv-config.toml",  # In case third partition doesn't get created
     "./config.toml",
 )
 
