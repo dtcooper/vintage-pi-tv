@@ -15,7 +15,7 @@ from starlette.websockets import WebSocket
 
 from .constants import ENV_ARGS_VAR_NAME
 from .tv import VintagePiTV
-from .utils import exit
+from .utils import exit, get_vintage_pi_tv_version
 
 
 if sys.version_info < (3, 7):
@@ -24,8 +24,8 @@ if sys.version_info < (3, 7):
 
 logger = logging.getLogger(__name__)
 
-REQUIRED_BROADCAST_DATA_KEYS_TO_START = ("state", "current_rating", "ratings", "videos_db")
-broadcast_data = {}
+REQUIRED_BROADCAST_DATA_KEYS_TO_START = ("state", "current_rating", "ratings", "videos_db", "version")
+broadcast_data = {"version": get_vintage_pi_tv_version()}
 websockets: weakref.WeakSet[WebSocket] = weakref.WeakSet()
 websocket_updates_queue: janus.Queue[dict] = janus.Queue()
 event_queue: janus.Queue[dict] = janus.Queue()

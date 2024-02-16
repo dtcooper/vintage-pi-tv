@@ -104,7 +104,7 @@ def is_raspberry_pi():
 
 @cache
 def get_vintage_pi_tv_version():
-    code_dir = Path(__name__).resolve().parent
+    code_dir = Path(__file__).resolve().parent.parent
     version_file = code_dir / "version.txt"
     git_dir = code_dir / ".git"
     try:

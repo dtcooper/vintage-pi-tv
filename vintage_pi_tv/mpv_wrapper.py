@@ -1,5 +1,4 @@
 import logging
-from pathlib import Path
 import queue
 from typing import Literal
 
@@ -10,7 +9,7 @@ import pygame
 import pygame.freetype
 
 from .config import Config
-from .constants import BLACK_SEETHRU, DOCKER_DEV_KEYBOARD_KEYS, TRANSPARENT, WHITE, DATA_DIR
+from .constants import BLACK_SEETHRU, DATA_DIR, DOCKER_DEV_KEYBOARD_KEYS, TRANSPARENT, WHITE
 from .utils import TRACE, exit, is_docker
 from .videos import Video
 
