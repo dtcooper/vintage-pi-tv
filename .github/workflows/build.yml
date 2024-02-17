@@ -3,20 +3,10 @@ name: Build OS Image
 on:
   push:
     branches:
-      - main
-    paths:
-      - '.github/workflows/build.yml'
-      - '*.toml'
-      - '*.lock'
-      - 'image/**'
-      - 'vintage_pi_tv/**'
+      - '*'
     tags:
       - 'v*'
   workflow_dispatch:
-
-concurrency:
-  group: build-${{ github.ref_type }}-${{ github.ref_name }}
-  cancel-in-progress: true
 
 jobs:
   build:
@@ -127,9 +117,21 @@ jobs:
           retention-days: 2
           compression-level: 0  # Already compressed with xz above
       -
+        name: Check for new commits
+        id: check-commits
+        shell: bash
+        if: github.ref_type != 'tag' && github.ref_name == 'main'
+        run: |
+          git fetch origin
+          if [ "$(git log HEAD..origin/main --oneline)" ]; then
+            echo "has-new=yes" | tee -a "${GITHUB_OUTPUT}"
+          else
+            echo "has-new=no" | tee -a "${GITHUB_OUTPUT}"
+          fi
+      -
         name: Remove old preview release
         uses: dev-drprasad/delete-tag-and-release@v0.2.1
-        if: github.ref_type != 'tag'
+        if: github.ref_type != 'tag' && github.ref_name == 'main' && steps.check-commits.outputs.has-new == 'no'
         with:
           delete_release: true
           tag_name: preview-build
@@ -138,11 +140,12 @@ jobs:
       -
         name: Wait for preview release to delete
         shell: bash
-        if: github.ref_type != 'tag'
+        if: github.ref_type != 'tag' && github.ref_name == 'main' && steps.check-commits.outputs.has-new == 'no'
         run: sleep 15s
       -
         name: Tag and upload release
         uses: ncipollo/release-action@v1
+        if: github.ref_type == 'tag' || (github.ref_name == 'main' && steps.check-commits.outputs.has-new == 'no')
         with:
           artifacts: ${{ steps.finalize.outputs.final-path }},${{ steps.finalize.outputs.final-path }}.sha256sum
           name: ${{ github.ref_type == 'tag' && format('Version {0}', steps.setup.outputs.short-version) || format('Preview Build {0}', steps.setup.outputs.short-sha) }}
