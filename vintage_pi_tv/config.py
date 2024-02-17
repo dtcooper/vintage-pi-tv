@@ -8,7 +8,7 @@ from schema import SchemaError
 from .constants import DEFAULT_AUDIO_FILE_EXTENSIONS, DEFAULT_VIDEO_FILE_EXTENSIONS
 from .exceptions import InvalidConfigError
 from .schemas import config_schema
-from .utils import exit
+from .utils import exit, is_raspberry_pi
 
 
 logger = logging.getLogger(__name__)
@@ -28,6 +28,7 @@ class Config:
     overscan_margins: dict[str, int]
     password: Literal[False] | str
     ratings: list[dict[str, str]]
+    power_key_shutdown: bool
     save_place_while_browsing: bool
     search_dirs: list[dict[str, Path | bool]]
     show_fps: bool
@@ -75,6 +76,10 @@ class Config:
         if self.disable_osd and self.channel_osd_always_on:
             logger.warning("'disable-osd' and 'channel_osd_always_on' both are true. Preferring 'disable-osd'")
             self.channel_osd_always_on = False
+
+        # Resolve value to a boolean
+        if isinstance(self.power_key_shutdown, str):
+            self.power_key_shutdown = self.power_key_shutdown == "pi-only" and is_raspberry_pi()
 
         self.videos = {video.pop("filename"): video for video in self._config.pop("video")}
 

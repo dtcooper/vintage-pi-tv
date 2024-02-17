@@ -139,6 +139,10 @@ class MPV:
         def _(event: mpv.MpvEvent):
             self._event_queue.put(event.as_dict(mpv.strict_decoder))
 
+        @self._player.event_callback("shutdown")
+        def _(_):
+            exit(0, "MPV shutdown event")
+
         @self._player.property_observer("time-pos")
         def _(_, value):
             self._event_queue.put({"event": "position", "value": value or 0.0})
@@ -354,7 +358,7 @@ class MPV:
 
             @self._player.on_key_press(key)
             def _():
-                if self.docker_keyboard_blocked:
+                if self.docker_keyboard_blocked and action != "power":
                     logger.warning(f"Blocked keypress {key} by player request in Docker mode")
                 else:
                     self._event_queue.put({"event": "user-action", "action": action})

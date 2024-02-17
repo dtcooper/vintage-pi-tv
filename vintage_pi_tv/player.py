@@ -16,7 +16,7 @@ from .constants import BLACK, NO_FILES_LAYER, RED, STATIC_LAYER, PlayerState
 from .keyboard import Keyboard
 from .mpv_wrapper import MPV, Overlay
 from .osd import OSD
-from .utils import FPSClock, is_docker
+from .utils import FPSClock, exit, is_docker
 from .videos import Video, VideosDB
 
 
@@ -233,12 +233,15 @@ class Player:
                     rating_dict = self._config.ratings[num]
                     self.set_rating(rating_dict["rating"])
             case "power":
-                logger.warning("Attempting to power off machine")
-                try:
-                    subprocess.check_call(("poweroff",))
-                except subprocess.CalledProcessError:
-                    pass
-                exit(0, "Powered off machine")
+                if self._config.power_key_shutdown:
+                    logger.warning("Attempting to power off machine")
+                    try:
+                        subprocess.check_call(("poweroff",))
+                    except subprocess.CalledProcessError:
+                        pass
+                    exit(0, "Powered off machine")
+                else:
+                    exit(0, "Shut down by request")
             case _:
                 logger.critical(f"Unknown keypress: {event['action']}")
         return next_video

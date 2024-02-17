@@ -107,10 +107,14 @@ class Keyboard:
             self._config.ir_remote["enabled"] = False
 
     def _process_key(self, key, hold=False):
-        if self.blocked:
+        action = self._keys_to_actions.get(key)
+        if action is None:
+            logger.trace(f"Unrecognized key {key}")
+            return
+
+        if self.blocked and action != "power":
             logger.warning(f"Blocked keypress {key} by player request")
         else:
-            action = self._keys_to_actions.get(key)
             if action is not None and (not hold or action in self.ALLOW_HOLD_ACTIONS):
                 self._event_queue.put({"event": "user-action", "action": action})
 

@@ -78,6 +78,10 @@ overscan-margins = { top = 0, right = 0, bottom = 0, left = 0 }
 #web-password = "topsecret"
 web-password = false
 
+# Whether the power key shuts down the device or only exits.
+# Values: true, false, "pi-only" (only reboots if running on a Raspberry Pi)
+power-key-shutdown = "pi-only"
+
 ### MPV options ###
 [mpv-options]
 

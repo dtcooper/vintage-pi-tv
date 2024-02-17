@@ -76,6 +76,7 @@ config_schema = Schema(
         Optional("audio-visualization", default=True): bool,
         Optional("crt-filter", default=False): bool,
         Optional("subtitles-default-on", default=False): bool,
+        Optional("power-key-shutdown", default="pi-only"): Or(bool, "pi-only"),
         Optional("ratings", default=DEFAULT_RATINGS): Or(
             False,
             And(
