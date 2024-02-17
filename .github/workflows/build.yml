@@ -90,7 +90,7 @@ jobs:
           pi-gen-release: ${{ steps.setup.outputs.pi-gen-release }}
           pi-gen-version: arm64
           release: bookworm
-          stage-list: "stage0 stage1 stage2 ${{ (github.ref_type == 'tag') && '' || './image/stage-nodejs '}}./image/stage-vintage-pi-tv"
+          stage-list: "stage0 stage1 stage2 ${{ github.ref_type != 'tag' && './image/stage-nodejs ' || '' }}./image/stage-vintage-pi-tv"
           timezone: ${{ steps.setup.outputs.timezone }}
           username: ${{ steps.setup.outputs.username }}
           verbose-output: true
