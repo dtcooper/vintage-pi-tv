@@ -17,7 +17,15 @@ logger = logging.getLogger(__name__)
 class Config:
     aspect_mode: Literal["letterbox", "stretch", "zoom"]
     audio_visualization: bool | str
-    channel_mode: Literal["random", "alphabetical", "config-only", "config-first-random", "config-first-alphabetical"]
+    channel_mode: Literal[
+        "random",
+        "random-deterministic",
+        "alphabetical",
+        "config-only",
+        "config-first-random",
+        "config-first-random-deterministic",
+        "config-first-alphabetical",
+    ]
     channel_osd_always_on: bool
     crt_filter: bool
     disable_osd: bool

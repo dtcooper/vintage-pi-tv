@@ -5,7 +5,7 @@ from schema import And, Optional, Or, Regex, Schema, SchemaError, Use
 from .constants import (
     ASPECT_MODE_LETTERBOX,
     ASPECT_MODES,
-    CHANNEL_MODE_RANDOM,
+    CHANNEL_MODE_RANDOM_DETERMINISTIC,
     CHANNEL_MODES,
     DEFAULT_DEV_MPV_OPTIONS,
     DEFAULT_DOCKER_MPV_OPTIONS,
@@ -52,13 +52,14 @@ config_schema = Schema(
             Or("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "TRACE"),
             error="Invalid 'log-level'. Must be one of 'critical', 'error', 'warning', 'info', 'debug', or 'trace'.",
         ),
-        Optional("channel-mode", default=CHANNEL_MODE_RANDOM): And(
+        Optional("channel-mode", default=CHANNEL_MODE_RANDOM_DETERMINISTIC): And(
             str,
             Use(lambda s: s.strip().lower()),
             Or(*CHANNEL_MODES),
             error=(
-                "Invalid 'channel-mode'. Must be one of 'random', 'alphabetical', 'config-only', "
-                "'config-first-random', or 'config-first-alphabetical'"
+                "Invalid 'channel-mode'. Must be one of 'random', 'random-deterministic', 'alphabetical',"
+                " 'config-only', 'config-first-random', 'config-first-random-deterministic', or"
+                " 'config-first-alphabetical'"
             ),
         ),
         Optional("aspect-mode", default=ASPECT_MODE_LETTERBOX): And(

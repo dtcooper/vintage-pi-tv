@@ -13,10 +13,12 @@ from .constants import (
     CHANNEL_MODE_ALPHABETICAL,
     CHANNEL_MODE_CONFIG_FIRST_ALPHABETICAL,
     CHANNEL_MODE_CONFIG_FIRST_RANDOM,
+    CHANNEL_MODE_CONFIG_FIRST_RANDOM_DETERMINISTIC,
     CHANNEL_MODE_CONFIG_ONLY,
     CHANNEL_MODE_RANDOM,
+    CHANNEL_MODE_RANDOM_DETERMINISTIC,
 )
-from .utils import exit, listdir_recursive, normalize_filename
+from .utils import exit, listdir_recursive, normalize_filename, shuffle_deterministic
 
 
 logger = logging.getLogger(__name__)
@@ -218,6 +220,8 @@ class VideosDB:
         # Sort by channel mode
         if self.config.channel_mode == CHANNEL_MODE_RANDOM:
             random.shuffle(videos)
+        elif self.config.channel_mode == CHANNEL_MODE_RANDOM_DETERMINISTIC:
+            shuffle_deterministic(videos)
         elif self.config.channel_mode == CHANNEL_MODE_ALPHABETICAL:
             videos.sort(key=channel_sort_key)
         else:
@@ -228,6 +232,8 @@ class VideosDB:
                 videos_non_config = [v for v in videos if not v[0]]
                 if self.config.channel_mode == CHANNEL_MODE_CONFIG_FIRST_RANDOM:
                     random.shuffle(videos_non_config)
+                elif self.config.channel_mode == CHANNEL_MODE_CONFIG_FIRST_RANDOM_DETERMINISTIC:
+                    shuffle_deterministic(videos_non_config)
                 elif self.config.channel_mode == CHANNEL_MODE_CONFIG_FIRST_ALPHABETICAL:
                     videos_non_config.sort(key=channel_sort_key)
                 videos = videos_config + videos_non_config

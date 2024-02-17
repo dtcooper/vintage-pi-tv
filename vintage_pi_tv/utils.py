@@ -2,6 +2,7 @@ from functools import cache, wraps
 import logging
 import os
 from pathlib import Path
+import random
 import signal
 import subprocess
 import sys
@@ -10,7 +11,7 @@ import time
 
 from uvicorn.logging import TRACE_LOG_LEVEL as TRACE, ColourizedFormatter
 
-from .constants import DEFAULT_CONFIG_PATHS, ENV_RELOAD_PID_NAME
+from .constants import DEFAULT_CONFIG_PATHS, DETERMINISTIC_SEED, ENV_RELOAD_PID_NAME
 
 
 logger = logging.getLogger(__name__)
@@ -169,3 +170,7 @@ def resolve_config_tries(config_file: None | Path = None) -> list[Path]:
 
 def normalize_filename(path: Path):
     return path.name.strip().lower()
+
+
+def shuffle_deterministic(x):
+    random.Random(DETERMINISTIC_SEED).shuffle(x)
