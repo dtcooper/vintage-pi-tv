@@ -12,4 +12,4 @@ FIRST_USER_NAME=vintage
 FIRST_USER_PASS=pi-tv
 DISABLE_FIRST_BOOT_USER_RENAME=1
 WPA_COUNTRY=US
-STAGE_LIST='stage0 stage1 stage2 stage-nodejs vintage-pi-tv'
+STAGE_LIST='stage0 stage1 stage2 stage-nodejs stage-vintage-pi-tv'
