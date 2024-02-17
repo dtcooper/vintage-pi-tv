@@ -11,7 +11,15 @@ import pygame
 import pygame.freetype
 
 from .config import Config
-from .constants import BLACK_SEETHRU, DATA_DIR, DOCKER_DEV_KEYBOARD_KEYS, TRANSPARENT, WHITE
+from .constants import (
+    ASPECT_MODE_STRETCH,
+    ASPECT_MODE_ZOOM,
+    BLACK_SEETHRU,
+    DATA_DIR,
+    DOCKER_DEV_KEYBOARD_KEYS,
+    TRANSPARENT,
+    WHITE,
+)
 from .utils import TRACE, exit, is_docker
 from .videos import Video
 
@@ -90,7 +98,7 @@ class MPV:
         if config.crt_filter:
             kwargs["glsl_shaders"] = str(DATA_DIR / "crt-filter.glsl")
 
-        if config.aspect_mode == "zoom":
+        if config.aspect_mode == ASPECT_MODE_ZOOM:
             logger.debug("Setting panscan to 1.0 for zoom")
             kwargs["panscan"] = "1.0"
 
@@ -185,7 +193,7 @@ class MPV:
         self._margin_top = config.overscan_margins["top"]
         self.width: int = max(width - config.overscan_margins["left"] - config.overscan_margins["right"], 1)
         self.height: int = max(height - config.overscan_margins["top"] - config.overscan_margins["bottom"], 1)
-        if config.aspect_mode == "stretch":
+        if config.aspect_mode == ASPECT_MODE_STRETCH:
             aspect = self.width / self.height
             logger.debug(f"Set aspect ratio to {aspect} for stretch")
             self._player.video_aspect_override = str(aspect)

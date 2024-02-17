@@ -47,6 +47,11 @@ CHANNEL_MODES = (
     CHANNEL_MODE_CONFIG_FIRST_ALPHABETICAL,
 )
 
+ASPECT_MODE_LETTERBOX = "letterbox"
+ASPECT_MODE_STRETCH = "stretch"
+ASPECT_MODE_ZOOM = "zoom"
+ASPECT_MODES = (ASPECT_MODE_LETTERBOX, ASPECT_MODE_STRETCH, ASPECT_MODE_ZOOM)
+
 DEFAULT_CONFIG_PATHS = (
     "/media/VintagePiTV/config.toml",
     "/boot/firmware/vintage-pi-tv-config.toml",  # In case third partition doesn't get created

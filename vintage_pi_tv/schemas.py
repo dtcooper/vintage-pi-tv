@@ -3,6 +3,9 @@ from pathlib import Path
 from schema import And, Optional, Or, Regex, Schema, SchemaError, Use
 
 from .constants import (
+    ASPECT_MODE_LETTERBOX,
+    ASPECT_MODES,
+    CHANNEL_MODE_RANDOM,
     CHANNEL_MODES,
     DEFAULT_DEV_MPV_OPTIONS,
     DEFAULT_DOCKER_MPV_OPTIONS,
@@ -49,7 +52,7 @@ config_schema = Schema(
             Or("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "TRACE"),
             error="Invalid 'log-level'. Must be one of 'critical', 'error', 'warning', 'info', 'debug', or 'trace'.",
         ),
-        Optional("channel-mode", default="random"): And(
+        Optional("channel-mode", default=CHANNEL_MODE_RANDOM): And(
             str,
             Use(lambda s: s.strip().lower()),
             Or(*CHANNEL_MODES),
@@ -58,8 +61,8 @@ config_schema = Schema(
                 "'config-first-random', or 'config-first-alphabetical'"
             ),
         ),
-        Optional("aspect-mode", default="letterbox"): And(
-            str, Use(lambda s: s.strip().lower()), Or("letterbox", "stretch", "zoom")
+        Optional("aspect-mode", default=ASPECT_MODE_LETTERBOX): And(
+            str, Use(lambda s: s.strip().lower()), Or(*ASPECT_MODES)
         ),
         Optional("static-time", default=3.5): Or(
             And(Or(False, 0, 0.0), Use(lambda _: -1.0)), And(Use(float), lambda f: f > 0.0)
