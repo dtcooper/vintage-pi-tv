@@ -56,7 +56,7 @@ class OSD:
                 video.display_channel,
                 video.name,
                 video.rating,
-                f"{state['fps_actual']:.2f}/{state['fps_video']:.2f}",
+                f"{state['fps_actual']:.2f}/{state['fps_video']:.2f}fps [{state['fps_dropped']} dropped]",
             )
         else:
             channel, name, rating = cache_try = (video.display_channel, video.name, video.rating)
@@ -70,7 +70,7 @@ class OSD:
                 {"text": name, "size": 32, "color": YELLOW, "padding": 8, "font": "italic"},
             ]
             if self._config.show_fps:
-                text.append({"text": f"{fps} fps", "size": 24, "padding": (5, 8, 8, 8)})
+                text.append({"text": fps, "size": 22, "padding": (5, 7, 7, 7)})
 
             surf, rect = self._mpv.render_multiple_lines_of_text(text, align="left")
             rect.topleft = self._mpv.scale_pixels(15, 15)

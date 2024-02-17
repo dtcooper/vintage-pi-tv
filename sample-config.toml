@@ -51,7 +51,7 @@ crt-filter = false
 # NOTE: A newly discovered file will always added as the last channels as it is discovered
 #
 #channel-mode = "alphabetical"
-channel-mode = "config-first-alphabetical"
+channel-mode = "random"
 
 # Sould we provide visualizations for audio files?
 audio-visualization = true

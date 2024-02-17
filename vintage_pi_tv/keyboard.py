@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 
 import tomlkit
 
-from .constants import DEFAULT_IR_SCANCODES, DEFAULT_KEYBOARD_KEYS
+from .constants import DEFAULT_IR_SCANCODES, VALID_KEYS
 
 
 if TYPE_CHECKING:
@@ -53,7 +53,7 @@ class Keyboard:
         self.blocked: bool = True  # Only to be modified by player thread
 
         self._keys_to_actions: dict[str, str] = {
-            value: key for key, value in self._config.keyboard.items() if value and key in DEFAULT_KEYBOARD_KEYS.keys()
+            value: key for key, value in self._config.keyboard.items() if value and key in VALID_KEYS
         }
 
         if self._config.ir_remote["enabled"]:

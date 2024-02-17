@@ -173,6 +173,10 @@ class MPV:
             def _(_, value):
                 self._event_queue.put({"event": "fps-video", "value": value or 0.0})
 
+            @self._player.property_observer("frame-drop-count")
+            def _(_, value):
+                self._event_queue.put({"event": "fps-dropped", "value": value or 0})
+
         if is_docker() and config.keyboard["enabled"]:
             self.docker_keyboard_blocked: bool = True  # Only modify in player thread
             for action, key in DOCKER_DEV_KEYBOARD_KEYS.items():

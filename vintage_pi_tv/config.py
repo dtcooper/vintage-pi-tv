@@ -5,7 +5,7 @@ from typing import Any, Literal
 
 from schema import SchemaError
 
-from .constants import CHANNEL_MODES, DEFAULT_AUDIO_FILE_EXTENSIONS, DEFAULT_VIDEO_FILE_EXTENSIONS
+from .constants import DEFAULT_AUDIO_FILE_EXTENSIONS, DEFAULT_VIDEO_FILE_EXTENSIONS
 from .exceptions import InvalidConfigError
 from .schemas import config_schema
 from .utils import exit, is_raspberry_pi

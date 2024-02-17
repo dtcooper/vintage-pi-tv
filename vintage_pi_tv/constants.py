@@ -74,6 +74,7 @@ DEFAULT_KEYBOARD_KEYS = {
     "volume-down": "KEY_MINUS",
     "volume-up": "KEY_EQUAL",
 }
+VALID_KEYS = set(DEFAULT_KEYBOARD_KEYS.keys())
 
 # Should match example-config.toml
 DEFAULT_IR_SCANCODES = {

@@ -156,7 +156,7 @@ class Player:
     def _reset_state(self):
         state = {"duration": 0.0, "position": 0.0, "state": PlayerState.LOADING, "video": None}
         if self._config.show_fps:
-            state.update({"fps_video": 0.0, "fps_actual": 0.0})
+            state.update({"fps_video": 0.0, "fps_actual": 0.0, "fps_dropped": 0})
         self.state = state
         self._publish_state()
 
@@ -329,7 +329,7 @@ class Player:
                                     )
                                     self.static.stop()
                                     self.osd.show()
-                                case "position" | "duration" | "fps-video" | "fps-actual":
+                                case "position" | "duration" | "fps-video" | "fps-actual" | "fps-dropped":
                                     self._update_state(**{event["event"].replace("-", "_"): event["value"]})
                                 case "paused":
                                     if event["value"] and self.state["state"] == PlayerState.PLAYING:
