@@ -99,6 +99,7 @@ power-key-shutdown = "pi-only"
 ### More relevant settings
 #audio-device = "alsa/default:CARD=A"  # Which audio device to use. For options run: $ mpv --audio-device=help
                                        # Unless you changed 'ao' above, you'll want devices that start with 'alsa/...'
+                                       # For example, to force HDMI audio: "alsa/default:CARD=vc4hdmi0" (your mileage may vary)
 #drm-connector = "HDMI-A-1"  # Which monitor to use [https://mpv.io/manual/stable/#video-output-drivers-drm-connector]
                              # For options, run: $ mpv --drm-connector=help
 #drm-mode = "1920x1080"  # DRM mode, set custom resolution here [https://mpv.io/manual/stable/#video-output-drivers-drm-mode]
