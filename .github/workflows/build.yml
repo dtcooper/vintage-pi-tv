@@ -16,10 +16,11 @@ jobs:
       -
         name: Remove unnecessary files
         uses: jlumbroso/free-disk-space@main
-        with:
+        with:  # Set more of these to true if more disk space needed (speed tradeoff)
           tool-cache: false
           docker-images: false
           swap-storage: false
+          large-packages: false
       -
         name: Checkout
         uses: actions/checkout@v4
