@@ -19,8 +19,8 @@ aspect-mode = "letterbox"
 # Save place in file while browsing channels (doesn't persist on restart)
 save-place-while-browsing = true
 
-# Start with volume off
-start-muted = false
+# Between 0-100 (rounded to nearest 5), or false for muted
+starting-volume = 100
 
 # Amount of static to play between videos. Set to 0 or false to disable
 static-time = 3.5

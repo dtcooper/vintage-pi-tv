@@ -251,6 +251,9 @@ class VideosDB:
                 self.has_videos_event.set()
             else:
                 self.has_videos_event.clear()
+        # Let go of lock, could have good jumbled logs but it's a trace so it doesn't matter
+        for path, channel in self.channels.items():
+            logger.trace(f"Mapped {path} to channel {channel + 1}")
 
     @property
     def videos(self) -> list[Video]:

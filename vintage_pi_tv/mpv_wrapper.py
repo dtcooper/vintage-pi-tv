@@ -224,8 +224,10 @@ class MPV:
         self._volume_cache: bool = 100
         self._mute_cache: bool = False
 
-        if config.start_muted:
+        if isinstance(config.starting_volume, bool):  # bool is always false (based on schema)
             self.toggle_mute()
+        else:
+            self.set_volume(int(round(config.starting_volume / 5.0) * 5))
 
     def scale_pixels(self, *n: list[int | float]):
         if len(n) == 1:

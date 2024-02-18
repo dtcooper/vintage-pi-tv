@@ -72,7 +72,7 @@ config_schema = Schema(
         Optional("channel-osd-always-on", default=False): bool,
         Optional("disable-osd", default=False): bool,
         Optional("save-place-while-browsing", default=True): bool,
-        Optional("start-muted", default=False): bool,
+        Optional("starting-volume", default=100): Or(False, And(int, lambda i: 0 <= i <= 100)),
         Optional("static-time-between-channels", default=0.5): Or(
             And(Or(False, 0, 0.0), Use(lambda _: -1.0)), And(Use(float), lambda f: f > 0.0)
         ),

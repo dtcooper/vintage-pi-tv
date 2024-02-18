@@ -40,7 +40,7 @@ class Config:
     save_place_while_browsing: bool
     search_dirs: list[dict[str, Path | bool]]
     show_fps: bool
-    start_muted: bool
+    starting_volume: int
     static_time_between_channels: float
     static_time: float
     subtitles_default_on: bool
