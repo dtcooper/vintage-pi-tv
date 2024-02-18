@@ -14,6 +14,23 @@ jobs:
     name: Build image
     steps:
       -
+        name: Remove unnecessary files
+        shell: bash
+        run: |
+          echo 'Disk usage before cleanup...'
+          df -h /
+          echo 'Freeing up disk space needed for image generation'
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf "${AGENT_TOOLSDIRECTORY}"
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/local/share/powershell
+          sudo rm -rf /usr/share/swift
+
+          echo 'Disk usage after cleanup...'
+          df -h /
+      -
         name: Checkout
         uses: actions/checkout@v4
         with:
@@ -29,12 +46,6 @@ jobs:
         id: setup
         shell: bash
         run: |
-          echo "Freeing space for needed for image"
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-
           pushd image/stage-vintage-pi-tv/04-install-vintage-pi-tv/files
           mkdir vintage-pi-tv
           sudo mount -vo bind ../../../.. vintage-pi-tv

@@ -54,7 +54,8 @@ fi
 su - "${FIRST_USER_NAME}" -c "ln -vs /opt/vintage-pi-tv vintage-pi-tv"
 su - "${FIRST_USER_NAME}" -c "ln -vs /opt/vintage-pi-tv/LICENSE LICENSE"
 su - "${FIRST_USER_NAME}" -c "ln -vs /opt/vintage-pi-tv/README.md README.md"
-ln -s /usr/sbin/poweroff /usr/bin/poweroff
+ln -vs /usr/sbin/poweroff /usr/bin/poweroff
+ln -vs /usr/sbin/reboot /usr/bin/reboot
 EOF
 
 
