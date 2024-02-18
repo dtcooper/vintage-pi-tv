@@ -362,7 +362,6 @@ class MPV:
 
     @property
     def volume(self) -> tuple[float, bool]:
-        # TODO cache this, don't poll player
         return (self._volume_cache, self._mute_cache)
 
     if is_docker():
