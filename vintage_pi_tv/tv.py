@@ -36,7 +36,11 @@ class VintagePiTV:
         init_logger()
         logger.info(f"Starting Vintage Pi TV version: {get_vintage_pi_tv_version()}")
 
-        self.init_config(config_file, config_wait, extra_search_dirs, log_level_override)
+        self._event_queue: queue.Queue = event_queue
+        self._websocket_updates_queue: queue.Queue = websocket_updates_queue
+        self._log_level_override = log_level_override
+        self._extra_search_dirs = extra_search_dirs
+        self.init_config(config_file=config_file, config_wait=config_wait)
 
         set_log_level(self.config.log_level)
         logger.debug(f"Changed log level to {self.config.log_level}")
@@ -59,8 +63,9 @@ class VintagePiTV:
             logger.warning("Can't enable IR remote if keyboard is disabled (or in Docker dev mode)!")
             self.config.ir_remote["enabled"] = False
 
-        self.mpv: MPV = MPV(config=self.config, event_queue=event_queue)
+        # Initialize videos first, since it may exit and no sense opening an MPV window
         self.videos: VideosDB = VideosDB(config=self.config, websocket_updates_queue=websocket_updates_queue)
+        self.mpv: MPV = MPV(config=self.config, event_queue=event_queue)
         self.player: Player = Player(
             config=self.config,
             videos_db=self.videos,
@@ -70,7 +75,6 @@ class VintagePiTV:
             websocket_updates_queue=websocket_updates_queue,
         )
 
-        websocket_updates_queue.put({"type": "ratings", "data": self.config.ratings})  # No good place for this
         self.mpv.done_loading()
         logger.debug("Done initializing objects")
 
@@ -78,19 +82,20 @@ class VintagePiTV:
         self,
         config_file: str | Path | None = None,
         config_wait: int = 0,
-        extra_search_dirs: list | tuple = (),
-        log_level_override: None | str = None,
     ):
         config_file_tries = resolve_config_tries(config_file=config_file)
         self.config: Config = None
+        kwargs = {
+            "websocket_updates_queue": self._websocket_updates_queue,
+            "extra_search_dirs": self._extra_search_dirs,
+            "log_level_override": self._log_level_override,
+        }
 
         for config_file_try in config_file_tries:
             for i in range(config_wait + 1):
                 if config_file_try.exists():
                     logger.info(f"Using config file: {config_file_try}")
-                    self.config = Config(
-                        path=config_file_try, extra_search_dirs=extra_search_dirs, log_level_override=log_level_override
-                    )
+                    self.config = Config(path=config_file_try, **kwargs)
                     break
                 else:
                     if i < config_wait:
@@ -105,7 +110,7 @@ class VintagePiTV:
                 logger.warning(f"Using a default config, none found at: {', '.join(map(str, config_file_tries))}")
             else:
                 logger.warning("Using a default config as was none specified")
-            self.config = Config(path=None, extra_search_dirs=extra_search_dirs, log_level_override=log_level_override)
+            self.config = Config(path=None, **kwargs)
 
     def startup(self):
         threads = [

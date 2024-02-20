@@ -24,6 +24,8 @@ LOADING_LAYER = 63  # Topmost
 
 DEFAULT_PORT = 6672
 
+LOG_LEVELS = ("trace", "debug", "info", "warning", "error", "critical")
+
 
 class PlayerState(enum.StrEnum):
     LOADING = "loading"

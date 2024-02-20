@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+import queue
 import tomllib
 from typing import Any, Literal
 
@@ -48,7 +49,12 @@ class Config:
     videos: list[dict]
 
     def __init__(
-        self, path: None | Path, extra_search_dirs: list[Path] = (), log_level_override: None | str = None, **overrides
+        self,
+        path: None | Path,
+        websocket_updates_queue: None | queue.Queue = None,
+        extra_search_dirs: list[Path] = (),
+        log_level_override: None | str = None,
+        **overrides,
     ):
         if path is None:
             toml = {}
@@ -70,6 +76,9 @@ class Config:
         except (SchemaError, InvalidConfigError) as e:
             logger.critical(f"Invalid configuration: {e}")
             exit(1, "Invalid configuration")
+
+        if websocket_updates_queue is not None:
+            websocket_updates_queue.put({"type": "ratings", "data": self.ratings})
 
     def _validate(self) -> None:
         if self.valid_file_extensions == "defaults":

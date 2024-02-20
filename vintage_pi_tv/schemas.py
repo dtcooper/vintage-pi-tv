@@ -13,6 +13,7 @@ from .constants import (
     DEFAULT_KEYBOARD_KEYS,
     DEFAULT_MPV_OPTIONS,
     DEFAULT_RATINGS,
+    LOG_LEVELS,
 )
 from .keyboard import is_valid_key
 from .utils import is_docker, is_raspberry_pi
@@ -48,9 +49,10 @@ config_schema = Schema(
     {
         Optional("log-level", default="INFO"): And(
             str,
-            Use(lambda s: s.strip().upper()),
-            Or("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "TRACE"),
-            error="Invalid 'log-level'. Must be one of 'critical', 'error', 'warning', 'info', 'debug', or 'trace'.",
+            Use(lambda s: s.strip().lower()),
+            Or(*LOG_LEVELS),
+            Use(lambda s: s.upper()),
+            error=f"Invalid 'log-level'. Must be one of {', '.join(LOG_LEVELS)}",
         ),
         Optional("channel-mode", default=CHANNEL_MODE_RANDOM_DETERMINISTIC): And(
             str,
