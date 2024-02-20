@@ -1,0 +1,44 @@
+name: Build Docs
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/docs.yml
+      - docs/**
+      - LICENSE
+      - vintage_pi_tv/schemas.py
+  workflow_dispatch:
+
+concurrency:
+  group: docs
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    name: Publish
+    env:
+      POETRY_VERSION: 1.7.1
+      PYTHONDONTWRITEBYTECODE: 1
+      PYTHONUNBUFFERED: 1
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      -
+        name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      -
+        name: Deploy docs
+        run: |
+          curl -sSL https://install.python-poetry.org | python -
+          cd docs
+          poetry install --no-root
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          poetry run mkdocs gh-deploy
