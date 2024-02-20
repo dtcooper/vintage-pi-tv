@@ -1,6 +1,7 @@
 # Welcome
 
-For now, this documentation is just a placeholder.
+For now, as Vintage pi TV is in active development, this documentation is
+a placeholder.
 
 ## Configuration values
 
