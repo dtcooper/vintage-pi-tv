@@ -3,8 +3,15 @@ repo_url: https://github.com/dtcooper/vintage-pi-tv/
 site_name: Vintage Pi TV
 site_url: https://github.com/dtcooper/vintage-pi-tv/
 site_description: Vintage TV for Raspberry Pi
+docs_dir: .
 extra:
   generator: false
+
+plugins:
+  - macros:
+      module_name: macros
+  - search
+  - same-dir
 
 theme:
   name: material

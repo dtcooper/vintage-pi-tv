@@ -47,22 +47,55 @@ class UniqueVideoNameSchema(Schema):
 
 config_schema = Schema(
     {
-        Optional("log-level", default="INFO"): And(
+        Optional("log-level", default="INFO", description=f"Log level, one of: {', '.join(LOG_LEVELS)}"): And(
             str,
             Use(lambda s: s.strip().lower()),
             Or(*LOG_LEVELS),
             Use(lambda s: s.upper()),
             error=f"Invalid 'log-level'. Must be one of {', '.join(LOG_LEVELS)}",
         ),
-        Optional("channel-mode", default=CHANNEL_MODE_RANDOM_DETERMINISTIC): And(
+        Schema(
+            "search-dirs",
+            name="search-dirs",
+            description=(
+                "Directories to search for videos in. Must be a list of one or more strings OR dictionaries like `{"
+                " path = <path>, recurse = <bool>, ignore = <bool> }`"
+            ),
+        ): And(
+            len,
+            [
+                Or(
+                    And(
+                        {
+                            "path": NON_EMPTY_PATH,
+                            Optional("recurse", default=False): bool,
+                            Optional("ignore", default=False): bool,
+                        },
+                        lambda d: not (d["recurse"] and d["ignore"]),
+                    ),
+                    And(
+                        str,
+                        len,
+                        Use(
+                            lambda path: {
+                                "path": Path(path).expanduser().resolve(),
+                                "recurse": False,
+                                "ignore": False,
+                            }
+                        ),
+                    ),
+                )
+            ],
+            error=(
+                "'search-dirs' must be a list of one or more string paths or `{{ path = <path>, recurse = <bool>, ignore"
+                " = <bool> }}` style dictionaries. (NOTE: 'recurse' and 'ignore' can never both be set to true.)"
+            ),
+        ),
+        Optional("channel-mode", default=CHANNEL_MODE_RANDOM_DETERMINISTIC, description=f"Channel mode. Must be one of {', '.join(CHANNEL_MODES)}"): And(
             str,
             Use(lambda s: s.strip().lower()),
             Or(*CHANNEL_MODES),
-            error=(
-                "Invalid 'channel-mode'. Must be one of 'random', 'random-deterministic', 'alphabetical',"
-                " 'config-only', 'config-first-random', 'config-first-random-deterministic', or"
-                " 'config-first-alphabetical'"
-            ),
+            error=f"Invalid 'channel-mode'. Must be one of {', '.join(CHANNEL_MODES)}",
         ),
         Optional("aspect-mode", default=ASPECT_MODE_LETTERBOX): And(
             str, Use(lambda s: s.strip().lower()), Or(*ASPECT_MODES)
@@ -98,38 +131,6 @@ config_schema = Schema(
         ),
         Optional("overscan-margins", default={"top": 0, "right": 0, "bottom": 0, "left": 0}): Or(
             Schema({direction: And(Use(int), lambda i: i >= 0) for direction in ("top", "right", "bottom", "left")}),
-        ),
-        "search-dirs": Schema(
-            And(
-                len,
-                [
-                    Or(
-                        And(
-                            {
-                                "path": NON_EMPTY_PATH,
-                                Optional("recurse", default=False): bool,
-                                Optional("ignore", default=False): bool,
-                            },
-                            lambda d: not (d["recurse"] and d["ignore"]),
-                        ),
-                        And(
-                            str,
-                            len,
-                            Use(
-                                lambda path: {
-                                    "path": Path(path).expanduser().resolve(),
-                                    "recurse": False,
-                                    "ignore": False,
-                                }
-                            ),
-                        ),
-                    )
-                ],
-            ),
-            error=(
-                "'search-dirs' must be a list of one or more paths or {{ path = <path>, recurse = <bool>, ignore ="
-                " <bool> }} style dictionaries. (NOTE: 'recurse' and 'ignore' can never both be set to true.)"
-            ),
         ),
         Optional("valid-file-extensions", default="defaults"): Or([NON_EMPTY_STRING], "defaults"),
         Optional("mpv-options", default=MPV_OPTIONS): Schema({

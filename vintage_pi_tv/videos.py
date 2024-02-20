@@ -131,7 +131,7 @@ class VideosDB:
                 logger.warning(f"Path in 'search-dirs' {info['path']} is not a directory. Skipping.")
 
         if not self._search_dirs and not self._search_dirs_recursive:
-            logger.critical("No search-dirs are actually valid directories.")
+            logger.critical("No 'search-dirs' are actually valid directories.")
             exit(1, "Videos DB failed to initialize (no search dirs)")
 
         logger.info(

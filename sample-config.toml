@@ -4,11 +4,24 @@
 log-level = 'info'
 
 # Directories to search for videos in.
+# Must be a list of one or more strings OR dictionaries like { path = <path>, recurse = <bool>, ignore = <bool> }
 search-dirs = [
-    "/media/VintagePiTV/videos",  # Will not recurse if just a string
+    "/media/VintagePiTV/videos",  # A string sets { recurse = false, ignore = false }
     { path = "/media/VintagePiTV", ignore = true },  # Ignore folder
-    { path = "/media", recurse = true},
+    { path = "/media", recurse = true}, # Recurse into directory
 ]
+
+# Channel mode, one of
+#   - random -- Channel ordering determined by random shuffling
+#   - random-deterministic -- Just like random, shuffles consistently while number of videos files is unchanged (default)
+#   - alphabetical -- Ordering alphabetical according to name
+#   - config-only -- Only select channels from matches as they appear in [[video]] list, otherwise completely ignore videos
+#   - config-first-random -- Lowest channels in order they appear in [[video]] list below, otherwise random (as above)
+#   - config-first-random-deterministic -- Lowest channels in order they appear in [[video]] list below, otherwise random-deterministic (as above)
+#   - config-first-alphabetical -- Lowest channels in order they appear in [[video]] below, otherwise alphabetical (as above)
+#
+channel-mode = "random"
+#channel-mode = "alphabetical"
 
 # One of letterbox, zoom, stretch
 #   - letterbox -- Add black bars to sides of videos that don't match your screen's aspect ratio
@@ -41,17 +54,6 @@ disable-osd = false
 # Apply a basic vintage CRT filter effect to videos (not applied to OSD)
 crt-filter = false
 
-# Channel mode, one of
-#   - random -- Channel ordering determined by random shuffling
-#   - random-deterministic -- Just like random, shuffles consistently while number of videos files is unchanged (default)
-#   - alphabetical -- Ordering alphabetical according to name
-#   - config-only -- Only select channels from matches as they appear in [[video]] list, otherwise completely ignore videos
-#   - config-first-random -- Lowest channels in order they appear in [[video]] list below, otherwise random (as above)
-#   - config-first-random-deterministic -- Lowest channels in order they appear in [[video]] list below, otherwise random-deterministic (as above)
-#   - config-first-alphabetical -- Lowest channels in order they appear in [[video]] below, otherwise alphabetical (as above)
-#
-#channel-mode = "alphabetical"
-channel-mode = "random"
 
 # Sould we provide visualizations for audio files?
 audio-visualization = true
