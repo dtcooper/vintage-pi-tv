@@ -11,7 +11,7 @@ python = "^3.11"
 janus = "^1.0.0"
 mpv = "^1.0.5"
 numpy = "^1.26.4"
-pygame-ce = "^2.4.0"
+pygame-ce = "^2.4.1"
 schema = "^0.7.5"
 starlette = "^0.37.1"
 tomlkit = "^0.12.3"
@@ -27,7 +27,7 @@ ipython = "^8.21.0"
 isort = "^5.13.2"
 
 [tool.poetry.group.keyboard.dependencies]
-evdev = {version = "^1.6.1", platform = "linux"}
+evdev = {version = "^1.7.0", platform = "linux"}
 pyudev = { version = "^0.24.1", platform = "linux" }
 
 [tool.poetry.scripts]
