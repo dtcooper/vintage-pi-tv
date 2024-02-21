@@ -15,6 +15,6 @@
 
 <style lang="postcss">
   .banner {
-    @apply text-5xl;
+    @apply text-5xl italic;
   }
 </style>
