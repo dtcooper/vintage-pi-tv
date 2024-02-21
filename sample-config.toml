@@ -20,7 +20,7 @@ search-dirs = [
 #   - config-first-random-deterministic -- Lowest channels in order they appear in [[video]] list below, otherwise random-deterministic (as above)
 #   - config-first-alphabetical -- Lowest channels in order they appear in [[video]] below, otherwise alphabetical (as above)
 #
-channel-mode = "random"
+channel-mode = "random-deterministic"
 #channel-mode = "alphabetical"
 
 # One of letterbox, zoom, stretch
