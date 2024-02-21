@@ -87,11 +87,15 @@ config_schema = Schema(
                 )
             ],
             error=(
-                "'search-dirs' must be a list of one or more string paths or `{{ path = <path>, recurse = <bool>, ignore"
-                " = <bool> }}` style dictionaries. (NOTE: 'recurse' and 'ignore' can never both be set to true.)"
+                "'search-dirs' must be a list of one or more string paths or `{{ path = <path>, recurse = <bool>,"
+                " ignore = <bool> }}` style dictionaries. (NOTE: 'recurse' and 'ignore' can never both be set to true.)"
             ),
         ),
-        Optional("channel-mode", default=CHANNEL_MODE_RANDOM_DETERMINISTIC, description=f"Channel mode. Must be one of {', '.join(CHANNEL_MODES)}"): And(
+        Optional(
+            "channel-mode",
+            default=CHANNEL_MODE_RANDOM_DETERMINISTIC,
+            description=f"Channel mode. Must be one of {', '.join(CHANNEL_MODES)}",
+        ): And(
             str,
             Use(lambda s: s.strip().lower()),
             Or(*CHANNEL_MODES),

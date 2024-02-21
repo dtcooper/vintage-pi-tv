@@ -37,16 +37,17 @@ async def index(request):
 
 async def websocket_index(websocket: WebSocket):
     await websocket.accept()
+    await websocket.send_json({"auth_required": bool(tv.config.web_password)})
     if tv.config.web_password:
-        password = await websocket.receive_text()
+        password = (await websocket.receive_json())["password"]
         if hmac.compare_digest(password, tv.config.web_password):
-            await websocket.send_text("success")
+            await websocket.send_json({"auth": "success"})
         else:
-            await websocket.send_text("failed")
+            await websocket.send_json({"auth": "failed"})
             await websocket.close()
             return
 
-    await websocket.send_json(broadcast_data)
+    await websocket.send_json(broadcast_data)  # Hello message
     websockets.add(websocket)
     async for data in websocket.iter_json():
         await event_queue.async_q.put(data)
