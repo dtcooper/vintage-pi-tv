@@ -13,7 +13,7 @@ from starlette.responses import PlainTextResponse
 from starlette.routing import Route, WebSocketRoute
 from starlette.websockets import WebSocket
 
-from .constants import ENV_ARGS_VAR_NAME
+from .constants import ENV_ARGS_VAR_NAME, PROTOCOL_VERSION
 from .tv import VintagePiTV
 from .utils import exit, get_vintage_pi_tv_version
 
@@ -37,20 +37,25 @@ async def index(request):
 
 async def websocket_index(websocket: WebSocket):
     await websocket.accept()
-    await websocket.send_json({"auth_required": bool(tv.config.web_password)})
-    if tv.config.web_password:
-        password = (await websocket.receive_json())["password"]
-        if hmac.compare_digest(password, tv.config.web_password):
-            await websocket.send_json({"auth": "success"})
-        else:
-            await websocket.send_json({"auth": "failed"})
-            await websocket.close()
-            return
+    greeting = await websocket.receive_json()
+    protocol_version, password = greeting.get("protocol_version"), greeting.get("password")
+    if protocol_version is None or password is None:
+        await websocket.close(4001, "Invalid handshake. Something went wrong.")
+        return
+
+    if protocol_version != PROTOCOL_VERSION:
+        what, action = ("an older", "downgrade") if protocol_version > PROTOCOL_VERSION else ("a newer", "upgrade")
+        await websocket.close(4001, f"Server running {what} protocol than you. You'll need to {action} Vintage Pi TV.")
+        return
+
+    if tv.config.web_password and not hmac.compare_digest(password, tv.config.web_password):
+        await websocket.close(4000, "Invalid password. Try again.")
 
     await websocket.send_json(broadcast_data)  # Hello message
     websockets.add(websocket)
     async for data in websocket.iter_json():
-        await event_queue.async_q.put(data)
+        action = data.pop("action")
+        await event_queue.async_q.put({"event": "user-action", "action": action, "kwargs": data})
 
 
 # __main__.py passes these arguments as environment variables

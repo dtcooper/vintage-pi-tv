@@ -188,10 +188,10 @@ class Player:
         except queue.Empty:
             pass
 
-    def _handle_user_action(self, video: Video, event: dict) -> None | Video:
+    def _handle_user_action(self, video: Video, action: str, **kwargs) -> None | Video:
         next_video: None | Video = None
-        logger.debug(f"Got key press event: {event}")
-        match event["action"]:
+        logger.debug(f"Got key user defined event: {action} ({kwargs})")
+        match action:
             case "osd":
                 _, muted = self._mpv.volume
                 self.osd.show(progress_bar=True, volume=muted)
@@ -205,22 +205,27 @@ class Player:
                     self._mpv.pause()
             case "up" | "down":
                 self._update_state(video=None, state=PlayerState.LOADING)
-                direction = 1 if event["action"] == "up" else -1
+                direction = 1 if action == "up" else -1
                 next_video = self._videos_db.get_video_for_channel_change(
                     video=video, current_rating=self._current_rating, direction=direction
                 )
                 if next_video is None:
                     self.osd.notify(f"No channel found for rating {self._current_rating}!", color=RED)
                 self._mpv.stop()
+            case "play":
+                video = self._videos_db.get_video_by_path(kwargs["path"])
+                if video is not None:
+                    next_video = video
+                    self._mpv.stop()
             case "right" | "left":
-                multiplier = 1 if event["action"] == "right" else -1
+                multiplier = 1 if action == "right" else -1
                 self._mpv.seek(multiplier * 15.0)
                 self.osd.show(progress_bar=True)
             case "rewind":
                 self._mpv.seek(0.0, absolute=True)
                 self.osd.show(progress_bar=True)
             case "volume-up" | "volume-down":
-                amount = 5 * (1 if event["action"] == "volume-up" else -1)
+                amount = 5 * (1 if action == "volume-up" else -1)
                 self._mpv.change_volume(amount)
                 self.osd.show(volume=True)
             case "mute":
@@ -243,7 +248,7 @@ class Player:
                 else:
                     exit(0, "Shut down by request")
             case _:
-                logger.critical(f"Unknown keypress: {event['action']}")
+                logger.critical(f"Unknown keypress: {action}")
         return next_video
 
     def set_rating(self, rating: str):
@@ -348,7 +353,7 @@ class Player:
                                     logger.info(f"Ending playback of {video.path}")
                                     raise BreakVideoPlayLoop
                                 case "user-action":
-                                    next_video = self._handle_user_action(video, event)
+                                    next_video = self._handle_user_action(video, event["action"], **event["kwargs"])
                                 case "crash-player-thread":
                                     raise Exception("Crashed player thread on purpose.")
                                 case _:

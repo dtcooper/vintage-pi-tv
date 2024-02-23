@@ -1,0 +1,9 @@
+{
+  "protocol_version": 1,
+  "states": {
+    "loading": "loading",
+    "needs_files": "needs-files",
+    "playing": "playing",
+    "paused": "paused"
+  }
+}

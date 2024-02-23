@@ -74,7 +74,7 @@ class Video:
 
     @property
     def display_channel(self) -> str:
-        return str(self.channel + 1)
+        return self.channel + 1
 
     def is_viewable_based_on_rating(self, rating):
         return self.rating_dict["num"] <= self._videos_db.config.ratings_dict[rating]["num"]
@@ -306,7 +306,8 @@ class VideosDB:
                 )
                 return None
 
-    def get_video_by_path(self, path: Path) -> Video:
+    def get_video_by_path(self, path: str | Path) -> Video:
+        path = Path(path)
         with self._channel_lock:
             channel = self.channels.get(path)
             if channel is None:
@@ -320,10 +321,14 @@ class VideosDB:
             self._rebuild_channels()
 
     def _watch_thread_helper(self, search_dirs: list[Path], recursive: bool):
+        logger.debug(f"Watching search directories ({recursive=}): {', '.join(map(str, search_dirs))}")
         for changes in watchfiles.watch(
             *search_dirs,
             stop_event=self.watch_stop_event,
             watch_filter=lambda _, path: self._is_valid_video_path(Path(path)),
+            force_polling=True,  # Inefficient, but doesn't seem to detect files when USB stick is plugged in otherwise
+            poll_delay_ms=1500,
+            recursive=recursive,
         ):
             logger.info("Detected file change(s). Queuing for channel rebuild.")
             for change, path in changes:

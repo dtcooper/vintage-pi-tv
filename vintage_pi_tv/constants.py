@@ -1,4 +1,5 @@
 import enum
+import json
 from pathlib import Path
 
 
@@ -27,12 +28,19 @@ DEFAULT_PORT = 6672
 LOG_LEVELS = ("trace", "debug", "info", "warning", "error", "critical")
 
 
-class PlayerState(enum.StrEnum):
-    LOADING = "loading"
-    NEEDS_FILES = "needs-files"
-    PLAYING = "playing"
-    PAUSED = "paused"
+with open(Path(__file__).parent.parent / "constants.json") as _file:
+    _data = json.load(_file)
+PROTOCOL_VERSION = _data["protocol_version"]
 
+
+class PlayerState(enum.StrEnum):
+    LOADING = _data["states"]["loading"]
+    NEEDS_FILES = _data["states"]["needs_files"]
+    PLAYING = _data["states"]["playing"]
+    PAUSED = _data["states"]["paused"]
+
+
+del _data, _file
 
 DATA_DIR = Path(__file__).absolute().parent / "data"
 

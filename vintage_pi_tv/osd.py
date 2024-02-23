@@ -66,7 +66,7 @@ class OSD:
         if not self._osd.shown or cache_try != cache_value:
             self._osd.surf.fill(TRANSPARENT)
             text = [
-                {"text": channel, "size": 120, "padding": (10, 10, 6, 10), "font": "bold"},
+                {"text": str(channel), "size": 120, "padding": (10, 10, 6, 10), "font": "bold"},
                 {"text": name, "size": 32, "color": YELLOW, "padding": 8, "font": "italic"},
             ]
             if self._config.show_fps:
