@@ -2,7 +2,6 @@ import logging
 from pathlib import Path
 import queue
 import threading
-import time
 
 from .config import Config
 from .keyboard import KEYBOARD_AVAILABLE, Keyboard
@@ -13,7 +12,7 @@ from .utils import (
     init_logger,
     is_docker,
     is_raspberry_pi,
-    resolve_config_tries,
+    resolve_config_file,
     retry_thread_wrapper,
     set_log_level,
 )
@@ -40,7 +39,14 @@ class VintagePiTV:
         self._websocket_updates_queue: queue.Queue = websocket_updates_queue
         self._log_level_override = log_level_override
         self._extra_search_dirs = extra_search_dirs
-        self.init_config(config_file=config_file, config_wait=config_wait)
+        config_file = resolve_config_file(config_file, config_wait)
+        logger.info(f"Using config file: {config_file if config_file is not None else '(none, using defaults)'}")
+        self.config: Config = Config(
+            path=resolve_config_file(config_file, config_wait),
+            websocket_updates_queue=self._websocket_updates_queue,
+            extra_search_dirs=self._extra_search_dirs,
+            log_level_override=self._log_level_override,
+        )
 
         set_log_level(self.config.log_level)
         logger.debug(f"Changed log level to {self.config.log_level}")
@@ -77,40 +83,6 @@ class VintagePiTV:
 
         self.mpv.done_loading()
         logger.debug("Done initializing objects")
-
-    def init_config(
-        self,
-        config_file: str | Path | None = None,
-        config_wait: int = 0,
-    ):
-        config_file_tries = resolve_config_tries(config_file=config_file)
-        self.config: Config = None
-        kwargs = {
-            "websocket_updates_queue": self._websocket_updates_queue,
-            "extra_search_dirs": self._extra_search_dirs,
-            "log_level_override": self._log_level_override,
-        }
-
-        for config_file_try in config_file_tries:
-            for i in range(config_wait + 1):
-                if config_file_try.exists():
-                    logger.info(f"Using config file: {config_file_try}")
-                    self.config = Config(path=config_file_try, **kwargs)
-                    break
-                else:
-                    if i < config_wait:
-                        logger.info(f"Config file {config_file_try} not found! Waiting.. (Try {i + 1}/{config_wait})")
-                        time.sleep(1)
-            if self.config is None:
-                logger.warning(f"Config file {config_file_try} not found!")
-            else:
-                break
-        else:
-            if config_file_tries:
-                logger.warning(f"Using a default config, none found at: {', '.join(map(str, config_file_tries))}")
-            else:
-                logger.warning("Using a default config as was none specified")
-            self.config = Config(path=None, **kwargs)
 
     def startup(self):
         threads = [

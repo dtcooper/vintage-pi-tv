@@ -374,4 +374,4 @@ class MPV:
                 if self.docker_keyboard_blocked and action != "power":
                     logger.warning(f"Blocked keypress {key} by player request in Docker mode")
                 else:
-                    self._event_queue.put({"event": "user-action", "action": action})
+                    self._event_queue.put({"event": "user-action", "action": action, "extras": {}})

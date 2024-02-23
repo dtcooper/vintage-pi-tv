@@ -158,14 +158,24 @@ def exit(status: int = 0, reason: str = "unspecified", force: bool = False):
         sys.exit(status)
 
 
-def resolve_config_tries(config_file: None | Path = None) -> list[Path]:
+def resolve_config_file(config_file: None | Path = None, config_wait: int = 0) -> Path:
     if config_file is not None:
-        tries = [config_file]
+        tries = (config_file,)
     elif not is_docker():
         tries = DEFAULT_CONFIG_PATHS
     else:
-        tries = []
-    return [Path(p).absolute() for p in tries]
+        tries = ()
+
+    for try_ in tries:
+        try_ = Path(try_).absolute()
+        for i in range(config_wait + 1):
+            if try_.exists():
+                return try_
+            else:
+                if i < config_wait:
+                    time.sleep(1)
+    else:
+        return None  # Default
 
 
 def normalize_filename(path: Path):

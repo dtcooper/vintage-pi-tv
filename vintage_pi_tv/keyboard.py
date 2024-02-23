@@ -116,7 +116,7 @@ class Keyboard:
             logger.warning(f"Blocked keypress {key} by player request")
         else:
             if action is not None and (not hold or action in self.ALLOW_HOLD_ACTIONS):
-                self._event_queue.put({"event": "user-action", "action": action})
+                self._event_queue.put({"event": "user-action", "action": action, "extras": {}})
 
     def keyboard_thread(self):
         # Listening for key events on Linux is a fucking mess.

@@ -62,8 +62,6 @@ class Config:
             with open(path, "rb") as file:
                 toml = tomllib.load(file)
 
-        # Add in extras
-        toml.setdefault("search-dirs", []).extend(extra_search_dirs)
         if log_level_override is not None:
             toml["log-level"] = log_level_override
 
@@ -76,6 +74,10 @@ class Config:
         except (SchemaError, InvalidConfigError) as e:
             logger.critical(f"Invalid configuration: {e}")
             exit(1, "Invalid configuration")
+
+        self.search_dirs.extend(
+            {"path": Path(path).expanduser().resolve(), "recurse": False, "ignore": False} for path in extra_search_dirs
+        )
 
         if websocket_updates_queue is not None:
             websocket_updates_queue.put({"type": "ratings", "data": self.ratings})

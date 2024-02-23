@@ -188,9 +188,9 @@ class Player:
         except queue.Empty:
             pass
 
-    def _handle_user_action(self, video: Video, action: str, **kwargs) -> None | Video:
+    def _handle_user_action(self, video: Video, action: str, extras: dict) -> None | Video:
         next_video: None | Video = None
-        logger.debug(f"Got key user defined event: {action} ({kwargs})")
+        logger.debug(f"Got key user defined event: {action} (extras: {extras})")
         match action:
             case "osd":
                 _, muted = self._mpv.volume
@@ -213,7 +213,7 @@ class Player:
                     self.osd.notify(f"No channel found for rating {self._current_rating}!", color=RED)
                 self._mpv.stop()
             case "play":
-                video = self._videos_db.get_video_by_path(kwargs["path"])
+                video = self._videos_db.get_video_by_path(extras["path"])
                 if video is not None:
                     next_video = video
                     self._mpv.stop()
@@ -353,7 +353,7 @@ class Player:
                                     logger.info(f"Ending playback of {video.path}")
                                     raise BreakVideoPlayLoop
                                 case "user-action":
-                                    next_video = self._handle_user_action(video, event["action"], **event["kwargs"])
+                                    next_video = self._handle_user_action(video, event["action"], event["extras"])
                                 case "crash-player-thread":
                                     raise Exception("Crashed player thread on purpose.")
                                 case _:

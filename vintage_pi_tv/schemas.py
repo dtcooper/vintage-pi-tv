@@ -54,8 +54,13 @@ config_schema = Schema(
             Use(lambda s: s.upper()),
             error=f"Invalid 'log-level'. Must be one of {', '.join(LOG_LEVELS)}",
         ),
-        Schema(
+        Optional(
             "search-dirs",
+            default=[
+                {"path": Path("/media/VintagePiTV/videos").resolve(), "ignore": False, "recurse": False},
+                {"path": Path("/media/VintagePiTV").resolve(), "ignore": True, "recurse": False},
+                {"path": Path("/media").resolve(), "ignore": False, "recurse": True},
+            ],
             name="search-dirs",
             description=(
                 "Directories to search for videos in. Must be a list of one or more strings OR dictionaries like `{"

@@ -17,21 +17,16 @@ def generate_videos_config(config_file: Path, extra_search_dirs):
     import tomlkit
 
     from vintage_pi_tv.config import Config
-    from vintage_pi_tv.utils import resolve_config_tries
+    from vintage_pi_tv.utils import resolve_config_file
     from vintage_pi_tv.videos import VideosDB
 
     # Shut up logger
     setattr(logging.getLoggerClass(), "trace", lambda *args, **kwargs: None)
     logging.disable(logging.CRITICAL)
 
-    config_files = resolve_config_tries(config_file)
-    config_file = None
-    for config_file_try in config_files:
-        if config_file_try.exists():
-            config_file = config_file_try
-            break
-
-    config = Config(path=config_file, extra_search_dirs=extra_search_dirs, channel_mode="alphabetical")
+    config = Config(
+        path=resolve_config_file(config_file), extra_search_dirs=extra_search_dirs, channel_mode="alphabetical"
+    )
     videos = VideosDB(config=config)
 
     toml = tomlkit.document()
@@ -60,7 +55,7 @@ def run(args=None):
         config_help_str = "using Docker you must specify a configuration file explicitly"
     else:
         absolute_default_config_paths = map(lambda p: str(Path(p).absolute()), DEFAULT_CONFIG_PATHS)
-        config_help_str = f"if empty will try these in order:' {', '.join(absolute_default_config_paths)}"
+        config_help_str = f"if empty will try these in order: {', '.join(absolute_default_config_paths)}"
     config_group.add_argument("-c", "--config", dest="config_file", help=config_help_str, metavar="config.toml")
     parser.add_argument(
         "-w",
@@ -97,8 +92,8 @@ def run(args=None):
         nargs="*",
         metavar="<search-dir>",
         help=(
-            "Adds an extra `search_dirs` entry to look for videos"
-            f"{' (in Docker container /videos is added if none are specified)' if is_docker else ''}"
+            "Adds an extra `search_dirs` entry to look for videos, non-recursive"
+            f"{' (in Docker container /videos is added if none are specified)' if is_docker() else ''}"
         ),
     )
     parser.add_argument(

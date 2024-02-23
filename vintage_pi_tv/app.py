@@ -3,14 +3,15 @@ import hmac
 import json
 import logging
 import os
+from pathlib import Path
 import sys
 from time import monotonic as tick
 import weakref
 
 import janus
 from starlette.applications import Starlette
-from starlette.responses import PlainTextResponse
-from starlette.routing import Route, WebSocketRoute
+from starlette.routing import Mount, WebSocketRoute
+from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket
 
 from .constants import ENV_ARGS_VAR_NAME, PROTOCOL_VERSION
@@ -31,31 +32,27 @@ websocket_updates_queue: janus.Queue[dict] = janus.Queue()
 event_queue: janus.Queue[dict] = janus.Queue()
 
 
-async def index(request):
-    return PlainTextResponse("There are only forty people in the world and five of them are hamburgers.\n")
-
-
 async def websocket_index(websocket: WebSocket):
     await websocket.accept()
     greeting = await websocket.receive_json()
     protocol_version, password = greeting.get("protocol_version"), greeting.get("password")
+
     if protocol_version is None or password is None:
         await websocket.close(4001, "Invalid handshake. Something went wrong.")
-        return
 
-    if protocol_version != PROTOCOL_VERSION:
+    elif protocol_version != PROTOCOL_VERSION:
         what, action = ("an older", "downgrade") if protocol_version > PROTOCOL_VERSION else ("a newer", "upgrade")
         await websocket.close(4001, f"Server running {what} protocol than you. You'll need to {action} Vintage Pi TV.")
-        return
 
-    if tv.config.web_password and not hmac.compare_digest(password, tv.config.web_password):
+    elif tv.config.web_password and not hmac.compare_digest(password, tv.config.web_password):
         await websocket.close(4000, "Invalid password. Try again.")
 
-    await websocket.send_json(broadcast_data)  # Hello message
-    websockets.add(websocket)
-    async for data in websocket.iter_json():
-        action = data.pop("action")
-        await event_queue.async_q.put({"event": "user-action", "action": action, "kwargs": data})
+    else:
+        await websocket.send_json(broadcast_data)  # Hello message
+        websockets.add(websocket)
+        async for data in websocket.iter_json():
+            action = data.pop("action")
+            await event_queue.async_q.put({"event": "user-action", "action": action, "extras": data})
 
 
 # __main__.py passes these arguments as environment variables
@@ -104,8 +101,14 @@ async def shutdown():
         task.cancel()
 
 
+routes = [
+    WebSocketRoute("/ws", websocket_index),
+    Mount("/", app=StaticFiles(directory=Path(__file__).parent.parent / "web" / "dist", html=True, check_dir=False)),
+]
+
+
 app = Starlette(
-    routes=[Route("/", index), WebSocketRoute("/ws", websocket_index)],
+    routes=routes,
     debug=tv.config.log_level == "DEBUG",
     on_startup=[tv.startup, startup],
     on_shutdown=[tv.shutdown, shutdown],
