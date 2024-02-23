@@ -3,7 +3,6 @@
   import { states } from "../../../constants.json"
 
   const action = (name, extras) => {
-    console.log(name, extras)
     websocket.send({ action: name, ...extras })
   }
 

@@ -53,7 +53,6 @@ const websocketWritable = () => {
       set({ ...dataReset, failure: reason })
     },
     connect() {
-      console.log(import.meta.hot)
       this.disconnect()
       let url
 
@@ -86,13 +85,11 @@ const websocketWritable = () => {
       }
 
       ws.onclose = (event) => {
-        console.log("CLOSE WEBSOCKET")
         if (ws) {
           if (event.code >= 4000) {
             console.error(`"Disconnected from websocket on purpose! (${event.reason})`)
             this.disconnect(event.reason)
           } else {
-            console.log(websocketGet())
             if (websocketGet().authenticated) {
               update((data) => ({ ...data, connected: false, connecting: true }))
             } else {
