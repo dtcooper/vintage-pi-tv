@@ -4,6 +4,7 @@ from pathlib import Path
 import queue
 import random
 import threading
+import time
 from typing import Literal
 
 import watchfiles
@@ -139,9 +140,9 @@ class VideosDB:
             f" {len(self._exclude_dirs)} ignore dirs"
         )
 
-    def _is_valid_video_path(self, path: Path):
+    def _is_valid_video_path(self, path: Path, filter_by_extension: bool = True):
         # Ends with a valid extension
-        if not normalize_filename(path).endswith(self.config.valid_file_extensions):
+        if filter_by_extension and not normalize_filename(path).endswith(self.config.valid_file_extensions):
             return False
 
         if path in self._bad_video_paths:
@@ -317,6 +318,7 @@ class VideosDB:
     def rebuild_channels_thread(self):
         while True:
             self._rebuild_event.wait()
+            time.sleep(1)  # Wait a second for udisks2 to mount properly, and debounce
             self._rebuild_event.clear()
             self._rebuild_channels()
 
@@ -325,9 +327,9 @@ class VideosDB:
         for changes in watchfiles.watch(
             *search_dirs,
             stop_event=self.watch_stop_event,
-            watch_filter=lambda _, path: self._is_valid_video_path(Path(path)),
-            force_polling=True,  # Inefficient, but doesn't seem to detect files when USB stick is plugged in otherwise
-            poll_delay_ms=1500,
+            # New folders should trigger a rebuild, since that's what happens when a filesystem is mounted
+            # Therefore we can't filter by extension
+            watch_filter=lambda _, path: self._is_valid_video_path(Path(path), filter_by_extension=False),
             recursive=recursive,
         ):
             logger.info("Detected file change(s). Queuing for channel rebuild.")
