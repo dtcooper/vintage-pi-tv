@@ -78,8 +78,8 @@ class OSD:
 
             if rating:
                 color = video.rating_dict["color"]
-                surf, rect = self._mpv.render_text(rating, 80, color=color, padding=15)
-                pygame.draw.rect(surf, color, rect, width=round(self._mpv.scale_pixels(4.5)))
+                surf, rect = self._mpv.render_text(rating, 80, color=color, padding=12)
+                pygame.draw.rect(surf, color, rect, width=round(self._mpv.scale_pixels(4.25)))
                 rect.topright = (self._osd.rect.right - self._mpv.scale_pixels(15), self._mpv.scale_pixels(15))
                 self._osd.surf.blit(surf, rect)
 
