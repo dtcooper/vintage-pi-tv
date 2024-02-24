@@ -39,12 +39,17 @@ class Video:
 
         self.path: Path = path
         self.name: str = name or self.get_automatic_video_name()
-        self.rating: str | Literal[False] = rating or self._videos_db.config.default_rating
+        self.rating: str | Literal[False] = rating
         self.rating_dict: None | dict
-        if not self.rating or self.rating not in self._videos_db.config.ratings_dict:
-            self.rating_dict = None
-        else:
-            self.rating_dict = self._videos_db.config.ratings_dict[self.rating]
+        if self.rating:
+            if self.rating not in self._videos_db.config.ratings_dict:
+                default_rating = self._videos_db.config.default_rating
+                logger.warning(
+                    f"Video {path} had an invalid rating: {self.rating!r}. Assigning default: {default_rating!r}"
+                )
+                self.rating = default_rating
+            if self.rating:
+                self.rating_dict = self._videos_db.config.ratings_dict[self.rating]
 
         self.subtitles: int | Path
         if subtitles is None:  # Unset
@@ -78,7 +83,10 @@ class Video:
         return self.channel + 1
 
     def is_viewable_based_on_rating(self, rating):
-        return self.rating_dict["num"] <= self._videos_db.config.ratings_dict[rating]["num"]
+        if rating:
+            return self.rating_dict["num"] <= self._videos_db.config.ratings_dict[rating]["num"]
+        else:
+            return True
 
     def serialize(self) -> dict:
         return {
