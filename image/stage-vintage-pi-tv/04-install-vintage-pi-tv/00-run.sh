@@ -60,11 +60,12 @@ EOF
 
 
 if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-    echo "Copying over pre-built web app for tagged release"
+    echo "Copying over pre-built web app for tagged release, removing poetry"
     cp -vr "${REPO_DIR}/web/dist" "${ROOTFS_DIR}/opt/vintage-pi-tv/web/dist"
     on_chroot <<EOF
 chown -R "${FIRST_USER_NAME}:${FIRST_USER_NAME}" /opt/vintage-pi-tv/web/dist
 EOF
+    rm -rf "${ROOTFS_DIR}/opt/vintage-pi-tv/"
 else
     on_chroot <<EOF
 su - "${FIRST_USER_NAME}" -c "cd /opt/vintage-pi-tv/web ; npm install"
