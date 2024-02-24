@@ -16,7 +16,8 @@ fi
 
 DO_REBUILD=
 DO_NO_CACHE_REBUILD=
-PORT=8000
+VNC_PORT=8000
+PORT=6672
 DO_AUDIO=
 DO_OPEN_BROWSER=
 DO_FORCE=
@@ -35,13 +36,14 @@ Usage: ${_CMD} [-r] [-R] [-p <int>] [-a] [-b] [-f] [-h]
 Develop Vintage Pi TV in a Docker container with noVNC
 
 Options:
-    -r, --rebuild           Force a rebuild of the Docker container
-    -R, --no-cache-rebuild  Force a rebuild of the Docker container (no cache)
-    -p <int>, --port <int>  Port to bind the HTTP server to (default: ${PORT})
-    -a, --audio             Attempt to enable sound via Pulseaudio
-    -b, --browser           Open web browser after starting container
-    -f, --force             Force running of this tool, even on a Raspberry Pi
-    -h, --help              Show this help screen
+  -r, --rebuild               Force a rebuild of the Docker container
+  -R, --no-cache-rebuild      Force a rebuild of the Docker container (no cache)
+  -p <int>, --port <int>      Port to bind the server to (default: ${PORT})
+  -P <int>, --vnc-port <int>  Port to bind the VNC server to (default: ${VNC_PORT})
+  -a, --audio             Attempt to enable sound via Pulseaudio
+  -b, --browser           Open web browser after starting container
+  -f, --force             Force running of this tool, even on a Raspberry Pi
+  -h, --help              Show this help screen
 EOF
     exit "${1:-0}"
 }
@@ -57,6 +59,10 @@ while [ "${1:0:1}" = '-' ]; do
         ;;
         -p|--port)
             PORT="${2}"
+            shift 1
+        ;;
+        -P|--vnc-port)
+            VNC_PORT="${2}"
             shift 1
         ;;
         -a|--audio)
@@ -99,7 +105,8 @@ DOCKER_EXEC=(
         -v "${PWD}/docker/daemons.conf:/etc/supervisor/conf.d/daemons.conf"
         -v "${PWD}/docker/nginx.conf:/etc/nginx/sites-enabled/default"
         -v "${PWD}/docker/entrypoint.sh:/entrypoint.sh"
-        -p "127.0.0.1:${PORT}:8000"
+        -p "127.0.0.1:${PORT}:6672"
+        -p "127.0.0.1:${VNC_PORT}:8000"
 )
 
 export DOCKER_CLI_HINTS=false

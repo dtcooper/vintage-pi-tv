@@ -49,4 +49,4 @@ RUN sed -i 's/^readme = /#\0/' pyproject.toml && poetry install --without=keyboa
 # Set up entrypoint which stats Xvfb, x11vnc and nginx serving noVNC
 ENV DISPLAY=:0
 ENTRYPOINT [ "/entrypoint.sh" ]
-CMD [ "/bin/sh", "-c", "while ! [ -S /tmp/.X11-unix/X0 ]; do sleep 0.05 ; done ; exec tv" ]
+CMD [ "/bin/sh", "-c", "while ! [ -S /tmp/.X11-unix/X0 ]; do sleep 0.05 ; done ; exec tv --reload" ]
