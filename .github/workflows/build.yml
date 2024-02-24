@@ -124,7 +124,7 @@ jobs:
             ${{ steps.finalize.outputs.final-path }}
             ${{ steps.finalize.outputs.final-path }}.sha256sum
           if-no-files-found: error
-          retention-days: 2
+          retention-days: 10
           compression-level: 0  # Already compressed with xz above
       -
         name: Check for new commits
