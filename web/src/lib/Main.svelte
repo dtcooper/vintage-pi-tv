@@ -25,7 +25,7 @@
     <div class="flex flex-col gap-1 p-1">
       {#each $websocket.videos_db as video}
         <div>
-          <button class="btn btn-sm" on:click={() => action("play", { path: video.path })}>
+          <button class="btn btn-sm font-slim font-normal" on:click={() => action("play", { path: video.path })}>
             {video.channel}. {video.name}
           </button>
           {#if video.path === current?.path}

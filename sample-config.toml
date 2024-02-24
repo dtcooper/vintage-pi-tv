@@ -51,9 +51,8 @@ channel-osd-always-on = false
 # Completely disable the OSD if this is set
 disable-osd = false
 
-# Apply a basic vintage CRT filter effect to videos (not applied to OSD)
+# Apply a basic vintage CRT filter effect to videos (not applied to OSD). May cause frames to be dropped.
 crt-filter = false
-
 
 # Sould we provide visualizations for audio files?
 audio-visualization = true
