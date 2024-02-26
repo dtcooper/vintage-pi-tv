@@ -26,7 +26,7 @@ const dataReset = {
   videos_db: null
 }
 
-const websocketWritable = () => {
+const createWebsocket = () => {
   const { subscribe, set, update } = writable(dataReset)
   const websocketGet = () => get({ subscribe })
 
@@ -102,4 +102,4 @@ const websocketWritable = () => {
   }
 }
 
-export const websocket = websocketWritable()
+export const websocket = createWebsocket()
