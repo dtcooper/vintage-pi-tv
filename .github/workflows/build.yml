@@ -4,14 +4,6 @@ on:
   push:
     branches:
       - '*'
-    paths-ignore:
-      - .dockerignore
-      - .flake8
-      - .github/workflows/docs.yml
-      - .gitignore
-      - dev-docker.sh
-      - docker/**
-      - docs/**
     tags:
       - 'v*'
   workflow_dispatch:
