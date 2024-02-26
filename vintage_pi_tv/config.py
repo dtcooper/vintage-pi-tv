@@ -88,7 +88,7 @@ class Config:
             if self.audio_visualization:
                 valid_extensions.extend(DEFAULT_AUDIO_FILE_EXTENSIONS)
         self.valid_file_extensions = tuple(f".{ext}".lower() for ext in valid_extensions)
-        self.ratings_dict: dict[str, str] = {}
+        self.ratings_dict: dict = {}
         if self.ratings:
             self.ratings_dict.update({rating["rating"]: {"num": n, **rating} for n, rating in enumerate(self.ratings)})
 
