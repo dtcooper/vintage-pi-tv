@@ -5,7 +5,7 @@ from schema import And, Optional, Or, Regex, Schema, SchemaError, Use
 from .constants import (
     ASPECT_MODE_LETTERBOX,
     ASPECT_MODES,
-    CHANNEL_MODE_RANDOM_DETERMINISTIC,
+    CHANNEL_MODE_ALPHABETICAL,
     CHANNEL_MODES,
     DEFAULT_DEV_MPV_OPTIONS,
     DEFAULT_DOCKER_MPV_OPTIONS,
@@ -98,7 +98,7 @@ config_schema = Schema(
         ),
         Optional(
             "channel-mode",
-            default=CHANNEL_MODE_RANDOM_DETERMINISTIC,
+            default=CHANNEL_MODE_ALPHABETICAL,
             description=f"Channel mode. Must be one of {', '.join(CHANNEL_MODES)}",
         ): And(
             str,

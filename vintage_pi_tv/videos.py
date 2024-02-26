@@ -25,6 +25,10 @@ from .utils import exit, listdir_recursive, normalize_filename, shuffle_determin
 logger = logging.getLogger(__name__)
 
 
+def video_dict_alphabetical_sort_func(video):
+    return (video["name"].lower(), video["path"])
+
+
 class Video:
     def __init__(
         self,
@@ -217,10 +221,6 @@ class VideosDB:
                         else:
                             ignored_files += 1
 
-        def channel_sort_key(from_config_video):
-            _, video = from_config_video
-            return (video["name"], video["path"])
-
         logger.info(f"Sorting channels by mode: {self.config.channel_mode}")
 
         # Sort by channel mode
@@ -229,7 +229,7 @@ class VideosDB:
         elif self.config.channel_mode == CHANNEL_MODE_RANDOM_DETERMINISTIC:
             shuffle_deterministic(videos)
         elif self.config.channel_mode == CHANNEL_MODE_ALPHABETICAL:
-            videos.sort(key=channel_sort_key)
+            videos.sort(key=lambda v: video_dict_alphabetical_sort_func(v[1]))
         else:
             videos_config = [v for v in videos if v[0]]
             if self.config.channel_mode == CHANNEL_MODE_CONFIG_ONLY:
@@ -241,7 +241,7 @@ class VideosDB:
                 elif self.config.channel_mode == CHANNEL_MODE_CONFIG_FIRST_RANDOM_DETERMINISTIC:
                     shuffle_deterministic(videos_non_config)
                 elif self.config.channel_mode == CHANNEL_MODE_CONFIG_FIRST_ALPHABETICAL:
-                    videos_non_config.sort(key=channel_sort_key)
+                    videos_non_config.sort(key=lambda v: video_dict_alphabetical_sort_func(v[1]))
                 videos = videos_config + videos_non_config
 
         videos = [Video(videos_db=self, from_config=from_config, **video) for from_config, video in videos]

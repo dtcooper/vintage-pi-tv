@@ -13,15 +13,15 @@ search-dirs = [
 
 # Channel mode, one of
 #   - random -- Channel ordering determined by random shuffling
-#   - random-deterministic -- Just like random, shuffles consistently while number of videos files is unchanged (default)
-#   - alphabetical -- Ordering alphabetical according to name
+#   - random-deterministic -- Just like random, shuffles consistently while number of videos files is unchanged
+#   - alphabetical -- Ordering alphabetical according to name (default
 #   - config-only -- Only select channels from matches as they appear in [[video]] list, otherwise completely ignore videos
 #   - config-first-random -- Lowest channels in order they appear in [[video]] list below, otherwise random (as above)
 #   - config-first-random-deterministic -- Lowest channels in order they appear in [[video]] list below, otherwise random-deterministic (as above)
 #   - config-first-alphabetical -- Lowest channels in order they appear in [[video]] below, otherwise alphabetical (as above)
 #
-channel-mode = "random-deterministic"
-#channel-mode = "alphabetical"
+channel-mode = "alphabetical"
+#channel-mode = "random-deterministic"
 
 # One of letterbox, zoom, stretch
 #   - letterbox -- Add black bars to sides of videos that don't match your screen's aspect ratio
