@@ -108,7 +108,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Welcome
+              Home
             
           </span>
         </div>
@@ -218,7 +218,7 @@
   
     
   
-  Welcome
+  Home
 
       </a>
     </li>
@@ -298,7 +298,7 @@
           
   
   <span class="md-ellipsis">
-    Welcome
+    Home
   </span>
   
 
@@ -309,7 +309,7 @@
         
   
   <span class="md-ellipsis">
-    Welcome
+    Home
   </span>
   
 
@@ -329,6 +329,15 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#download-preview-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      Download Preview Build
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#configuration-values" class="md-nav__link">
@@ -365,9 +374,32 @@
   
 
 
+<script>
+const previewTag = "preview-build"
+
+document.addEventListener("DOMContentLoaded", async () => {
+  const downloadLink = document.querySelector(`a[href="https://github.com/dtcooper/vintage-pi-tv/releases/tag/${previewTag}"]`)
+  if (downloadLink) {
+    const release = await(await fetch(`https://api.github.com/repos/dtcooper/vintage-pi-tv/releases/tags/${previewTag}`)).json()
+    if (release.assets) {
+      for (const asset of release.assets) {
+        if (asset.name.endsWith(".img.xz")) {
+          downloadLink.href = asset.browser_download_url
+          break
+        }
+      }
+    }
+  } else {
+    console.warning("Couldn't find download link to swap out preview release.")
+  }
+})
+</script>
+
 <h1 id="welcome">Welcome</h1>
 <p>For now, as Vintage pi TV is in active development, this documentation is
 a placeholder.</p>
+<h2 id="download-preview-build">Download Preview Build</h2>
+<p>Download the latest <a href="https://github.com/dtcooper/vintage-pi-tv/releases/tag/preview-build">preview release build here</a>.</p>
 <h2 id="configuration-values">Configuration values</h2>
 <ul>
 <li><code>log-level</code> (optional True)</li>
