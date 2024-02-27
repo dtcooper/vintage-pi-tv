@@ -1,6 +1,6 @@
 import { addDynamicIconSelectors } from "@iconify/tailwind"
 import daisyui from "daisyui"
-import { cyberpunk } from "daisyui/src/theming/themes"
+import { synthwave } from "daisyui/src/theming/themes"
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -10,8 +10,8 @@ export default {
     themes: [
       {
         light: {
-          ...cyberpunk,
-          fontFamily: `Space Mono,Space Mono Local,${cyberpunk.fontFamily}`
+          ...synthwave,
+          fontFamily: `Space Mono,Space Mono Local,${synthwave.fontFamily}`
         }
       }
     ]

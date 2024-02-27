@@ -14,16 +14,18 @@
   <Login />
 {/if}
 
-<div class="mx-auto flex h-screen max-h-screen max-w-screen-lg flex-col">
-  <header class="mt-3 flex items-center justify-center gap-x-4 sm:gap-x-10">
+<div
+  class="mx-auto grid h-screen max-w-screen-lg gap-3 py-0.5 sm:py-1.5"
+  class:grid-rows-[auto_auto_1fr_auto]={authenticated}
+  class:content-between={!authenticated}
+>
+  <header class="flex items-center justify-center gap-x-4 sm:gap-x-10">
     <span class="icon-[icon-park-solid--tv-one] h-8 w-8 sm:h-12 sm:w-12"></span>
     <h1 class="text-3xl font-bold italic underline sm:text-5xl">Vintage Pi TV</h1>
     <span class="icon-[icon-park-solid--tv-one] h-8 w-8 sm:h-12 sm:w-12"></span>
   </header>
-  <main class="mt-2 flex flex-1 flex-col">
-    {#if authenticated}
-      <Main />
-    {/if}
-  </main>
+  {#if authenticated}
+    <Main />
+  {/if}
   <Footer />
 </div>

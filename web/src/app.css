@@ -29,3 +29,16 @@
   font-weight: 700;
   src: url("./assets/fonts/space-mono-bold-italic.ttf") format("truetype");
 }
+
+@layer utilities {
+  @supports (-webkit-touch-callout: none) {
+    :root {
+      @apply overscroll-none;
+    }
+
+    .h-screen {
+      height: 100vh;
+      max-height: -webkit-fill-available !important;
+    }
+  }
+}

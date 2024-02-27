@@ -42,6 +42,9 @@ const createWebsocket = () => {
         ws.send(JSON.stringify(data))
       }
     },
+    action(action, extras) {
+      this.send({ action, ...extras })
+    },
     disconnect(reason = null) {
       if (ws) {
         // Set ws to null before closing so failure reason doesn't propagate and

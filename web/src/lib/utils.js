@@ -22,3 +22,14 @@ export const isViewableBasedOnCurrentRating = (rating, currentRating, ratings) =
     return ratingNum <= currentRatingNum
   }
 }
+
+export const formatDuration = (secs, forceHour = false) => {
+  let d = ""
+  secs = Math.round(secs)
+  if (secs > 3600 || forceHour) {
+    d = `${Math.floor(secs / 3600)}:`
+  }
+  d += `${Math.floor((secs % 3600) / 60)}:`.padStart(3, "0")
+  d += `${secs % 60}`.padStart(2, "0")
+  return d
+}
