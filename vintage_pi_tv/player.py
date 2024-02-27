@@ -221,6 +221,9 @@ class Player:
                 multiplier = 1 if action == "right" else -1
                 self._mpv.seek(multiplier * 15.0)
                 self.osd.show(progress_bar=True)
+            case "seek":
+                self._mpv.seek(extras["position"], absolute=True)
+                self.osd.show(progress_bar=True)
             case "rewind":
                 self._mpv.seek(0.0, absolute=True)
                 self.osd.show(progress_bar=True)
@@ -248,7 +251,7 @@ class Player:
                 else:
                     exit(0, "Shut down by request")
             case _:
-                logger.critical(f"Unknown keypress: {action}")
+                logger.critical(f"Unknown action: {action} ({extras=})")
         return next_video
 
     def set_rating(self, rating: str):
