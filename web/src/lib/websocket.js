@@ -23,7 +23,8 @@ const dataReset = {
   ratings: null,
   state: null,
   version: null,
-  videos_db: null
+  videos_db: null,
+  volume: null
 }
 
 const createWebsocket = () => {

@@ -2,7 +2,7 @@
   import { websocket, password, defaultServerUrl, serverUrl } from "./websocket"
   import { persisted } from "svelte-persisted-store"
   import { slide } from "svelte/transition"
-  import Modal from "./Modal.svelte"
+  import Modal from "./components/Modal.svelte"
 
   let disabled = false
   let revealPassword = false
