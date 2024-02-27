@@ -119,6 +119,7 @@ class Player:
 
         self._num_state_keys = len(self.state)
         self._websocket_updates_queue.put({"type": "current_rating", "data": self._current_rating})
+        self._websocket_updates_queue.put({"type": "volume", "data": self._mpv.volume})
 
     def _state_getter(self) -> dict:
         return self.state
@@ -219,7 +220,8 @@ class Player:
                     self._mpv.stop()
             case "right" | "left":
                 multiplier = 1 if action == "right" else -1
-                self._mpv.seek(multiplier * 15.0)
+                seconds = float(extras.get("seconds", 15.0))
+                self._mpv.seek(multiplier * seconds)
                 self.osd.show(progress_bar=True)
             case "seek":
                 self._mpv.seek(extras["position"], absolute=True)
@@ -231,9 +233,11 @@ class Player:
                 amount = 5 * (1 if action == "volume-up" else -1)
                 self._mpv.change_volume(amount)
                 self.osd.show(volume=True)
+                self._websocket_updates_queue.put({"type": "volume", "data": self._mpv.volume})
             case "mute":
                 self._mpv.toggle_mute()
                 self.osd.show(volume=True)
+                self._websocket_updates_queue.put({"type": "volume", "data": self._mpv.volume})
             case "ratings":
                 if self._config.ratings:  # Ratings disabled
                     num = self._config.ratings_dict[self._current_rating]["num"]

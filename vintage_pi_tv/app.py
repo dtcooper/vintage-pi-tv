@@ -25,7 +25,7 @@ if sys.version_info < (3, 7):
 
 logger = logging.getLogger(__name__)
 
-REQUIRED_BROADCAST_DATA_KEYS_TO_START = ("state", "current_rating", "ratings", "videos_db", "version")
+REQUIRED_BROADCAST_DATA_KEYS_TO_START = ("state", "current_rating", "ratings", "videos_db", "version", "volume")
 broadcast_data = {"version": get_vintage_pi_tv_version()}
 websockets: weakref.WeakSet[WebSocket] = weakref.WeakSet()
 websocket_updates_queue: janus.Queue[dict] = janus.Queue()
