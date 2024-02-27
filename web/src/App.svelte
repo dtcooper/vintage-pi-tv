@@ -15,7 +15,7 @@
 {/if}
 
 <div
-  class="mx-auto grid h-screen max-w-screen-lg gap-3 py-0.5 sm:py-1.5"
+  class="mx-auto grid h-screen max-w-screen-xl gap-3 py-0.5 sm:py-1.5 md:gap-5"
   class:grid-rows-[auto_auto_1fr_auto]={authenticated}
   class:content-between={!authenticated}
 >

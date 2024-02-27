@@ -33,3 +33,14 @@ export const formatDuration = (secs, forceHour = false) => {
   d += `${secs % 60}`.padStart(2, "0")
   return d
 }
+
+export const colorForRating = (rating, ratings) => {
+  if (ratings) {
+    for (const ratingObj of ratings) {
+      if (ratingObj.rating === rating) {
+        return ratingObj.color
+      }
+    }
+  }
+  return "#FFFFFF"
+}

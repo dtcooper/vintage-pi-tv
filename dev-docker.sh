@@ -114,7 +114,7 @@ DOCKER_EXEC=(
         -v "${PWD}/docker/daemons.conf:/etc/supervisor/conf.d/daemons.conf"
         -v "${PWD}/docker/nginx.conf:/etc/nginx/sites-enabled/default"
         -v "${PWD}/docker/entrypoint.sh:/entrypoint.sh"
-        -p "127.0.0.1:${PORT}:6672"
+        -p "${PORT}:6672"
         -p "127.0.0.1:${VNC_PORT}:8000"
 )
 

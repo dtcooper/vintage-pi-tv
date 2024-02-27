@@ -53,7 +53,8 @@ class Video:
                     f"Video {path} had an invalid rating: {self.rating!r}. Assigning default: {default_rating!r}"
                 )
                 self.rating = default_rating
-            self.rating_dict = self._videos_db.config.ratings_dict[self.rating]
+            if self.rating:
+                self.rating_dict = self._videos_db.config.ratings_dict[self.rating]
 
         self.subtitles: int | Path
         if subtitles is None:  # Unset

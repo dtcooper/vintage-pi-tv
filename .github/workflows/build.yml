@@ -15,7 +15,7 @@ jobs:
     steps:
       -
         name: Remove unnecessary files
-        uses: jlumbroso/free-disk-space@main
+        uses: jlumbroso/free-disk-space@v1.3.1
         with:  # Set more of these to true if more disk space needed (speed tradeoff)
           tool-cache: false
           docker-images: false
