@@ -16,6 +16,7 @@ fi
 
 DO_REBUILD=
 DO_NO_CACHE_REBUILD=
+DO_BUILD_ONLY=
 VNC_PORT=8000
 PORT=6672
 DO_AUDIO=
@@ -36,14 +37,19 @@ Usage: ${_CMD} [-r] [-R] [-p <int>] [-a] [-b] [-f] [-h]
 Develop Vintage Pi TV in a Docker container with noVNC
 
 Options:
-  -r, --rebuild               Force a rebuild of the Docker container
-  -R, --no-cache-rebuild      Force a rebuild of the Docker container (no cache)
-  -p <int>, --port <int>      Port to bind the server to (default: ${PORT})
-  -P <int>, --vnc-port <int>  Port to bind the VNC server to (default: ${VNC_PORT})
-  -a, --audio             Attempt to enable sound via Pulseaudio
-  -b, --browser           Open web browser after starting container
-  -f, --force             Force running of this tool, even on a Raspberry Pi
-  -h, --help              Show this help screen
+  -r, --rebuild
+                    Force a rebuild of the Docker container
+  -R, --no-cache-rebuild
+                    Force a rebuild of the Docker container (no cache)
+  --build-only      Only run build step, don't enter container
+  -p <int>, --port <int>
+                    Port to bind the HTTP/websocket server to (default: ${PORT})
+  -P <int>, --vnc-port <int>
+                    Port to bind the VNC server to (default: ${VNC_PORT})
+  -a, --audio       Attempt to enable sound via Pulseaudio
+  -b, --browser     Open web browser after starting container
+  -f, --force       Force running of this tool, even on a Raspberry Pi
+  -h, --help        Show this help screen
 EOF
     exit "${1:-0}"
 }
@@ -56,6 +62,9 @@ while [ "${1:0:1}" = '-' ]; do
         ;;
         -R|--no-cache-rebuild)
             DO_NO_CACHE_REBUILD=1
+        ;;
+        --build-only)
+            DO_BUILD_ONLY=1
         ;;
         -p|--port)
             PORT="${2}"
@@ -111,11 +120,17 @@ DOCKER_EXEC=(
 
 export DOCKER_CLI_HINTS=false
 
-if [ "${DO_NO_CACHE_REBUILD}" ] || [ "${DO_REBUILD}" ] || [ -z "$("${DOCKER_CMD}" images -q "${CONTAINER_NAME}" 2> /dev/null)" ]; then
+if [ "${DO_NO_CACHE_REBUILD}" ] \
+        || [ "${DO_REBUILD}" ] \
+        || [ "${DO_BUILD_ONLY}" ] \
+        || [ -z "$("${DOCKER_CMD}" images -q "${CONTAINER_NAME}" 2> /dev/null)" ]; then
     echo "# Building container ${CONTAINER_NAME} now."
     BUILD_CMD=("${DOCKER_CMD}" build -t "${CONTAINER_NAME}" ${DO_NO_CACHE_REBUILD:+--no-cache --pull} -f docker/Dockerfile .)
     echo "\$ ${BUILD_CMD[*]}"
     "${BUILD_CMD[@]}"
+    if [ "${DO_BUILD_ONLY}" ]; then
+        exit 0
+    fi
 fi
 
 if [ "${DO_AUDIO}" ]; then
