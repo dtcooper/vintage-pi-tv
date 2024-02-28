@@ -1,8 +1,9 @@
 <script>
   import { websocket } from "./websocket"
   import { states } from "../../../constants.json"
-  import { isViewableBasedOnCurrentRating, formatDuration, colorForRating } from "./utils"
+  import { isViewableBasedOnCurrentRating, formatDuration } from "./utils"
   import PlayButton from "./components/PlayButton.svelte"
+  import RatingBadge from "./components/RatingBadge.svelte"
 
   let showRemaining = false
 
@@ -31,10 +32,11 @@
   }
 
   const seekButtons = [
-    ["icon-[mdi--rewind-60]", "left", { seconds: 60 }],
-    ["icon-[mdi--rewind-15]", "left", { seconds: 15 }],
-    ["icon-[mdi--fast-forward-15]", "right", { seconds: 15 }],
-    ["icon-[mdi--fast-forward-60]", "right", { seconds: 60 }]
+    // icon, action, extras, hideSmall
+    ["icon-[mdi--rewind-60]", "left", { seconds: 60 }, true],
+    ["icon-[mdi--rewind-15]", "left", { seconds: 15 }, false],
+    ["icon-[mdi--fast-forward-15]", "right", { seconds: 15 }, false],
+    ["icon-[mdi--fast-forward-60]", "right", { seconds: 60 }, true]
   ]
 </script>
 
@@ -76,8 +78,9 @@
       {disabled}
     />
     <PlayButton icon="icon-[mdi--shuffle-variant]" action="random" />
-    {#each seekButtons as [icon, action, extras]}
-      <PlayButton {icon} {action} {extras} />
+    <PlayButton icon="icon-[mdi--rewind]" action="rewind" />
+    {#each seekButtons as [icon, action, extras, hideSmall]}
+      <PlayButton class={hideSmall && "hidden md:flex"} {icon} {action} {extras} />
     {/each}
     <PlayButton
       icon={muted ? "icon-[mdi--volume-high]" : "icon-[mdi--mute]"}
@@ -98,7 +101,9 @@
     <PlayButton icon="icon-[mdi--volume-plus]" action="volume-up" />
 
     {#if currentRating}
-      <PlayButton action="ratings" style="color: {colorForRating(currentRating, ratings)}">{currentRating}</PlayButton>
+      <PlayButton action="ratings" isSquare={false}>
+        <RatingBadge rating={currentRating} />
+      </PlayButton>
     {/if}
   </div>
 </div>
@@ -106,20 +111,16 @@
 <div class="overflow-y-auto border border-base-content">
   <div class="flex flex-col gap-2 py-2">
     {#each $websocket.videos_db as video}
+      {@const isViewable = isViewableBasedOnCurrentRating(video.rating, currentRating, ratings)}
       <div class="flex items-center justify-between gap-2 px-2 py-0.5">
         <button
           class="btn btn-primary flex flex-1 justify-start truncate"
           on:click={() => websocket.action("play", { path: video.path })}
           disabled={!isPlayingOrPaused}
         >
-          {video.channel}. {video.name} [is_viewable={isViewableBasedOnCurrentRating(
-            video.rating,
-            currentRating,
-            ratings
-          )}]
+          {video.channel}. {video.name} [is_viewable={isViewable}]
           {#if video.rating}
-            {@const color = colorForRating(video.rating, ratings)}
-            <div style="color: {color}">{video.rating}</div>
+            <RatingBadge rating={video.rating} />
           {/if}
         </button>
 
