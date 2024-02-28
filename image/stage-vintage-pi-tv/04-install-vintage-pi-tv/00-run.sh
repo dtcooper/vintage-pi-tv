@@ -10,6 +10,7 @@ GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-dtcooper/vintage-pi-tv}"
 
 install -vm 440 files/099_vintage_pi_tv_ir_keytable "${ROOTFS_DIR}/etc/sudoers.d/099_vintage_pi_tv_ir_keytable"
 install -vm 644 files/10-poweroff-by-any-user.rules "${ROOTFS_DIR}/etc/polkit-1/rules.d/"
+install -vm 644 files/vintage-pi-tv.service "${ROOTFS_DIR}/etc/systemd/system/"
 
 if [ ! -d files/vintage-pi-tv ]; then
     echo 'WARNING: Vintage Pi TV repository not found at files/vintage-pi-tv so cloning fresh copy.'
@@ -64,6 +65,7 @@ if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
     cp -vr "${REPO_DIR}/web/dist" "${ROOTFS_DIR}/opt/vintage-pi-tv/web/dist"
     on_chroot <<EOF
 chown -R "${FIRST_USER_NAME}:${FIRST_USER_NAME}" /opt/vintage-pi-tv/web/dist
+systemctl enable vintage-pi-tv.service
 EOF
     rm -rf "${ROOTFS_DIR}/opt/poetry"
 else

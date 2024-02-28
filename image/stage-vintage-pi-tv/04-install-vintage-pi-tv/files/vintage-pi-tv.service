@@ -1,0 +1,13 @@
+[Unit]
+Description=Vintage Pi TV
+After=udiskie.service
+
+[Service]
+Type=simple
+ExecStart=/opt/vintage-pi-tv/.venv/bin/tv --wait-for-config-seconds 5
+Restart=always
+RestartSec=3
+User=1000
+
+[Install]
+WantedBy=multi-user.target
