@@ -40,7 +40,7 @@
   ]
 </script>
 
-<div class="flex flex-col gap-2 overflow-hidden px-2 sm:gap-3 xl:px-1">
+<div class="mt-2 flex flex-col gap-3 overflow-hidden px-2 md:gap-4 lg:gap-5 xl:px-1">
   <!-- Filename header -->
   <div class="flex items-center justify-center text-base sm:text-lg md:text-2xl lg:text-3xl">
     {#if isPlayingOrPaused}
@@ -89,12 +89,10 @@
     />
     <PlayButton icon="icon-[mdi--volume-minus]" action="volume-down" />
     <div
-      class="join-item flex h-full w-12 items-center justify-center bg-base-200 px-1 text-sm sm:w-14 sm:text-base md:w-16 md:text-lg"
+      class="join-item flex h-full w-12 items-center justify-center bg-neutral px-1 text-sm sm:w-14 sm:text-base md:w-16 md:text-lg"
       class:text-warning={muted}
       class:text-success={!muted && volume >= 100}
       class:text-error={!muted && volume <= 0}
-      class:bg-neutral={!isPlayingOrPaused}
-      class:bg-opacity-20={!isPlayingOrPaused}
     >
       {muted ? "muted" : `${volume}%`}
     </div>
@@ -108,25 +106,27 @@
   </div>
 </div>
 
-<div class="overflow-y-auto border border-base-content">
+<div class="mt-1 overflow-y-auto border border-base-content sm:mt-2">
   <div class="flex flex-col gap-2 py-2">
     {#each $websocket.videos_db as video}
       {@const isViewable = isViewableBasedOnCurrentRating(video.rating, currentRating, ratings)}
+      {@const isCurrent = video.path === current?.path}
       <div class="flex items-center justify-between gap-2 px-2 py-0.5">
         <button
-          class="btn btn-primary flex flex-1 justify-start truncate"
+          class="btn btn-sm flex flex-1 justify-start overflow-hidden sm:btn-md md:btn-lg"
+          class:pointer-events-none={!isViewable || isCurrent}
+          class:cursor-auto={!isViewable || isCurrent}
+          class:btn-secondary={isCurrent}
+          class:btn-neutral={!isCurrent}
+          disabled={!isCurrent && (!isPlayingOrPaused || !isViewable)}
           on:click={() => websocket.action("play", { path: video.path })}
-          disabled={!isPlayingOrPaused}
         >
-          {video.channel}. {video.name} [is_viewable={isViewable}]
+          <span class="font-bold">{video.channel}.</span>
+          <span class="flex-1 truncate text-left font-normal italic">{video.name}</span>
           {#if video.rating}
             <RatingBadge rating={video.rating} />
           {/if}
         </button>
-
-        {#if video.path === current?.path}
-          <div class="badge badge-accent">Current</div>
-        {/if}
       </div>
     {/each}
   </div>

@@ -28,8 +28,8 @@
 </script>
 
 <span
-  class="badge badge-sm sm:badge-md md:badge-lg {extraClasses} border-[2px] md:border-[3px]"
-  style="color: {color}; background-color: {bgColor}; border-color: {color}"
+  class="badge badge-sm !px-1 font-normal sm:badge-md md:badge-lg sm:!px-1.5 md:font-bold {extraClasses}"
+  style="color: {color}; background-color: {bgColor}; border-color: {bgColor}"
   {...$$restProps}
 >
   {rating}

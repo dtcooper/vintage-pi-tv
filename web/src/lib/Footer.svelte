@@ -8,7 +8,7 @@
   $: connecting = $websocket.connecting
 </script>
 
-<footer class="mx-1 grid h-8 items-center gap-1 px-0.5 sm:px-1" class:grid-cols-[1fr_auto_1fr]={authenticated}>
+<footer class="mx-1 grid items-center gap-1 px-0.5 sm:px-1" class:grid-cols-[1fr_auto_1fr]={authenticated}>
   {#if authenticated}
     <div class="flex items-center gap-1">
       <span class="text-xs leading-none">Status:</span>

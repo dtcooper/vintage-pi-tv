@@ -13,7 +13,7 @@
 </script>
 
 <button
-  class="btn {isSquare && 'btn-square'} join-item btn-sm sm:btn-md lg:btn-lg {extraClasses || ''}"
+  class="btn btn-neutral {isSquare && 'btn-square'} join-item btn-sm sm:btn-md lg:btn-lg {extraClasses || ''}"
   on:click|preventDefault={() => websocket.action(action, extras)}
   {disabled}
   {...$$restProps}
