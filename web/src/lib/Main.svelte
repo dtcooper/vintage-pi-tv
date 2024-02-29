@@ -7,7 +7,6 @@
 
   let showRemaining = false
 
-  $: connected = $websocket.connected
   $: current = $websocket.state.video
   $: currentRating = $websocket.current_rating
   $: disabled = !isPlayingOrPaused
@@ -24,6 +23,16 @@
   $: ratings = $websocket.ratings
   $: remainingPretty = `-${formatDuration(duration - position, duration >= 3600)}`
   $: [volume, muted] = $websocket.volume
+
+  let lastVideo
+  let elements = {}
+  $: elements = Object.fromEntries(Object.entries(elements).filter(([_, v]) => !!v)) // Remove empty keys
+  $: if (lastVideo?.path !== current?.path) {
+    lastVideo = current
+    if (current) {
+      elements[current.path]?.scrollIntoView({ behavior: "smooth", block: "center" }, 25)
+    }
+  }
 
   const progressBarSeek = (event) => {
     if (isPlayingOrPaused && duration > 0) {
@@ -45,12 +54,12 @@
   <div class="flex items-center justify-center text-base sm:text-lg md:text-2xl lg:text-3xl">
     {#if isPlayingOrPaused}
       <div class="truncate font-bold italic {pausePulseClasses}">
-        {current.name}
+        {current.channel}. {current.name}
       </div>
     {:else if state === states.loading}
-      <span class="text-warning">Loading...</span>
+      <span class="animate-pulse text-warning">Loading...</span>
     {:else if state === states.needs_files}
-      <span class="animate animate-pulse font-bold italic text-error">No video files detected!</span>
+      <span class="animate-pulse font-bold italic text-error">No video files detected!</span>
     {/if}
   </div>
 
@@ -89,7 +98,8 @@
     />
     <PlayButton icon="icon-[mdi--volume-minus]" action="volume-down" />
     <div
-      class="join-item flex h-full w-12 items-center justify-center bg-neutral px-1 text-sm sm:w-14 sm:text-base md:w-16 md:text-lg"
+      class="join-item flex h-full w-12 items-center justify-center bg-neutral px-1 text-sm text-neutral-content sm:w-14 sm:text-base md:w-16 md:text-lg"
+      class:text-neutral-content={!muted && volume > 0 && volume < 100}
       class:text-warning={muted}
       class:text-success={!muted && volume >= 100}
       class:text-error={!muted && volume <= 0}
@@ -106,12 +116,13 @@
   </div>
 </div>
 
+<!-- Playlist -->
 <div class="mt-1 overflow-y-auto border border-base-content sm:mt-2">
   <div class="flex flex-col gap-2 py-2">
     {#each $websocket.videos_db as video}
       {@const isViewable = isViewableBasedOnCurrentRating(video.rating, currentRating, ratings)}
       {@const isCurrent = video.path === current?.path}
-      <div class="flex items-center justify-between gap-2 px-2 py-0.5">
+      <div class="flex items-center justify-between gap-2 px-2 py-0.5" bind:this={elements[video.path]}>
         <button
           class="btn btn-sm flex flex-1 justify-start overflow-hidden sm:btn-md md:btn-lg"
           class:pointer-events-none={!isViewable || isCurrent}
