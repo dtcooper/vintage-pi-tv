@@ -33,7 +33,7 @@ RUN rm -rf /var/www/html \
     && ln -s /usr/share/novnc/vnc.html /usr/share/novnc/index.html
 
 # Install poetry
-ARG POETRY_VERSION=1.8.1 \
+ARG POETRY_VERSION=1.8.2 \
     POETRY_HOME=/opt/poetry
 RUN curl -L https://install.python-poetry.org/ | python3
 ENV PATH="${POETRY_HOME}/bin:${PATH}"
