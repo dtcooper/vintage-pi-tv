@@ -130,8 +130,8 @@ config_schema = Schema(
             And(
                 [
                     Schema({
-                        "rating": And(Use(str), Use(lambda s: s.strip().upper()), len),
-                        "description": NON_EMPTY_STRING,
+                        "rating": And(Use(str), Use(lambda s: s.strip().upper()), lambda s: 1 <= len(s) <= 5),
+                        "description": And(Use(lambda s: s.strip()), lambda s: 1 <= len(s) <= 20),
                         Optional("color", default="#FFFFFF"): Regex(r"^#[a-fA-F0-9]{6}$"),
                     })
                 ],
