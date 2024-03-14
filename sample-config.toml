@@ -67,6 +67,9 @@ ratings = [
 # Or disable ratings altogether
 #ratings = false
 
+# Rating to start with (defaults to last in list above)
+#starting-rating = "X"
+
 # Set valid file extensions to sane defaults
 valid-file-extensions = "defaults"
 # Or or provide a list of extensions (without the period)
