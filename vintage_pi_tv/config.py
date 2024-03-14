@@ -29,6 +29,7 @@ class Config:
     ]
     channel_osd_always_on: bool
     crt_filter: bool
+    default_rating: bool | str
     disable_osd: bool
     ir_remote: dict[str, Any]
     keyboard: dict[str, Any]
@@ -41,6 +42,7 @@ class Config:
     save_place_while_browsing: bool
     search_dirs: list[dict[str, Path | bool]]
     show_fps: bool
+    starting_rating: bool | str
     starting_volume: int
     static_time_between_channels: float
     static_time: float
@@ -91,6 +93,12 @@ class Config:
         self.ratings_dict: dict = {}
         if self.ratings:
             self.ratings_dict.update({rating["rating"]: {"num": n, **rating} for n, rating in enumerate(self.ratings)})
+            if not self.starting_rating or self.starting_rating not in self.ratings_dict:
+                self.starting_rating = self.ratings[-1]["rating"]
+            self.default_rating = self.ratings[0]["rating"] if self.ratings else False
+        else:
+            self.starting_rating = False
+            self.default_rating = False
 
         if self.disable_osd and self.channel_osd_always_on:
             logger.warning("'disable-osd' and 'channel_osd_always_on' both are true. Preferring 'disable-osd'")
@@ -101,14 +109,6 @@ class Config:
             self.power_key_shutdown = self.power_key_shutdown == "pi-only" and is_raspberry_pi()
 
         self.videos = {video.pop("filename"): video for video in self._config.pop("video")}
-
-    @property
-    def default_rating(self) -> bool | str:
-        return self.ratings[0]["rating"] if self.ratings else False
-
-    @property
-    def starting_rating(self) -> bool | str:
-        return self.ratings[-1]["rating"] if self.ratings else False
 
     def __getattr__(self, key):
         try:

@@ -47,7 +47,7 @@ class Video:
         default_rating = self._videos_db.config.default_rating
         self.rating_dict: None | dict
         self.rating: str | Literal[False] = rating or default_rating  # Assign default if falsey
-        if self.rating:  # Default could be false (in which case ratings are disabled)
+        if self.rating:  # Default still could be false (in which case ratings are disabled)
             if self.rating not in self._videos_db.config.ratings_dict:
                 logger.warning(
                     f"Video {path} had an invalid rating: {self.rating!r}. Assigning default: {default_rating!r}"

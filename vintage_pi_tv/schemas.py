@@ -138,6 +138,7 @@ config_schema = Schema(
                 len,
             ),
         ),
+        Optional("starting-rating", default=False): Or(False, NON_EMPTY_STRING),
         Optional("overscan-margins", default={"top": 0, "right": 0, "bottom": 0, "left": 0}): Or(
             Schema({direction: And(Use(int), lambda i: i >= 0) for direction in ("top", "right", "bottom", "left")}),
         ),
