@@ -5,6 +5,9 @@ After=udiskie.service
 [Service]
 Type=simple
 ExecStart=/opt/vintage-pi-tv/.venv/bin/tv --port 80 --wait-for-config-seconds 5
+StandardInput=tty-force
+StandardOutput=tty-force
+TTYReset=yes
 Restart=always
 RestartSec=3
 User=1000
